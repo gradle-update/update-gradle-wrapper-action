@@ -37,7 +37,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Update Gradle Wrapper
-      uses: gradle-update/action-update-gradle-wrapper@v1
+      uses: gradle-update/update-gradle-wrapper-action@v1
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
