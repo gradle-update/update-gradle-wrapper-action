@@ -43,7 +43,8 @@ async function run() {
     await wrapper.updateWrapper(GRADLE_VERSION);
 
     const modifiedFiles: string[] = await git.gitDiffNameOnly();
-    core.debug(`Modified files: ${modifiedFiles}`);
+    core.debug(`Modified files count: ${modifiedFiles.length}`);
+    core.debug(`Modified files list: ${modifiedFiles}`);
 
     if (!modifiedFiles.length) {
       core.warning(

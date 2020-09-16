@@ -19,7 +19,7 @@ import * as cmd from './cmd';
 export async function gitDiffNameOnly(): Promise<string[]> {
   const {stdout} = await cmd.execWithOutput('git', ['diff', '--name-only']);
 
-  const files = stdout.split('\n');
+  const files = stdout.split('\n').filter(f => f.length);
   core.debug(`Git diff files: ${files}`);
 
   return files;

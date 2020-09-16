@@ -3143,7 +3143,7 @@ const cmd = __importStar(__webpack_require__(816));
 function gitDiffNameOnly() {
     return __awaiter(this, void 0, void 0, function* () {
         const { stdout } = yield cmd.execWithOutput('git', ['diff', '--name-only']);
-        const files = stdout.split('\n');
+        const files = stdout.split('\n').filter(f => f.length);
         core.debug(`Git diff files: ${files}`);
         return files;
     });
@@ -6415,7 +6415,8 @@ function run() {
             core.info('Updating Wrapper');
             yield wrapper.updateWrapper(GRADLE_VERSION);
             const modifiedFiles = yield git.gitDiffNameOnly();
-            core.debug(`Modified files: ${modifiedFiles}`);
+            core.debug(`Modified files count: ${modifiedFiles.length}`);
+            core.debug(`Modified files list: ${modifiedFiles}`);
             if (!modifiedFiles.length) {
                 core.warning(`✅ Gradle Wrapper is already up-to-date (version ${GRADLE_VERSION})! 👍`);
                 return;
