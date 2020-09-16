@@ -1,0 +1,16 @@
+name: 'Update Gradle Wrapper'
+description: 'Keeps Gradle Wrapper script in your projects up-to-date'
+author: 'Cristian Greco'
+
+branding:
+  icon: chevrons-up
+  color: green
+
+inputs:
+  repo-token:
+    description: 'Token for the repository. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.'
+    required: true
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
