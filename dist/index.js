@@ -7382,13 +7382,17 @@ function createLabel() {
 function addReviewers(pr, reviewers) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { data } = yield octokit.pulls.requestReviewers({
+            const res = yield octokit.pulls.requestReviewers({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
                 pull_number: pr,
                 reviewers
             });
-            core.debug(`Revievers: ${data.requested_reviewers.map(r => r.login)}`);
+            core.debug(`Response status: ${res.status}`);
+            core.debug(`Reviewers data: ${JSON.stringify(res.data.requested_reviewers, null, 2)}`);
+            core.debug(`Reviewers list: ${res.data.requested_reviewers
+                .map(r => r.login)
+                .join(' ')}`);
         }
         catch (error) {
             if (error.status !== 422) {
