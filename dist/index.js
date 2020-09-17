@@ -7382,17 +7382,25 @@ function createLabel() {
 function addReviewers(pr, reviewers) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Adding PR reviewers: ${reviewers}`);
-        const res = yield octokit.pulls.requestReviewers({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            pull_number: pr,
-            reviewers
-        });
-        if (res.data.requested_reviewers.length !== reviewers.length) {
-            core.debug(`Added reviewers: ${res.data.requested_reviewers
-                .map(r => r.login)
-                .join(' ')}`);
-            core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
+        try {
+            const res = yield octokit.pulls.requestReviewers({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                pull_number: pr,
+                reviewers
+            });
+            if (res.data.requested_reviewers.length !== reviewers.length) {
+                core.debug(`Added reviewers: ${res.data.requested_reviewers
+                    .map(r => r.login)
+                    .join(' ')}`);
+                core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
+            }
+        }
+        catch (error) {
+            if (error.status !== 422) {
+                throw error;
+            }
+            core.warning(error.message);
         }
     });
 }

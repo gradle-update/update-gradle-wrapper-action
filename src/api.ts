@@ -274,22 +274,30 @@ async function createLabel(): Promise<IssuesCreateLabelResponseData> {
 async function addReviewers(pr: number, reviewers: string[]) {
   core.info(`Adding PR reviewers: ${reviewers}`);
 
-  const res = await octokit.pulls.requestReviewers({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: pr,
-    reviewers
-  });
+  try {
+    const res = await octokit.pulls.requestReviewers({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pr,
+      reviewers
+    });
 
-  if (res.data.requested_reviewers.length !== reviewers.length) {
-    core.debug(
-      `Added reviewers: ${res.data.requested_reviewers
-        .map(r => r.login)
-        .join(' ')}`
-    );
+    if (res.data.requested_reviewers.length !== reviewers.length) {
+      core.debug(
+        `Added reviewers: ${res.data.requested_reviewers
+          .map(r => r.login)
+          .join(' ')}`
+      );
 
-    core.warning(
-      `Unable to set all the PR reviewers, check usernames are correct.`
-    );
+      core.warning(
+        `Unable to set all the PR reviewers, check usernames are correct.`
+      );
+    }
+  } catch (error) {
+    if (error.status !== 422) {
+      throw error;
+    }
+
+    core.warning(error.message);
   }
 }
