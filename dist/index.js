@@ -7257,7 +7257,7 @@ function commitAndCreatePR(files, versionFrom) {
         });
         const reviewers = core
             .getInput('reviewers')
-            .split(' ')
+            .split(/[\n\s,]/)
             .map(r => r.trim())
             .filter(r => r.length);
         if (reviewers.length) {
@@ -7381,24 +7381,18 @@ function createLabel() {
 }
 function addReviewers(pr, reviewers) {
     return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const res = yield octokit.pulls.requestReviewers({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                pull_number: pr,
-                reviewers
-            });
-            core.debug(`Response status: ${res.status}`);
-            core.debug(`Reviewers data: ${JSON.stringify(res.data.requested_reviewers, null, 2)}`);
-            core.debug(`Reviewers list: ${res.data.requested_reviewers
+        core.info(`Adding PR reviewers: ${reviewers}`);
+        const res = yield octokit.pulls.requestReviewers({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            pull_number: pr,
+            reviewers
+        });
+        if (res.data.requested_reviewers.length !== reviewers.length) {
+            core.debug(`Added reviewers: ${res.data.requested_reviewers
                 .map(r => r.login)
                 .join(' ')}`);
-        }
-        catch (error) {
-            if (error.status !== 422) {
-                throw error;
-            }
-            core.warning(error.message);
+            core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
         }
     });
 }

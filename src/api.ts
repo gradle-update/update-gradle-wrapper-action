@@ -125,9 +125,10 @@ export async function commitAndCreatePR(
 
   const reviewers = core
     .getInput('reviewers')
-    .split(' ')
+    .split(/[\n\s,]/)
     .map(r => r.trim())
     .filter(r => r.length);
+
   if (reviewers.length) {
     await addReviewers(pr.number, reviewers);
   }
@@ -271,28 +272,24 @@ async function createLabel(): Promise<IssuesCreateLabelResponseData> {
 }
 
 async function addReviewers(pr: number, reviewers: string[]) {
-  try {
-    const res = await octokit.pulls.requestReviewers({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      pull_number: pr,
-      reviewers
-    });
+  core.info(`Adding PR reviewers: ${reviewers}`);
 
-    core.debug(`Response status: ${res.status}`);
+  const res = await octokit.pulls.requestReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: pr,
+    reviewers
+  });
+
+  if (res.data.requested_reviewers.length !== reviewers.length) {
     core.debug(
-      `Reviewers data: ${JSON.stringify(res.data.requested_reviewers, null, 2)}`
-    );
-    core.debug(
-      `Reviewers list: ${res.data.requested_reviewers
+      `Added reviewers: ${res.data.requested_reviewers
         .map(r => r.login)
         .join(' ')}`
     );
-  } catch (error) {
-    if (error.status !== 422) {
-      throw error;
-    }
 
-    core.warning(error.message);
+    core.warning(
+      `Unable to set all the PR reviewers, check usernames are correct.`
+    );
   }
 }

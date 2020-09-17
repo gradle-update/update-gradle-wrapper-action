@@ -11,7 +11,7 @@ inputs:
     description: 'Access token for the repository, e.g. `{{ secrets.GITHUB_TOKEN }}`.'
     required: true
   reviewers:
-    description: ''
+    description: 'List of users to request a review from (comma, space or newline-separated).'
     required: false
 
 runs:

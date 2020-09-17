@@ -133,6 +133,30 @@ with `repo` scope and add it [as a
 secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
 into your repository.
 
+### `reviewers`
+
+| Name | Description | Required |
+| --- | --- | --- |
+| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No |
+
+Request a review from these GitHub usernames (notifications will be triggered).
+
+For example:
+
+```yaml
+with:
+  reviewers: username1 username2
+```
+
+or
+
+```yaml
+with:
+  reviewers: |
+    username1
+    username2
+```
+
 ## Examples
 
 ### Scheduling action execution
