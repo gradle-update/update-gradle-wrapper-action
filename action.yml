@@ -10,6 +10,9 @@ inputs:
   repo-token:
     description: 'Access token for the repository, e.g. `{{ secrets.GITHUB_TOKEN }}`.'
     required: true
+  reviewers:
+    description: ''
+    required: false
 
 runs:
   using: 'docker'

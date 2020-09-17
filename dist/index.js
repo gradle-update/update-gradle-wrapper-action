@@ -7255,6 +7255,14 @@ function commitAndCreatePR(files, versionFrom) {
             issue_number: pr.number,
             labels: [LABEL_NAME]
         });
+        const reviewers = core
+            .getInput('reviewers')
+            .split(' ')
+            .map(r => r.trim())
+            .filter(r => r.length);
+        if (reviewers.length) {
+            yield addReviewers(pr.number, reviewers);
+        }
         return pr.html_url;
     });
 }
@@ -7369,6 +7377,25 @@ function createLabel() {
         });
         core.debug(`Label id: ${label.data.id}`);
         return label.data;
+    });
+}
+function addReviewers(pr, reviewers) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { data } = yield octokit.pulls.requestReviewers({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                pull_number: pr,
+                reviewers
+            });
+            core.debug(`Revievers: ${data.requested_reviewers.map(r => r.login)}`);
+        }
+        catch (error) {
+            if (error.status !== 422) {
+                throw error;
+            }
+            core.warning(error.message);
+        }
     });
 }
 

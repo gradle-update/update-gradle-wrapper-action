@@ -123,6 +123,15 @@ export async function commitAndCreatePR(
     labels: [LABEL_NAME]
   });
 
+  const reviewers = core
+    .getInput('reviewers')
+    .split(' ')
+    .map(r => r.trim())
+    .filter(r => r.length);
+  if (reviewers.length) {
+    await addReviewers(pr.number, reviewers);
+  }
+
   return pr.html_url;
 }
 
@@ -259,4 +268,22 @@ async function createLabel(): Promise<IssuesCreateLabelResponseData> {
   core.debug(`Label id: ${label.data.id}`);
 
   return label.data;
+}
+
+async function addReviewers(pr: number, reviewers: string[]) {
+  try {
+    const {data} = await octokit.pulls.requestReviewers({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: pr,
+      reviewers
+    });
+    core.debug(`Revievers: ${data.requested_reviewers.map(r => r.login)}`);
+  } catch (error) {
+    if (error.status !== 422) {
+      throw error;
+    }
+
+    core.warning(error.message);
+  }
 }
