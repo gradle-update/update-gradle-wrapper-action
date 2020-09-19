@@ -2406,7 +2406,7 @@ function updateWrapper(version) {
             ? process.env.GRADLE_DIST_BIN_CHECKSUM
             : process.env.GRADLE_DIST_ALL_CHECKSUM;
         /* eslint-enable @typescript-eslint/no-non-null-assertion */
-        yield cmd.execWithOutput('gradle', [
+        const { exitCode, stderr } = yield cmd.execWithOutput('gradle', [
             'wrapper',
             '--gradle-version',
             version,
@@ -2417,6 +2417,9 @@ function updateWrapper(version) {
             '--gradle-distribution-sha256-sum',
             sha256sum
         ]);
+        if (exitCode !== 0) {
+            core.warning(stderr);
+        }
     });
 }
 exports.updateWrapper = updateWrapper;
@@ -6414,6 +6417,7 @@ function run() {
             core.debug(`Current Wrapper: ${currentVersion}`);
             core.info('Updating Wrapper');
             yield wrapper.updateWrapper(GRADLE_VERSION);
+            core.info(`Checking modified files`);
             const modifiedFiles = yield git.gitDiffNameOnly();
             core.debug(`Modified files count: ${modifiedFiles.length}`);
             core.debug(`Modified files list: ${modifiedFiles}`);

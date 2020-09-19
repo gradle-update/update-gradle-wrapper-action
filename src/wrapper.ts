@@ -51,7 +51,7 @@ export async function updateWrapper(version: string) {
       : process.env.GRADLE_DIST_ALL_CHECKSUM!;
   /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
-  await cmd.execWithOutput('gradle', [
+  const {exitCode, stderr} = await cmd.execWithOutput('gradle', [
     'wrapper',
     '--gradle-version',
     version,
@@ -62,6 +62,10 @@ export async function updateWrapper(version: string) {
     '--gradle-distribution-sha256-sum',
     sha256sum
   ]);
+
+  if (exitCode !== 0) {
+    core.warning(stderr);
+  }
 }
 
 export async function distributionType(): Promise<string[]> {
