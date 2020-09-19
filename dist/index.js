@@ -2418,7 +2418,7 @@ function updateWrapper(version) {
             sha256sum
         ]);
         if (exitCode !== 0) {
-            core.warning(stderr);
+            throw new Error(stderr);
         }
     });
 }

@@ -64,7 +64,7 @@ export async function updateWrapper(version: string) {
   ]);
 
   if (exitCode !== 0) {
-    core.warning(stderr);
+    throw new Error(stderr);
   }
 }
 
