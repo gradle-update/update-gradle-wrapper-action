@@ -5,12 +5,12 @@
   "description": "Update Gradle Wrapper in your project",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
-    "pack": "ncc build",
     "format": "prettier --write src/**/*.ts",
     "format-check": "prettier --check src/**/*.ts",
-    "lint-check": "eslint --ext ts src/",
     "lint": "eslint --fix --ext ts src/",
+    "lint-check": "eslint --ext ts src/",
+    "build": "tsc",
+    "pack": "ncc build",
     "all": "npm run format && npm run lint && npm run build && npm run pack",
     "docker": "npm run build && npm run pack",
     "test": "echo \"Error: no test specified\" && exit 1"
