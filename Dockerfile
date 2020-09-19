@@ -16,6 +16,6 @@ WORKDIR /action-update-gradle-wrapper
 COPY package.json package-lock.json tsconfig.json ./
 COPY src/ src/
 
-RUN npm install --production && npm run docker
+RUN npm install && npm run docker
 
 ENTRYPOINT ["node", "/action-update-gradle-wrapper/dist/index.js"]
