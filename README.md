@@ -14,6 +14,14 @@ merged. It's like [Dependabot](https://dependabot.com) for Gradle Wrapper. ðŸ¤–â
 Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9-11ea-8ec7-85c2704270eb.png
 "Automatic Pull Request to update Gradle Wrapper")
 
+- [Usage](#usage)
+- [Why shoud I use this?](#why-should-i-use-this)
+- [Action inputs](#action-inputs)
+- [Examples](#examples)
+  - [Scheduling action execution](#scheduling-action-execution)
+- [Debugging](#debugging)
+- [License](#license)
+
 ## Usage
 
 Create a new dedicated workflow file:
@@ -48,7 +56,7 @@ available and create a Pull Request to update the Gradle Wrapper script.
 Check the detailed description of [action inputs](#action-inputs) and some more
 [usage examples](#examples).
 
-## Why shoud I use this?
+## Why should I use this?
 
 Gradle Wrapper is the recommended way to setup Gradle in your project. The
 Wrapper is a script that downloads and invokes a declared Gradle version. By
@@ -101,6 +109,11 @@ published by Gradle authors. Moreover, the action configures the Wrapper so that
 the Gradle executable itself can be verified once it is downloaded locally.
 
 ## Action inputs
+
+This is the list of supported inputs:
+
+- [`repo-token`](#repo-token)
+- [`reviewers`](#reviewers)
 
 ### `repo-token`
 
