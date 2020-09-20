@@ -114,7 +114,7 @@ export async function commitAndCreatePR(
 
   const pr: PullsCreateResponseData = await createPR(branchName, versionFrom);
 
-  findLabel();
+  await findLabel();
 
   await octokit.issues.addLabels({
     owner: context.repo.owner,
