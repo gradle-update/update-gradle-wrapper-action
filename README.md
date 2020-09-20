@@ -34,12 +34,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Update Gradle Wrapper
-      uses: gradle-update/update-gradle-wrapper-action@v1
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update Gradle Wrapper
+        uses: gradle-update/update-gradle-wrapper-action@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 The action will run every day around midnight, check if a new Gradle version is
