@@ -55,8 +55,7 @@ const core = __importStar(__webpack_require__(2186));
 const git = __importStar(__webpack_require__(3374));
 /* eslint-enable @typescript-eslint/no-unused-vars */
 const fs_1 = __webpack_require__(5747);
-/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-const GRADLE_VERSION = process.env.GRADLE_VERSION;
+const GRADLE_VERSION = '6.6.1';
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const LABEL_NAME = 'gradle-wrapper';
 const token = core.getInput('repo-token');
@@ -451,8 +450,7 @@ const core = __importStar(__webpack_require__(2186));
 const wrapper = __importStar(__webpack_require__(215));
 const api = __importStar(__webpack_require__(8947));
 const git = __importStar(__webpack_require__(3374));
-/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-const GRADLE_VERSION = process.env.GRADLE_VERSION;
+const GRADLE_VERSION = '6.6.1';
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -546,6 +544,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.distributionType = exports.updateWrapper = exports.verifyRun = exports.verifySha = void 0;
 const core = __importStar(__webpack_require__(2186));
 const cmd = __importStar(__webpack_require__(816));
+const GRADLE_DIST_BIN_CHECKSUM = '7873ed5287f47ca03549ab8dcb6dc877ac7f0e3d7b1eb12685161d10080910ac';
+const GRADLE_DIST_ALL_CHECKSUM = '11657af6356b7587bfb37287b5992e94a9686d5c8a0a1b60b87b9928a2decde5';
+const GRADLE_WRAPPER_JAR_CHECKSUM = 'e996d452d2645e70c01c11143ca2d3742734a28da2bf61f25c82bdc288c9e637';
 function verifySha() {
     return __awaiter(this, void 0, void 0, function* () {
         const { stdout } = yield cmd.execWithOutput('sha256sum', [
@@ -553,7 +554,7 @@ function verifySha() {
         ]);
         const [sum] = stdout.split(' ');
         core.debug(`SHA-256: ${sum}`);
-        if (sum !== process.env.GRADLE_WRAPPER_JAR_CHECKSUM) {
+        if (sum !== GRADLE_WRAPPER_JAR_CHECKSUM) {
             throw new Error('SHA-256 Wrapper jar mismatch');
         }
     });
@@ -573,11 +574,7 @@ exports.verifyRun = verifyRun;
 function updateWrapper(version) {
     return __awaiter(this, void 0, void 0, function* () {
         const [, distType] = yield distributionType();
-        /* eslint-disable @typescript-eslint/no-non-null-assertion */
-        const sha256sum = distType === 'bin'
-            ? process.env.GRADLE_DIST_BIN_CHECKSUM
-            : process.env.GRADLE_DIST_ALL_CHECKSUM;
-        /* eslint-enable @typescript-eslint/no-non-null-assertion */
+        const sha256sum = distType === 'bin' ? GRADLE_DIST_BIN_CHECKSUM : GRADLE_DIST_ALL_CHECKSUM;
         const { exitCode, stderr } = yield cmd.execWithOutput('gradle', [
             'wrapper',
             '--gradle-version',

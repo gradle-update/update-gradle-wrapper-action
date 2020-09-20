@@ -16,6 +16,13 @@ import * as core from '@actions/core';
 
 import * as cmd from './cmd';
 
+const GRADLE_DIST_BIN_CHECKSUM =
+  '7873ed5287f47ca03549ab8dcb6dc877ac7f0e3d7b1eb12685161d10080910ac';
+const GRADLE_DIST_ALL_CHECKSUM =
+  '11657af6356b7587bfb37287b5992e94a9686d5c8a0a1b60b87b9928a2decde5';
+const GRADLE_WRAPPER_JAR_CHECKSUM =
+  'e996d452d2645e70c01c11143ca2d3742734a28da2bf61f25c82bdc288c9e637';
+
 export async function verifySha() {
   const {stdout} = await cmd.execWithOutput('sha256sum', [
     'gradle/wrapper/gradle-wrapper.jar'
@@ -24,7 +31,7 @@ export async function verifySha() {
   const [sum] = stdout.split(' ');
   core.debug(`SHA-256: ${sum}`);
 
-  if (sum !== process.env.GRADLE_WRAPPER_JAR_CHECKSUM) {
+  if (sum !== GRADLE_WRAPPER_JAR_CHECKSUM) {
     throw new Error('SHA-256 Wrapper jar mismatch');
   }
 }
@@ -44,12 +51,8 @@ export async function verifyRun() {
 export async function updateWrapper(version: string) {
   const [, distType] = await distributionType();
 
-  /* eslint-disable @typescript-eslint/no-non-null-assertion */
   const sha256sum =
-    distType === 'bin'
-      ? process.env.GRADLE_DIST_BIN_CHECKSUM!
-      : process.env.GRADLE_DIST_ALL_CHECKSUM!;
-  /* eslint-enable @typescript-eslint/no-non-null-assertion */
+    distType === 'bin' ? GRADLE_DIST_BIN_CHECKSUM : GRADLE_DIST_ALL_CHECKSUM;
 
   const {exitCode, stderr} = await cmd.execWithOutput('gradle', [
     'wrapper',

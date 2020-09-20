@@ -12,7 +12,6 @@
     "build": "tsc",
     "pack": "ncc build",
     "all": "npm run format && npm run lint && npm run build && npm run pack",
-    "docker": "npm run build && npm run pack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Cristian Greco",
