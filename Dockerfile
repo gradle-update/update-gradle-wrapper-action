@@ -13,9 +13,6 @@ ENV PATH="/usr/local/node/bin:${PATH}"
 
 WORKDIR /action-update-gradle-wrapper
 
-COPY package.json package-lock.json tsconfig.json ./
-COPY src/ src/
+COPY dist/index.js .
 
-RUN npm install && npm run docker
-
-ENTRYPOINT ["node", "/action-update-gradle-wrapper/dist/index.js"]
+ENTRYPOINT ["node", "/action-update-gradle-wrapper/index.js"]
