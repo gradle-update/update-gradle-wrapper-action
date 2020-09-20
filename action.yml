@@ -4,7 +4,7 @@ author: 'Cristian Greco'
 
 branding:
   icon: chevrons-up
-  color: green
+  color: gray-dark
 
 inputs:
   repo-token:
@@ -15,5 +15,5 @@ inputs:
     required: false
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: 'node12'
+  main: 'dist/index.js'

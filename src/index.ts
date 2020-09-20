@@ -18,8 +18,7 @@ import * as wrapper from './wrapper';
 import * as api from './api';
 import * as git from './git';
 
-/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-const GRADLE_VERSION: string = process.env.GRADLE_VERSION!;
+const GRADLE_VERSION = '6.6.1';
 
 async function run() {
   try {

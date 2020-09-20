@@ -49,8 +49,7 @@ type GitCreateCommitResponseType = GetResponseTypeFromEndpointMethod<
   typeof octokit.git.createCommit
 >;
 
-/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-const GRADLE_VERSION: string = process.env.GRADLE_VERSION!;
+const GRADLE_VERSION = '6.6.1';
 
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
