@@ -461,39 +461,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
-const wrapper = __importStar(__webpack_require__(215));
+const wrapperInfo_1 = __webpack_require__(6832);
+const wrapperUpdater_1 = __webpack_require__(7412);
 const api = __importStar(__webpack_require__(8947));
 const git = __importStar(__webpack_require__(3374));
-const GRADLE_VERSION = '6.6.1';
+const releases = __importStar(__webpack_require__(5715));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const ref = yield api.findMatchingRef(GRADLE_VERSION);
+            if (core.isDebug()) {
+                core.debug(JSON.stringify(process.env, null, 2));
+            }
+            const releaseInfo = yield releases.latest();
+            const ref = yield api.findMatchingRef(releaseInfo.version);
             if (ref) {
                 core.info('Found an existing ref, stopping here.');
                 core.debug(`Ref url: ${ref.url}`);
                 core.debug(`Ref sha: ${ref.object.sha}`);
-                core.warning(`A pull request already exists that updates Gradle Wrapper to ${GRADLE_VERSION}.`);
+                core.warning(`A pull request already exists that updates Gradle Wrapper to ${releaseInfo.version}.`);
                 return;
             }
+            const currentWrapper = new wrapperInfo_1.WrapperInfo('gradle/wrapper/gradle-wrapper.properties');
             // read current version before updating the wrapper
-            const [currentVersion] = yield wrapper.distributionType();
-            core.debug(`Current Wrapper: ${currentVersion}`);
+            core.debug(`Current Wrapper: ${currentWrapper.version}`);
             core.info('Updating Wrapper');
-            yield wrapper.updateWrapper(GRADLE_VERSION);
+            const updater = new wrapperUpdater_1.WrapperUpdater({
+                wrapper: currentWrapper,
+                targetRelease: releaseInfo
+            });
+            yield updater.update();
             core.info(`Checking modified files`);
             const modifiedFiles = yield git.gitDiffNameOnly();
             core.debug(`Modified files count: ${modifiedFiles.length}`);
             core.debug(`Modified files list: ${modifiedFiles}`);
             if (!modifiedFiles.length) {
-                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${GRADLE_VERSION})! 👍`);
+                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${releaseInfo.version})! 👍`);
                 return;
             }
             core.info('Verifying Wrapper');
-            yield wrapper.verifySha();
-            yield wrapper.verifyRun();
+            yield updater.verify();
             core.info('Creating PR');
-            const pr_url = yield api.commitAndCreatePR(modifiedFiles, currentVersion);
+            const pr_url = yield api.commitAndCreatePR(modifiedFiles, currentWrapper.version);
             core.info(`✅ Created a Pull Request at ${pr_url} ✨`);
         }
         catch (error) {
@@ -508,7 +516,7 @@ run();
 
 /***/ }),
 
-/***/ 215:
+/***/ 5715:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -555,75 +563,233 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.distributionType = exports.updateWrapper = exports.verifyRun = exports.verifySha = void 0;
+exports.latest = void 0;
 const core = __importStar(__webpack_require__(2186));
-const cmd = __importStar(__webpack_require__(816));
-const GRADLE_DIST_BIN_CHECKSUM = '7873ed5287f47ca03549ab8dcb6dc877ac7f0e3d7b1eb12685161d10080910ac';
-const GRADLE_DIST_ALL_CHECKSUM = '11657af6356b7587bfb37287b5992e94a9686d5c8a0a1b60b87b9928a2decde5';
-const GRADLE_WRAPPER_JAR_CHECKSUM = 'e996d452d2645e70c01c11143ca2d3742734a28da2bf61f25c82bdc288c9e637';
-function verifySha() {
+const http_client_1 = __webpack_require__(9925);
+const client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
+function latest() {
     return __awaiter(this, void 0, void 0, function* () {
-        const { stdout } = yield cmd.execWithOutput('sha256sum', [
-            'gradle/wrapper/gradle-wrapper.jar'
-        ]);
-        const [sum] = stdout.split(' ');
-        core.debug(`SHA-256: ${sum}`);
-        if (sum !== GRADLE_WRAPPER_JAR_CHECKSUM) {
-            throw new Error('SHA-256 Wrapper jar mismatch');
+        const response = yield client.getJson(
+        // TODO: with 404 result is null, 500 throws
+        'https://services.gradle.org/versions/current');
+        core.debug(`statusCode: ${response.statusCode}`);
+        const data = response.result;
+        if (data) {
+            core.debug(`current?: ${data.current}`);
+            const version = data.version;
+            core.debug(`version ${version}`);
+            core.debug(`checksumUrl: ${data.checksumUrl}`);
+            const distBinChecksum = yield fetch(data.checksumUrl);
+            core.debug(`distBinChecksum ${distBinChecksum}`);
+            const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
+            core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
+            const distAllChecksum = yield fetch(distAllChecksumUrl);
+            core.debug(`computed distAllChecksum ${distAllChecksum}`);
+            core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
+            const wrapperChecksum = yield fetch(data.wrapperChecksumUrl);
+            core.debug(`wrapperChecksum ${wrapperChecksum}`);
+            return {
+                version,
+                allChecksum: distAllChecksum,
+                binChecksum: distBinChecksum,
+                wrapperChecksum
+            };
         }
+        throw new Error('Unable to fetch release data');
     });
 }
-exports.verifySha = verifySha;
-// if the checksum is incorrect this will fail
-function verifyRun() {
+exports.latest = latest;
+function fetch(url) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', ['--help']);
-        if (exitCode !== 0 && stderr.length) {
-            const mismatch = stderr.split('\n').filter(line => line.match(/checksum:/));
-            throw new Error(`Gradle binary verification error 🚨\n\n${mismatch.join('\n')}`);
-        }
+        const response = yield client.get(url);
+        core.debug(`statusCode: ${response.message.statusCode}`);
+        const body = yield response.readBody();
+        core.debug(`body: ${body}`);
+        return body;
     });
 }
-exports.verifyRun = verifyRun;
-function updateWrapper(version) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const [, distType] = yield distributionType();
-        const sha256sum = distType === 'bin' ? GRADLE_DIST_BIN_CHECKSUM : GRADLE_DIST_ALL_CHECKSUM;
-        const { exitCode, stderr } = yield cmd.execWithOutput('gradle', [
-            'wrapper',
-            '--gradle-version',
-            version,
-            '--distribution-type',
-            distType,
-            // Writes checksum of the distribution binary in gradle-wrapper.properties
-            // so that it will be verified on first execution
-            '--gradle-distribution-sha256-sum',
-            sha256sum
-        ]);
-        if (exitCode !== 0) {
-            throw new Error(stderr);
-        }
-    });
-}
-exports.updateWrapper = updateWrapper;
-function distributionType() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { stdout } = yield cmd.execWithOutput('grep', [
-            '^distributionUrl=.*zip$',
-            'gradle/wrapper/gradle-wrapper.properties'
-        ]);
-        core.debug(`Grep output: ${stdout}`);
-        const parsed = /^distributionUrl=.*\/gradle-([^-]+)-([^.]+)\.zip$/.exec(stdout);
+
+
+/***/ }),
+
+/***/ 6832:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.WrapperInfo = void 0;
+const core = __importStar(__webpack_require__(2186));
+const fs_1 = __webpack_require__(5747);
+class WrapperInfo {
+    constructor(path) {
+        this.path = path;
+        const props = fs_1.readFileSync(path).toString();
+        core.debug(`props: ${props}`);
+        const distributionUrl = props
+            .trim()
+            .split('\n')
+            .filter(line => line.startsWith('distributionUrl='))[0];
+        core.debug(`distributionUrl: ${distributionUrl}`);
+        const parsed = /^distributionUrl=.*\/gradle-([^-]+)-([^.]+)\.zip$/.exec(distributionUrl);
         if (parsed) {
             const [, version, distType] = parsed;
             core.debug(`Version: ${version}`);
             core.debug(`Distribution: ${distType}`);
-            return [version, distType];
+            [this.version, this.distType] = [version, distType];
+            return;
         }
         throw new Error('Unable to parse properties file');
-    });
+    }
 }
-exports.distributionType = distributionType;
+exports.WrapperInfo = WrapperInfo;
+
+
+/***/ }),
+
+/***/ 7412:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.WrapperUpdater = void 0;
+const core = __importStar(__webpack_require__(2186));
+const cmd = __importStar(__webpack_require__(816));
+/* eslint-enable @typescript-eslint/no-unused-vars */
+class WrapperUpdater {
+    constructor({ wrapper, targetRelease }) {
+        this.wrapper = wrapper;
+        this.targetRelease = targetRelease;
+    }
+    update() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sha256sum = this.wrapper.distType === 'bin'
+                ? this.targetRelease.binChecksum
+                : this.targetRelease.allChecksum;
+            const { exitCode, stderr } = yield cmd.execWithOutput('gradle', [
+                'wrapper',
+                '--gradle-version',
+                this.targetRelease.version,
+                '--distribution-type',
+                this.wrapper.distType,
+                // Writes checksum of the distribution binary in gradle-wrapper.properties
+                // so that it will be verified on first execution
+                '--gradle-distribution-sha256-sum',
+                sha256sum
+            ]);
+            if (exitCode !== 0) {
+                throw new Error(stderr);
+            }
+        });
+    }
+    verify() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifySha();
+            yield this.verifyRun();
+        });
+    }
+    verifySha() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { stdout } = yield cmd.execWithOutput('sha256sum', [
+                'gradle/wrapper/gradle-wrapper.jar'
+            ]);
+            const [sum] = stdout.split(' ');
+            core.debug(`SHA-256: ${sum}`);
+            if (sum !== this.targetRelease.wrapperChecksum) {
+                throw new Error('SHA-256 Wrapper jar mismatch');
+            }
+        });
+    }
+    // if the checksum is incorrect this will fail
+    verifyRun() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', [
+                '--help'
+            ]);
+            if (exitCode !== 0 && stderr.length) {
+                const mismatch = stderr
+                    .split('\n')
+                    .filter(line => line.match(/checksum:/));
+                throw new Error(`Gradle binary verification error 🚨\n\n${mismatch.join('\n')}`);
+            }
+        });
+    }
+}
+exports.WrapperUpdater = WrapperUpdater;
 
 
 /***/ }),
