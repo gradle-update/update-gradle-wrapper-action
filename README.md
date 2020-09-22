@@ -14,6 +14,8 @@ merged. It's like [Dependabot](https://dependabot.com) for Gradle Wrapper. ðŸ¤–â
 Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9-11ea-8ec7-85c2704270eb.png
 "Automatic Pull Request to update Gradle Wrapper")
 
+## Table of Contents
+
 - [Usage](#usage)
 - [Why shoud I use this?](#why-should-i-use-this)
 - [Action inputs](#action-inputs)
