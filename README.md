@@ -19,8 +19,12 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [Usage](#usage)
 - [Why shoud I use this?](#why-should-i-use-this)
 - [Action inputs](#action-inputs)
+  - [`repo-token`](#repo-token)
+  - [`reviewers`](#reviewers)
+  - [`target-branch`](#target-branch)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
+  - [Targeting a custom branch](#targeting-a-custom-branch)
 - [Debugging](#debugging)
 - [License](#license)
 
@@ -116,6 +120,7 @@ This is the list of supported inputs:
 
 - [`repo-token`](#repo-token)
 - [`reviewers`](#reviewers)
+- [`target-branch`](#target-branch)
 
 ### `repo-token`
 
@@ -172,6 +177,21 @@ with:
     username2
 ```
 
+### `target-branch`
+
+| Name | Description | Required |
+| --- | --- | --- |
+| `target-branch` | Branch to create pull requests against. | No |
+
+The name of the branch to pull changes into. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
+
+For example:
+
+```yaml
+with:
+  target-branch: unstable
+```
+
 ## Examples
 
 ### Scheduling action execution
@@ -201,6 +221,17 @@ to specify your preferred time or frequency (tip: check your value is correct
 with [crontab guru](https://crontab.guru/examples.html)).
 
 It is not recommended to run the action more frequently than once a day.
+
+### Targeting a custom branch
+
+The action will create Pull Requests against the "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" of your repository (say, `master` or any other branch you've configured).
+
+If you want Pull Requests to be created against a non-default branch use the `target-branch` input:
+
+```yaml
+with:
+  target-branch: v2-dev
+```
 
 ## Debugging
 
