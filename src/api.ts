@@ -153,12 +153,18 @@ See release notes: https://docs.gradle.org/${GRADLE_VERSION}/release-notes.html
 If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
 </details>`;
 
-  const pr: PullsCreateResponseType = await octokit.pulls.create({
+  let base = core.getInput('target-branch', {required: false});
+  if (!base) {
+    base = await repoDefaultBranch();
+  }
+  core.debug(`Target branch: ${base}`);
+
+  const pr = await octokit.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
     title: `Update Gradle Wrapper from ${version} to ${GRADLE_VERSION}`,
     head: branchName,
-    base: 'master',
+    base,
     body
   });
 
@@ -167,6 +173,15 @@ If something doesn't look right with this PR please file a bug [here](${ISSUES_U
   core.debug(`PR user: ${pr.data.user.login}`);
 
   return pr.data;
+}
+
+async function repoDefaultBranch(): Promise<string> {
+  const repo = await octokit.repos.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo
+  });
+
+  return repo.data.default_branch;
 }
 
 async function createCommit(

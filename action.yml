@@ -13,6 +13,9 @@ inputs:
   reviewers:
     description: 'List of users to request a review from (comma, space or newline-separated).'
     required: false
+  target-branch:
+    description: 'Branch to create pull requests against.'
+    required: false
 
 runs:
   using: 'node12'

@@ -127,18 +127,32 @@ See release notes: https://docs.gradle.org/${GRADLE_VERSION}/release-notes.html
 
 If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
 </details>`;
+        let base = core.getInput('target-branch', { required: false });
+        if (!base) {
+            base = yield repoDefaultBranch();
+        }
+        core.debug(`Target branch: ${base}`);
         const pr = yield octokit.pulls.create({
             owner: github_1.context.repo.owner,
             repo: github_1.context.repo.repo,
             title: `Update Gradle Wrapper from ${version} to ${GRADLE_VERSION}`,
             head: branchName,
-            base: 'master',
+            base,
             body
         });
         core.debug(`PR changed files: ${pr.data.changed_files}`);
         core.debug(`PR mergeable: ${pr.data.mergeable}`);
         core.debug(`PR user: ${pr.data.user.login}`);
         return pr.data;
+    });
+}
+function repoDefaultBranch() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const repo = yield octokit.repos.get({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo
+        });
+        return repo.data.default_branch;
     });
 }
 function createCommit(newTreeSha, currentCommitSha, version) {
