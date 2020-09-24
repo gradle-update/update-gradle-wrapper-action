@@ -5,14 +5,14 @@
   "description": "Update Gradle Wrapper in your project",
   "main": "lib/index.js",
   "scripts": {
-    "format": "prettier --write src/**/*.ts",
-    "format-check": "prettier --check src/**/*.ts",
+    "format": "prettier --write src/**/*.ts tests/**/*.ts",
+    "format-check": "prettier --check src/**/*.ts tests/**/*.ts",
     "lint": "eslint --fix --ext ts src/",
     "lint-check": "eslint --ext ts src/",
     "build": "tsc",
     "pack": "ncc build",
-    "all": "npm run format && npm run lint && npm run build && npm run pack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "all": "npm run format && npm run lint && npm run build && npm run test && npm run pack"
   },
   "author": "Cristian Greco",
   "license": "Apache 2.0",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",
+    "@actions/glob": "^0.1.0",
     "@actions/github": "^4.0.0",
     "@actions/http-client": "^1.0.8"
   },
@@ -34,6 +35,8 @@
     "eslint": "^7.9.0",
     "eslint-plugin-github": "^4.0.1",
     "eslint-plugin-jest": "^23.20.0",
-    "prettier": "^2.1.2"
+    "prettier": "^2.1.2",
+    "jest": "^26.4.2",
+    "ts-jest": "^26.4.0"
   }
 }

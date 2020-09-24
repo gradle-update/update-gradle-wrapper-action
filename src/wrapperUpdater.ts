@@ -42,17 +42,21 @@ export class WrapperUpdater {
         ? this.targetRelease.binChecksum
         : this.targetRelease.allChecksum;
 
-    const {exitCode, stderr} = await cmd.execWithOutput('gradle', [
-      'wrapper',
-      '--gradle-version',
-      this.targetRelease.version,
-      '--distribution-type',
-      this.wrapper.distType,
-      // Writes checksum of the distribution binary in gradle-wrapper.properties
-      // so that it will be verified on first execution
-      '--gradle-distribution-sha256-sum',
-      sha256sum
-    ]);
+    const {exitCode, stderr} = await cmd.execWithOutput(
+      'gradle',
+      [
+        'wrapper',
+        '--gradle-version',
+        this.targetRelease.version,
+        '--distribution-type',
+        this.wrapper.distType,
+        // Writes checksum of the distribution binary in gradle-wrapper.properties
+        // so that it will be verified on first execution
+        '--gradle-distribution-sha256-sum',
+        sha256sum
+      ],
+      this.wrapper.basePath
+    );
 
     if (exitCode !== 0) {
       throw new Error(stderr);
@@ -65,9 +69,13 @@ export class WrapperUpdater {
   }
 
   private async verifySha() {
-    const {stdout} = await cmd.execWithOutput('sha256sum', [
-      'gradle/wrapper/gradle-wrapper.jar'
-    ]);
+    const jarFilePath = this.wrapper.path.replace(
+      'gradle-wrapper.properties',
+      'gradle-wrapper.jar'
+    );
+    core.debug(`Verifying SHA-256 for: ${jarFilePath}`);
+
+    const {stdout} = await cmd.execWithOutput('sha256sum', [jarFilePath]);
 
     const [sum] = stdout.split(' ');
     core.debug(`SHA-256: ${sum}`);
@@ -79,9 +87,11 @@ export class WrapperUpdater {
 
   // if the checksum is incorrect this will fail
   private async verifyRun() {
-    const {exitCode, stderr} = await cmd.execWithOutput('./gradlew', [
-      '--help'
-    ]);
+    const {exitCode, stderr} = await cmd.execWithOutput(
+      './gradlew',
+      ['--help'],
+      this.wrapper.basePath
+    );
 
     if (exitCode !== 0 && stderr.length) {
       const mismatch = stderr

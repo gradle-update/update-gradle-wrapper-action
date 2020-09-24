@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as core from '@actions/core';
+import * as glob from '@actions/glob';
 
 import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
@@ -26,56 +27,90 @@ async function run() {
       core.debug(JSON.stringify(process.env, null, 2));
     }
 
-    const releaseInfo = await releases.latest();
+    const targetRelease = await releases.latest();
+    core.info(`Latest release: ${targetRelease.version}`);
 
-    const ref = await api.findMatchingRef(releaseInfo.version);
+    const ref = await api.findMatchingRef(targetRelease.version);
 
     if (ref) {
       core.info('Found an existing ref, stopping here.');
       core.debug(`Ref url: ${ref.url}`);
       core.debug(`Ref sha: ${ref.object.sha}`);
       core.warning(
-        `A pull request already exists that updates Gradle Wrapper to ${releaseInfo.version}.`
+        `A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`
       );
       return;
     }
 
-    const currentWrapper = new WrapperInfo(
-      'gradle/wrapper/gradle-wrapper.properties'
+    const globber = await glob.create(
+      '**/gradle/wrapper/gradle-wrapper.properties',
+      {followSymbolicLinks: false}
     );
+    const wrappers = await globber.glob();
+    core.debug(`Wrappers: ${wrappers}`);
 
-    // read current version before updating the wrapper
-    core.debug(`Current Wrapper: ${currentWrapper.version}`);
+    if (!wrappers.length) {
+      core.warning('Unable to find Gradle Wrapper files in this project.');
+      return;
+    }
 
-    core.info('Updating Wrapper');
-    const updater = new WrapperUpdater({
-      wrapper: currentWrapper,
-      targetRelease: releaseInfo
-    });
-    await updater.update();
+    core.debug(`Wrappers count: ${wrappers.length}`);
 
-    core.info(`Checking modified files`);
-    const modifiedFiles: string[] = await git.gitDiffNameOnly();
-    core.debug(`Modified files count: ${modifiedFiles.length}`);
-    core.debug(`Modified files list: ${modifiedFiles}`);
+    const wrapperInfos = wrappers.map(path => new WrapperInfo(path));
 
-    if (!modifiedFiles.length) {
+    let allModifiedFiles: string[] = [];
+
+    for (const wrapper of wrapperInfos) {
+      core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
+
+      // read current version before updating the wrapper
+      core.debug(`Current Wrapper version: ${wrapper.version}`);
+
+      if (wrapper.version === targetRelease.version) {
+        core.debug(`Wrapper is already up-to-date`);
+        continue;
+      }
+
+      core.info('Updating Wrapper');
+      const updater = new WrapperUpdater({wrapper, targetRelease});
+      await updater.update();
+
+      core.info('Checking whether any file has been updated');
+      const modifiedFiles: string[] = await git.gitDiffNameOnly();
+      core.debug(`Modified files count: ${modifiedFiles.length}`);
+      core.debug(`Modified files list: ${modifiedFiles}`);
+
+      if (modifiedFiles.length > allModifiedFiles.length) {
+        core.info(`Keeping track of modified files`);
+
+        core.info('Verifying Wrapper');
+        await updater.verify();
+
+        allModifiedFiles = allModifiedFiles.concat(modifiedFiles);
+      } else {
+        core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
+      }
+
+      core.endGroup();
+    }
+
+    core.debug(`All modified files count: ${allModifiedFiles.length}`);
+    core.debug(`All modified files list: ${allModifiedFiles}`);
+    if (!allModifiedFiles.length) {
       core.warning(
-        `✅ Gradle Wrapper is already up-to-date (version ${releaseInfo.version})! 👍`
+        `✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`
       );
       return;
     }
 
-    core.info('Verifying Wrapper');
-    await updater.verify();
-
-    core.info('Creating PR');
-    const pr_url = await api.commitAndCreatePR(
-      modifiedFiles,
-      currentWrapper.version
+    core.info('Creating Pull Request');
+    const pullRequestUrl = await api.commitAndCreatePR(
+      allModifiedFiles,
+      targetRelease.version,
+      wrapperInfos.length === 1 ? wrapperInfos[0].version : undefined
     );
 
-    core.info(`✅ Created a Pull Request at ${pr_url} ✨`);
+    core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
   } catch (error) {
     // setFailed is fatal (terminates action), core.error creates a failure
     // annotation instead
