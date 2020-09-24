@@ -15,14 +15,28 @@
 import * as core from '@actions/core';
 
 import {readFileSync} from 'fs';
+import {isAbsolute} from 'path';
 
 export class WrapperInfo {
   readonly version: string;
   readonly path: string;
   readonly distType: string;
+  readonly basePath: string;
 
   constructor(path: string) {
+    if (!isAbsolute(path)) {
+      throw new Error(`${path} is not an absolute path`);
+    }
+
     this.path = path;
+    this.basePath = path.replace(
+      'gradle/wrapper/gradle-wrapper.properties',
+      ''
+    );
+
+    core.debug('WrapperInfo');
+    core.debug(`path: ${this.path}`);
+    core.debug(`basePath: ${this.basePath}`);
 
     const props = readFileSync(path).toString();
     core.debug(`props: ${props}`);

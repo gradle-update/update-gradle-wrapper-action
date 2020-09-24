@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as exec from '@actions/exec';
+import * as core from '@actions/core';
 
 export interface CmdExec {
   exitCode: number;
@@ -22,7 +23,8 @@ export interface CmdExec {
 
 export async function execWithOutput(
   commandLine: string,
-  args?: string[]
+  args?: string[],
+  cwd?: string
 ): Promise<CmdExec> {
   let outBuf = '';
   let errBuf = '';
@@ -36,8 +38,11 @@ export async function execWithOutput(
       stderr: (data: Buffer) => {
         errBuf += data.toString();
       }
-    }
+    },
+    cwd: cwd || process.cwd()
   };
+
+  core.debug(`cmd opts: ${JSON.stringify(opts, null, 2)}`);
 
   const exitCode = await exec.exec(commandLine, args, opts);
 

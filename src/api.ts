@@ -49,8 +49,6 @@ type GitCreateCommitResponseType = GetResponseTypeFromEndpointMethod<
   typeof octokit.git.createCommit
 >;
 
-const GRADLE_VERSION = '6.6.1';
-
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 
@@ -77,7 +75,8 @@ export async function findMatchingRef(
 
 export async function commitAndCreatePR(
   files: string[],
-  versionFrom: string
+  targetVersion: string,
+  sourceVersion?: string
 ): Promise<string> {
   const currentCommit: GitGetCommitResponseType = await octokit.git.getCommit({
     owner: context.repo.owner,
@@ -94,10 +93,11 @@ export async function commitAndCreatePR(
   const newCommit: GitCreateCommitResponseData = await createCommit(
     tree.sha,
     currentCommit.data.sha,
-    versionFrom
+    targetVersion,
+    sourceVersion
   );
 
-  const branchName = `refs/heads/gradlew-update-${GRADLE_VERSION}`;
+  const branchName = `refs/heads/gradlew-update-${targetVersion}`;
 
   // TODO: branch might exist already (a previous run might have failed to
   // create the PR), so might need to updateRef instead.
@@ -111,14 +111,18 @@ export async function commitAndCreatePR(
 
   core.debug(`Ref sha: ${ref.data.object.sha}`);
 
-  const pr: PullsCreateResponseData = await createPR(branchName, versionFrom);
+  const pullRequest: PullsCreateResponseData = await createPullRequest(
+    branchName,
+    targetVersion,
+    sourceVersion
+  );
 
   await findLabel();
 
   await octokit.issues.addLabels({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    issue_number: pr.number,
+    issue_number: pullRequest.number,
     labels: [LABEL_NAME]
   });
 
@@ -129,20 +133,24 @@ export async function commitAndCreatePR(
     .filter(r => r.length);
 
   if (reviewers.length) {
-    await addReviewers(pr.number, reviewers);
+    await addReviewers(pullRequest.number, reviewers);
   }
 
-  return pr.html_url;
+  return pullRequest.html_url;
 }
 
-// Creates a PR against master
-async function createPR(
+async function createPullRequest(
   branchName: string,
-  version: string
+  targetVersion: string,
+  sourceVersion?: string
 ): Promise<PullsCreateResponseData> {
-  const body = `Updates Gradle Wrapper from ${version} to ${GRADLE_VERSION}.
+  const shortMessage = sourceVersion
+    ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
+    : `Updates Gradle Wrapper to ${targetVersion}.`;
 
-See release notes: https://docs.gradle.org/${GRADLE_VERSION}/release-notes.html
+  const body = `${shortMessage}
+
+See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
 
 ---
 
@@ -162,7 +170,7 @@ If something doesn't look right with this PR please file a bug [here](${ISSUES_U
   const pr = await octokit.pulls.create({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    title: `Update Gradle Wrapper from ${version} to ${GRADLE_VERSION}`,
+    title: shortMessage,
     head: branchName,
     base,
     body
@@ -187,15 +195,20 @@ async function repoDefaultBranch(): Promise<string> {
 async function createCommit(
   newTreeSha: string,
   currentCommitSha: string,
-  version: string
+  targetVersion: string,
+  sourceVersion?: string
 ): Promise<GitCreateCommitResponseData> {
+  const message = sourceVersion
+    ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
+    : `Update Gradle Wrapper to ${targetVersion}.`;
+
   const commit: GitCreateCommitResponseType = await octokit.git.createCommit({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    message: `Update Gradle Wrapper from ${version} to ${GRADLE_VERSION}.
+    message: `${message}
 
-Updates Gradle Wrapper from ${version} to ${GRADLE_VERSION}.
-- [Release notes](https://docs.gradle.org/${GRADLE_VERSION}/release-notes.html)`,
+${message}
+- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`,
     tree: newTreeSha,
     parents: [currentCommitSha],
     author: {

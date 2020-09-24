@@ -16,6 +16,7 @@ jobs:
       - run: npm run format-check
       - run: npm run lint-check
       - run: npm run build
+      - run: npm run test
       - run: npm run pack
       - run: |
           if [ "$(git diff --name-only | wc -l)" -gt "0" ]; then
