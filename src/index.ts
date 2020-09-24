@@ -14,32 +14,45 @@
 
 import * as core from '@actions/core';
 
-import * as wrapper from './wrapper';
+import {WrapperInfo} from './wrapperInfo';
+import {WrapperUpdater} from './wrapperUpdater';
 import * as api from './api';
 import * as git from './git';
-
-const GRADLE_VERSION = '6.6.1';
+import * as releases from './releases';
 
 async function run() {
   try {
-    const ref = await api.findMatchingRef(GRADLE_VERSION);
+    if (core.isDebug()) {
+      core.debug(JSON.stringify(process.env, null, 2));
+    }
+
+    const releaseInfo = await releases.latest();
+
+    const ref = await api.findMatchingRef(releaseInfo.version);
 
     if (ref) {
       core.info('Found an existing ref, stopping here.');
       core.debug(`Ref url: ${ref.url}`);
       core.debug(`Ref sha: ${ref.object.sha}`);
       core.warning(
-        `A pull request already exists that updates Gradle Wrapper to ${GRADLE_VERSION}.`
+        `A pull request already exists that updates Gradle Wrapper to ${releaseInfo.version}.`
       );
       return;
     }
 
+    const currentWrapper = new WrapperInfo(
+      'gradle/wrapper/gradle-wrapper.properties'
+    );
+
     // read current version before updating the wrapper
-    const [currentVersion] = await wrapper.distributionType();
-    core.debug(`Current Wrapper: ${currentVersion}`);
+    core.debug(`Current Wrapper: ${currentWrapper.version}`);
 
     core.info('Updating Wrapper');
-    await wrapper.updateWrapper(GRADLE_VERSION);
+    const updater = new WrapperUpdater({
+      wrapper: currentWrapper,
+      targetRelease: releaseInfo
+    });
+    await updater.update();
 
     core.info(`Checking modified files`);
     const modifiedFiles: string[] = await git.gitDiffNameOnly();
@@ -48,17 +61,19 @@ async function run() {
 
     if (!modifiedFiles.length) {
       core.warning(
-        `✅ Gradle Wrapper is already up-to-date (version ${GRADLE_VERSION})! 👍`
+        `✅ Gradle Wrapper is already up-to-date (version ${releaseInfo.version})! 👍`
       );
       return;
     }
 
     core.info('Verifying Wrapper');
-    await wrapper.verifySha();
-    await wrapper.verifyRun();
+    await updater.verify();
 
     core.info('Creating PR');
-    const pr_url = await api.commitAndCreatePR(modifiedFiles, currentVersion);
+    const pr_url = await api.commitAndCreatePR(
+      modifiedFiles,
+      currentWrapper.version
+    );
 
     core.info(`✅ Created a Pull Request at ${pr_url} ✨`);
   } catch (error) {
