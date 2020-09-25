@@ -21,6 +21,6 @@ jobs:
       - run: |
           if [ "$(git diff --name-only | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes to:"
-            git diff --name-only
+            git diff
             exit 1
           fi

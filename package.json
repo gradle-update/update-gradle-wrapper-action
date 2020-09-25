@@ -5,6 +5,7 @@
   "description": "Update Gradle Wrapper in your project",
   "main": "lib/index.js",
   "scripts": {
+    "clean": "rm -rf lib/ dist/",
     "format": "prettier --write src/**/*.ts tests/**/*.ts",
     "format-check": "prettier --check src/**/*.ts tests/**/*.ts",
     "lint": "eslint --fix --ext ts src/",
@@ -12,7 +13,7 @@
     "build": "tsc",
     "pack": "ncc build",
     "test": "jest",
-    "all": "npm run format && npm run lint && npm run build && npm run test && npm run pack"
+    "all": "npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
   },
   "author": "Cristian Greco",
   "license": "Apache 2.0",

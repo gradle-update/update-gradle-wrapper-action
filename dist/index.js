@@ -548,6 +548,97 @@ run();
 
 /***/ }),
 
+/***/ 4629:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.inputs = void 0;
+const inputs_1 = __importDefault(__webpack_require__(5513));
+exports.inputs = new inputs_1.default();
+
+
+/***/ }),
+
+/***/ 5513:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__webpack_require__(2186));
+class Inputs {
+    constructor() {
+        this.repoToken = core.getInput('repo-token', { required: true });
+        if (this.repoToken === '') {
+            throw new Error(`repo-token is required`);
+        }
+        this.reviewers = core
+            .getInput('reviewers', { required: false })
+            .split(/[\n\s,]/)
+            .map(r => r.trim())
+            .filter(r => r.length);
+        this.targetBranch = core.getInput('target-branch', { required: false });
+        this.setDistributionChecksum =
+            core
+                .getInput('set-distribution-checksum', { required: false })
+                .toLowerCase() !== 'false';
+    }
+}
+exports.default = Inputs;
+
+
+/***/ }),
+
 /***/ 5715:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -770,6 +861,7 @@ exports.WrapperUpdater = void 0;
 const core = __importStar(__webpack_require__(2186));
 const cmd = __importStar(__webpack_require__(816));
 /* eslint-enable @typescript-eslint/no-unused-vars */
+const inputs_1 = __webpack_require__(4629);
 class WrapperUpdater {
     constructor({ wrapper, targetRelease }) {
         this.wrapper = wrapper;
@@ -777,20 +869,22 @@ class WrapperUpdater {
     }
     update() {
         return __awaiter(this, void 0, void 0, function* () {
-            const sha256sum = this.wrapper.distType === 'bin'
-                ? this.targetRelease.binChecksum
-                : this.targetRelease.allChecksum;
-            const { exitCode, stderr } = yield cmd.execWithOutput('gradle', [
+            let args = [
                 'wrapper',
                 '--gradle-version',
                 this.targetRelease.version,
                 '--distribution-type',
-                this.wrapper.distType,
+                this.wrapper.distType
+            ];
+            if (inputs_1.inputs.setDistributionChecksum) {
+                const sha256sum = this.wrapper.distType === 'bin'
+                    ? this.targetRelease.binChecksum
+                    : this.targetRelease.allChecksum;
                 // Writes checksum of the distribution binary in gradle-wrapper.properties
                 // so that it will be verified on first execution
-                '--gradle-distribution-sha256-sum',
-                sha256sum
-            ], this.wrapper.basePath);
+                args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
+            }
+            const { exitCode, stderr } = yield cmd.execWithOutput('gradle', args, this.wrapper.basePath);
             if (exitCode !== 0) {
                 throw new Error(stderr);
             }

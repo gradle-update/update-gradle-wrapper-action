@@ -16,6 +16,9 @@ inputs:
   target-branch:
     description: 'Branch to create pull requests against.'
     required: false
+  set-distribution-checksum:
+    description: 'Whether to set the `distributionSha256Sum` property in `gradle-wrapper.properties`.'
+    required: false
 
 runs:
   using: 'node12'
