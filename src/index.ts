@@ -21,6 +21,9 @@ import * as api from './api';
 import * as git from './git';
 import * as releases from './releases';
 
+import {commitFiles} from './gh-commit-helper';
+import {createOrUpdateRef} from './gh-refs-helper';
+
 async function run() {
   try {
     if (core.isDebug()) {
@@ -60,6 +63,11 @@ async function run() {
 
     let allModifiedFiles: string[] = [];
 
+    /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
+    let currentSha = process.env.GITHUB_SHA!;
+
+    const branchName = `refs/heads/gradlew-update-${targetRelease.version}`;
+
     for (const wrapper of wrapperInfos) {
       core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
 
@@ -71,20 +79,36 @@ async function run() {
         continue;
       }
 
-      core.info('Updating Wrapper');
+      core.startGroup('Updating Wrapper');
       const updater = new WrapperUpdater({wrapper, targetRelease});
       await updater.update();
+      core.endGroup();
 
       core.info('Checking whether any file has been updated');
       const modifiedFiles: string[] = await git.gitDiffNameOnly();
       core.debug(`Modified files count: ${modifiedFiles.length}`);
       core.debug(`Modified files list: ${modifiedFiles}`);
 
-      if (modifiedFiles.length > allModifiedFiles.length) {
+      if (modifiedFiles.length) {
         core.info(`Keeping track of modified files`);
 
-        core.info('Verifying Wrapper');
+        core.startGroup('Verifying Wrapper');
         await updater.verify();
+        core.endGroup();
+
+        const message = `Update Gradle Wrapper from ${wrapper.version} to ${targetRelease.version}.
+
+Update Gradle Wrapper from ${wrapper.version} to ${targetRelease.version}.
+- [Release notes](https://docs.gradle.org/${targetRelease.version}/release-notes.html)`;
+
+        core.debug(`currentSha before: ${currentSha}`);
+        currentSha = await commitFiles(modifiedFiles, currentSha, message);
+        await createOrUpdateRef(branchName, currentSha);
+        core.debug(`currentSha after: ${currentSha}`);
+
+        core.debug(`Committed files and updated ref`);
+
+        await git.gitDiffNameOnly();
 
         allModifiedFiles = allModifiedFiles.concat(modifiedFiles);
       } else {
@@ -104,8 +128,8 @@ async function run() {
     }
 
     core.info('Creating Pull Request');
-    const pullRequestUrl = await api.commitAndCreatePR(
-      allModifiedFiles,
+    const pullRequestUrl = await api.createPullRequest(
+      branchName,
       targetRelease.version,
       wrapperInfos.length === 1 ? wrapperInfos[0].version : undefined
     );

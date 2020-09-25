@@ -15,38 +15,18 @@
 import {context, getOctokit} from '@actions/github';
 
 import * as core from '@actions/core';
-import * as git from './git';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   GetResponseTypeFromEndpointMethod,
-  GitCreateCommitResponseData,
-  GitCreateTreeResponseData,
   GitListMatchingRefsResponseData,
   IssuesCreateLabelResponseData,
   PullsCreateResponseData
 } from '@octokit/types';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
-import {readFileSync} from 'fs';
-
 type GitListMatchingRefsResponseType = GetResponseTypeFromEndpointMethod<
   typeof octokit.git.listMatchingRefs
->;
-type GitCreateTreeResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.git.createTree
->;
-type GitCreateBlobResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.git.createBlob
->;
-type GitGetCommitResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.git.getCommit
->;
-type PullsCreateResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.pulls.create
->;
-type GitCreateCommitResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.git.createCommit
 >;
 
 const ISSUES_URL =
@@ -73,45 +53,12 @@ export async function findMatchingRef(
   return refs.length ? refs[0] : undefined;
 }
 
-export async function commitAndCreatePR(
-  files: string[],
+export async function createPullRequest(
+  branchName: string,
   targetVersion: string,
   sourceVersion?: string
 ): Promise<string> {
-  const currentCommit: GitGetCommitResponseType = await octokit.git.getCommit({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-    commit_sha: process.env.GITHUB_SHA!
-  });
-
-  const tree: GitCreateTreeResponseData = await createNewTree(
-    currentCommit.data.tree.sha,
-    files
-  );
-
-  const newCommit: GitCreateCommitResponseData = await createCommit(
-    tree.sha,
-    currentCommit.data.sha,
-    targetVersion,
-    sourceVersion
-  );
-
-  const branchName = `refs/heads/gradlew-update-${targetVersion}`;
-
-  // TODO: branch might exist already (a previous run might have failed to
-  // create the PR), so might need to updateRef instead.
-  // Ref is needed to create a PR.
-  const ref = await octokit.git.createRef({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    ref: branchName,
-    sha: newCommit.sha
-  });
-
-  core.debug(`Ref sha: ${ref.data.object.sha}`);
-
-  const pullRequest: PullsCreateResponseData = await createPullRequest(
+  const pullRequest: PullsCreateResponseData = await createPullRequest0(
     branchName,
     targetVersion,
     sourceVersion
@@ -139,7 +86,7 @@ export async function commitAndCreatePR(
   return pullRequest.html_url;
 }
 
-async function createPullRequest(
+async function createPullRequest0(
   branchName: string,
   targetVersion: string,
   sourceVersion?: string
@@ -190,76 +137,6 @@ async function repoDefaultBranch(): Promise<string> {
   });
 
   return repo.data.default_branch;
-}
-
-async function createCommit(
-  newTreeSha: string,
-  currentCommitSha: string,
-  targetVersion: string,
-  sourceVersion?: string
-): Promise<GitCreateCommitResponseData> {
-  const message = sourceVersion
-    ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-    : `Update Gradle Wrapper to ${targetVersion}.`;
-
-  const commit: GitCreateCommitResponseType = await octokit.git.createCommit({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    message: `${message}
-
-${message}
-- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`,
-    tree: newTreeSha,
-    parents: [currentCommitSha],
-    author: {
-      name: 'gradle-update-robot',
-      email: 'gradle-update-robot@regolo.cc',
-      date: new Date().toISOString()
-    }
-  });
-
-  core.debug(`Commit sha: ${commit.data.sha}`);
-  core.debug(`Commit author name: ${commit.data.author.name}`);
-  core.debug(`Commit committer name: ${commit.data.committer.name}`);
-  core.debug(`Commit verified: ${commit.data.verification.verified}`);
-
-  return commit.data;
-}
-
-async function createNewTree(
-  parentTreeSha: string,
-  paths: string[]
-): Promise<GitCreateTreeResponseData> {
-  const treeData = [];
-
-  for (const path of paths) {
-    const content = readFileSync(path).toString('base64');
-
-    const blobData: GitCreateBlobResponseType = await octokit.git.createBlob({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      content,
-      encoding: 'base64'
-    });
-    const sha = blobData.data.sha;
-
-    const mode = await git.gitFileMode(path);
-
-    treeData.push({path, mode, type: 'blob', sha});
-  }
-
-  core.debug(`TreeData: ${JSON.stringify(treeData, null, 2)}`);
-
-  const tree: GitCreateTreeResponseType = await octokit.git.createTree({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    tree: treeData as any,
-    base_tree: parentTreeSha
-  });
-
-  core.debug(`Tree sha: ${tree.data.sha}`);
-
-  return tree.data;
 }
 
 async function findLabel(): Promise<IssuesCreateLabelResponseData> {
