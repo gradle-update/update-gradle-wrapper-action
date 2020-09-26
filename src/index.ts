@@ -62,6 +62,7 @@ async function run() {
     const wrapperInfos = wrappers.map(path => new WrapperInfo(path));
 
     let allModifiedFiles: string[] = [];
+    let commitDataList: {files: string[], message:string}[] = [];
 
     /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
     let currentSha = process.env.GITHUB_SHA!;
@@ -101,14 +102,11 @@ async function run() {
 Update Gradle Wrapper from ${wrapper.version} to ${targetRelease.version}.
 - [Release notes](https://docs.gradle.org/${targetRelease.version}/release-notes.html)`;
 
-        core.debug(`currentSha before: ${currentSha}`);
-        currentSha = await commitFiles(modifiedFiles, currentSha, message);
-        await createOrUpdateRef(branchName, currentSha);
-        core.debug(`currentSha after: ${currentSha}`);
 
-        core.debug(`Committed files and updated ref`);
-
-        await git.gitDiffNameOnly();
+        commitDataList = commitDataList.concat({
+          files: modifiedFiles,
+          message: message,
+        })
 
         allModifiedFiles = allModifiedFiles.concat(modifiedFiles);
       } else {
@@ -126,6 +124,12 @@ Update Gradle Wrapper from ${wrapper.version} to ${targetRelease.version}.
       );
       return;
     }
+
+
+
+    commitAllChanges(commitDataList, branchName);
+    // currentSha = await commitFiles(modifiedFiles, currentSha, message);
+    // await createOrUpdateRef(branchName, currentSha);
 
     core.info('Creating Pull Request');
     const pullRequestUrl = await api.createPullRequest(
