@@ -21,6 +21,8 @@ import type {WrapperInfo} from './wrapperInfo';
 import type {Release} from './releases';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
+import {inputs} from './inputs';
+
 export class WrapperUpdater {
   private targetRelease: Release;
   private wrapper: WrapperInfo;
@@ -37,24 +39,28 @@ export class WrapperUpdater {
   }
 
   async update() {
-    const sha256sum =
-      this.wrapper.distType === 'bin'
-        ? this.targetRelease.binChecksum
-        : this.targetRelease.allChecksum;
+    let args = [
+      'wrapper',
+      '--gradle-version',
+      this.targetRelease.version,
+      '--distribution-type',
+      this.wrapper.distType
+    ];
+
+    if (inputs.setDistributionChecksum) {
+      const sha256sum =
+        this.wrapper.distType === 'bin'
+          ? this.targetRelease.binChecksum
+          : this.targetRelease.allChecksum;
+
+      // Writes checksum of the distribution binary in gradle-wrapper.properties
+      // so that it will be verified on first execution
+      args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
+    }
 
     const {exitCode, stderr} = await cmd.execWithOutput(
       'gradle',
-      [
-        'wrapper',
-        '--gradle-version',
-        this.targetRelease.version,
-        '--distribution-type',
-        this.wrapper.distType,
-        // Writes checksum of the distribution binary in gradle-wrapper.properties
-        // so that it will be verified on first execution
-        '--gradle-distribution-sha256-sum',
-        sha256sum
-      ],
+      args,
       this.wrapper.basePath
     );
 

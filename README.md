@@ -22,9 +22,11 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`repo-token`](#repo-token)
   - [`reviewers`](#reviewers)
   - [`target-branch`](#target-branch)
+  - [`set-distribution-checksum`](#set-distribution-checksum)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
+  - [Android Studio warning about `distributionSha256Sum`](#android-studio-warning-about-distributionsha256sum)
 - [Debugging](#debugging)
 - [License](#license)
 
@@ -121,12 +123,13 @@ This is the list of supported inputs:
 - [`repo-token`](#repo-token)
 - [`reviewers`](#reviewers)
 - [`target-branch`](#target-branch)
+- [`set-distribution-checksum`](#set-distribution-checksum)
 
 ### `repo-token`
 
-| Name | Description | Required |
-| --- | --- | --- |
-| `repo-token` | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes |
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `repo-token` | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes | |
 
 This input is needed to allow the action to perform tasks using the GitHub API.
 
@@ -155,9 +158,9 @@ into your repository.
 
 ### `reviewers`
 
-| Name | Description | Required |
-| --- | --- | --- |
-| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No |
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No | |
 
 Request a review from these GitHub usernames (notifications will be triggered).
 
@@ -179,9 +182,9 @@ with:
 
 ### `target-branch`
 
-| Name | Description | Required |
-| --- | --- | --- |
-| `target-branch` | Branch to create pull requests against. | No |
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `target-branch` | Branch to create Pull Requests against. | No | The default branch name of your repository |
 
 The name of the branch to pull changes into. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
 
@@ -190,6 +193,35 @@ For example:
 ```yaml
 with:
   target-branch: unstable
+```
+
+
+### `set-distribution-checksum`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `set-distribution-checksum` | Whether to set the `distributionSha256Sum` property. | No | `true` |
+
+The Gradle Wrapper provides a way to increase security against attackers
+tampering with the Gradle distribuition file you download locally.
+If the `distributionSha256Sum` property is added to
+`gradle-wrapper.properties`, Gradle will report a build failure in case the
+specified checksum doesn't match the checksum of the distribution downloaded
+from server (this is only performed once, the first time you download a new
+Gradle version).
+
+The Update Gradle Wrapper action sets the expected checksum for you. If you
+want to disable this behaviour change the `set-distribution-checksum` input
+to `false`.
+
+It is not recommended to change this value unless you've got a very specific
+need (e.g. [Android Studio warnings](#android-studio-warning-about-distributionsha256sum)).
+
+For example:
+
+```yaml
+with:
+  set-distribution-checksum: false
 ```
 
 ## Examples
@@ -231,6 +263,31 @@ If you want Pull Requests to be created against a non-default branch use the `ta
 ```yaml
 with:
   target-branch: v2-dev
+```
+
+### Android Studio warning about `distributionSha256Sum`
+
+You might get a warning message in Android Studio that looks like this:
+
+> It is not fully supported to define distributionSha256Sum in gradle-wrapper.properties.
+
+This refers to the presence of the `distributionSha256Sum` property into
+`gradle-wrapper.properties`, which Update Gradle Wrapper action sets by default
+to increase security against the risk of the Gradle distribution being tampered
+with.
+
+It is totally safe to disable the warning in Android Studio, just choose the option:
+
+> Use "..." as checksum for https://.../gradle-6.6.1-bin.zip and sync project
+
+On the other hand, if for some reason you prefer to avoid the
+`distributionSha256Sum` property being set automatically by the action use the
+[`set-distribution-checksum`](#set-distribution-checksum):
+
+```yaml
+with:
+  # not recommended
+  set-distribution-checksum: false
 ```
 
 ## Debugging
