@@ -15,11 +15,15 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
+import {commit} from './git-commit';
 import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
-import * as api from './api';
-import * as git from './git';
+import * as git from './git-cmds';
+import * as github from './gh-api-helper';
 import * as releases from './releases';
+
+/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
+const currentCommitSha = process.env.GITHUB_SHA!;
 
 async function run() {
   try {
@@ -30,7 +34,7 @@ async function run() {
     const targetRelease = await releases.latest();
     core.info(`Latest release: ${targetRelease.version}`);
 
-    const ref = await api.findMatchingRef(targetRelease.version);
+    const ref = await github.findMatchingRef(targetRelease.version);
 
     if (ref) {
       core.info('Found an existing ref, stopping here.');
@@ -47,7 +51,7 @@ async function run() {
       {followSymbolicLinks: false}
     );
     const wrappers = await globber.glob();
-    core.debug(`Wrappers: ${wrappers}`);
+    core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
 
     if (!wrappers.length) {
       core.warning('Unable to find Gradle Wrapper files in this project.');
@@ -58,7 +62,19 @@ async function run() {
 
     const wrapperInfos = wrappers.map(path => new WrapperInfo(path));
 
-    let allModifiedFiles: string[] = [];
+    const commitDataList: {
+      files: string[];
+      targetVersion: string;
+      sourceVersion: string;
+    }[] = [];
+
+    await git.config('user.name', 'gradle-update-robot');
+    await git.config('user.email', 'gradle-update-robot@regolo.cc');
+
+    core.startGroup('Creating branch');
+    const branchName = `gradlew-update-${targetRelease.version}`;
+    await git.checkout(branchName, currentCommitSha);
+    core.endGroup();
 
     for (const wrapper of wrapperInfos) {
       core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
@@ -71,22 +87,32 @@ async function run() {
         continue;
       }
 
-      core.info('Updating Wrapper');
       const updater = new WrapperUpdater({wrapper, targetRelease});
-      await updater.update();
 
-      core.info('Checking whether any file has been updated');
-      const modifiedFiles: string[] = await git.gitDiffNameOnly();
+      core.startGroup('Updating Wrapper');
+      await updater.update();
+      core.endGroup();
+
+      core.startGroup('Checking whether any file has been updated');
+      const modifiedFiles = await git.gitDiffNameOnly();
       core.debug(`Modified files count: ${modifiedFiles.length}`);
       core.debug(`Modified files list: ${modifiedFiles}`);
+      core.endGroup();
 
-      if (modifiedFiles.length > allModifiedFiles.length) {
-        core.info(`Keeping track of modified files`);
-
-        core.info('Verifying Wrapper');
+      if (modifiedFiles.length) {
+        core.startGroup('Verifying Wrapper');
         await updater.verify();
+        core.endGroup();
 
-        allModifiedFiles = allModifiedFiles.concat(modifiedFiles);
+        core.startGroup('Committing');
+        await commit(modifiedFiles, targetRelease.version, wrapper.version);
+        core.endGroup();
+
+        commitDataList.push({
+          files: modifiedFiles,
+          targetVersion: targetRelease.version,
+          sourceVersion: wrapper.version
+        });
       } else {
         core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
       }
@@ -94,26 +120,34 @@ async function run() {
       core.endGroup();
     }
 
-    core.debug(`All modified files count: ${allModifiedFiles.length}`);
-    core.debug(`All modified files list: ${allModifiedFiles}`);
-    if (!allModifiedFiles.length) {
+    if (!commitDataList.length) {
       core.warning(
         `✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`
       );
       return;
     }
 
+    const changedFilesCount = commitDataList
+      .map(cd => cd.files.length)
+      .reduce((acc, item) => acc + item);
+    core.debug(
+      `Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`
+    );
+
+    core.info('Pushing branch');
+    await git.push(branchName);
+
     core.info('Creating Pull Request');
-    const pullRequestUrl = await api.commitAndCreatePR(
-      allModifiedFiles,
+    const pullRequestUrl = await github.createPullRequest(
+      branchName,
       targetRelease.version,
-      wrapperInfos.length === 1 ? wrapperInfos[0].version : undefined
+      commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined
     );
 
     core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
   } catch (error) {
-    // setFailed is fatal (terminates action), core.error creates a failure
-    // annotation instead
+    // setFailed is fatal (terminates action), core.error
+    // creates a failure annotation instead
     core.setFailed(`❌ ${error.message}`);
   }
 }
