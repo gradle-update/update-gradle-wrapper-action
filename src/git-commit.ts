@@ -12,26 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as core from '@actions/core';
+import * as git from './git-cmds';
 
-import * as cmd from './cmd';
+export async function commit(
+  files: string[],
+  targetVersion: string,
+  sourceVersion: string
+) {
+  await git.add(files);
 
-export async function gitDiffNameOnly(): Promise<string[]> {
-  const {stdout} = await cmd.execWithOutput('git', ['diff', '--name-only']);
+  const message = `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
 
-  const files = stdout.split('\n').filter(f => f.length);
-  core.debug(`Git diff files: ${files}`);
+Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
+- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`;
 
-  return files;
-}
-
-export async function gitFileMode(path: string): Promise<string> {
-  const {stdout} = await cmd.execWithOutput('git', ['ls-files', '-s', path]);
-
-  const [mode] = stdout.split(' ');
-
-  core.debug(`Path: ${path}`);
-  core.debug(`Mode: ${mode}`);
-
-  return mode;
+  await git.commit(message);
 }

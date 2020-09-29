@@ -2,275 +2,6 @@ module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8947:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.commitAndCreatePR = exports.findMatchingRef = void 0;
-const github_1 = __webpack_require__(5438);
-const core = __importStar(__webpack_require__(2186));
-const git = __importStar(__webpack_require__(3374));
-/* eslint-enable @typescript-eslint/no-unused-vars */
-const fs_1 = __webpack_require__(5747);
-const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
-const LABEL_NAME = 'gradle-wrapper';
-const token = core.getInput('repo-token');
-const octokit = github_1.getOctokit(token);
-function findMatchingRef(version) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { data: refs } = yield octokit.git.listMatchingRefs({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            ref: `heads/gradlew-update-${version}`
-        });
-        return refs.length ? refs[0] : undefined;
-    });
-}
-exports.findMatchingRef = findMatchingRef;
-function commitAndCreatePR(files, targetVersion, sourceVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const currentCommit = yield octokit.git.getCommit({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-            commit_sha: process.env.GITHUB_SHA
-        });
-        const tree = yield createNewTree(currentCommit.data.tree.sha, files);
-        const newCommit = yield createCommit(tree.sha, currentCommit.data.sha, targetVersion, sourceVersion);
-        const branchName = `refs/heads/gradlew-update-${targetVersion}`;
-        // TODO: branch might exist already (a previous run might have failed to
-        // create the PR), so might need to updateRef instead.
-        // Ref is needed to create a PR.
-        const ref = yield octokit.git.createRef({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            ref: branchName,
-            sha: newCommit.sha
-        });
-        core.debug(`Ref sha: ${ref.data.object.sha}`);
-        const pullRequest = yield createPullRequest(branchName, targetVersion, sourceVersion);
-        yield findLabel();
-        yield octokit.issues.addLabels({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            issue_number: pullRequest.number,
-            labels: [LABEL_NAME]
-        });
-        const reviewers = core
-            .getInput('reviewers')
-            .split(/[\n\s,]/)
-            .map(r => r.trim())
-            .filter(r => r.length);
-        if (reviewers.length) {
-            yield addReviewers(pullRequest.number, reviewers);
-        }
-        return pullRequest.html_url;
-    });
-}
-exports.commitAndCreatePR = commitAndCreatePR;
-function createPullRequest(branchName, targetVersion, sourceVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const shortMessage = sourceVersion
-            ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-            : `Updates Gradle Wrapper to ${targetVersion}.`;
-        const body = `${shortMessage}
-
-See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
-
----
-
-<details>
-<summary>Need help?</summary>
-<br />
-
-If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
-</details>`;
-        let base = core.getInput('target-branch', { required: false });
-        if (!base) {
-            base = yield repoDefaultBranch();
-        }
-        core.debug(`Target branch: ${base}`);
-        const pr = yield octokit.pulls.create({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            title: shortMessage,
-            head: branchName,
-            base,
-            body
-        });
-        core.debug(`PR changed files: ${pr.data.changed_files}`);
-        core.debug(`PR mergeable: ${pr.data.mergeable}`);
-        core.debug(`PR user: ${pr.data.user.login}`);
-        return pr.data;
-    });
-}
-function repoDefaultBranch() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const repo = yield octokit.repos.get({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo
-        });
-        return repo.data.default_branch;
-    });
-}
-function createCommit(newTreeSha, currentCommitSha, targetVersion, sourceVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const message = sourceVersion
-            ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-            : `Update Gradle Wrapper to ${targetVersion}.`;
-        const commit = yield octokit.git.createCommit({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            message: `${message}
-
-${message}
-- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`,
-            tree: newTreeSha,
-            parents: [currentCommitSha],
-            author: {
-                name: 'gradle-update-robot',
-                email: 'gradle-update-robot@regolo.cc',
-                date: new Date().toISOString()
-            }
-        });
-        core.debug(`Commit sha: ${commit.data.sha}`);
-        core.debug(`Commit author name: ${commit.data.author.name}`);
-        core.debug(`Commit committer name: ${commit.data.committer.name}`);
-        core.debug(`Commit verified: ${commit.data.verification.verified}`);
-        return commit.data;
-    });
-}
-function createNewTree(parentTreeSha, paths) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const treeData = [];
-        for (const path of paths) {
-            const content = fs_1.readFileSync(path).toString('base64');
-            const blobData = yield octokit.git.createBlob({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                content,
-                encoding: 'base64'
-            });
-            const sha = blobData.data.sha;
-            const mode = yield git.gitFileMode(path);
-            treeData.push({ path, mode, type: 'blob', sha });
-        }
-        core.debug(`TreeData: ${JSON.stringify(treeData, null, 2)}`);
-        const tree = yield octokit.git.createTree({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            tree: treeData,
-            base_tree: parentTreeSha
-        });
-        core.debug(`Tree sha: ${tree.data.sha}`);
-        return tree.data;
-    });
-}
-function findLabel() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const label = yield octokit.issues.getLabel({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                name: LABEL_NAME
-            });
-            core.debug(`Label description: ${label.data.description}`);
-            return label.data;
-        }
-        catch (error) {
-            if (error.status !== 404) {
-                throw error;
-            }
-            core.debug('Label not found');
-            return yield createLabel();
-        }
-    });
-}
-function createLabel() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const label = yield octokit.issues.createLabel({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            name: LABEL_NAME,
-            color: '02303A',
-            description: 'Pull requests that update Gradle wrapper'
-        });
-        core.debug(`Label id: ${label.data.id}`);
-        return label.data;
-    });
-}
-function addReviewers(pr, reviewers) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Adding PR reviewers: ${reviewers}`);
-        try {
-            const res = yield octokit.pulls.requestReviewers({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                pull_number: pr,
-                reviewers
-            });
-            if (res.data.requested_reviewers.length !== reviewers.length) {
-                core.debug(`Added reviewers: ${res.data.requested_reviewers
-                    .map(r => r.login)
-                    .join(' ')}`);
-                core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
-            }
-        }
-        catch (error) {
-            if (error.status !== 422) {
-                throw error;
-            }
-            core.warning(error.message);
-        }
-    });
-}
-
-
-/***/ }),
-
 /***/ 816:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -347,7 +78,7 @@ exports.execWithOutput = execWithOutput;
 
 /***/ }),
 
-/***/ 3374:
+/***/ 5473:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -394,7 +125,202 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.gitFileMode = exports.gitDiffNameOnly = void 0;
+exports.createPullRequest = exports.findMatchingRef = void 0;
+const github_1 = __webpack_require__(5438);
+const core = __importStar(__webpack_require__(2186));
+/* eslint-enable @typescript-eslint/no-unused-vars */
+const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
+const LABEL_NAME = 'gradle-wrapper';
+const token = core.getInput('repo-token');
+const octokit = github_1.getOctokit(token);
+function findMatchingRef(targetVersion) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { data: refs } = yield octokit.git.listMatchingRefs({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            ref: `heads/gradlew-update-${targetVersion}`
+        });
+        return refs.length ? refs[0] : undefined;
+    });
+}
+exports.findMatchingRef = findMatchingRef;
+function createPullRequest(branchName, targetVersion, sourceVersion) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pullRequest = yield openPullRequest(`refs/heads/${branchName}`, targetVersion, sourceVersion);
+        yield findLabel();
+        yield octokit.issues.addLabels({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            issue_number: pullRequest.number,
+            labels: [LABEL_NAME]
+        });
+        const reviewers = core
+            .getInput('reviewers')
+            .split(/[\n\s,]/)
+            .map(r => r.trim())
+            .filter(r => r.length);
+        if (reviewers.length) {
+            yield addReviewers(pullRequest.number, reviewers);
+        }
+        return pullRequest.html_url;
+    });
+}
+exports.createPullRequest = createPullRequest;
+function openPullRequest(branchName, targetVersion, sourceVersion) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const shortMessage = sourceVersion
+            ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
+            : `Updates Gradle Wrapper to ${targetVersion}.`;
+        const body = `${shortMessage}
+
+See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
+
+---
+
+<details>
+<summary>Need help?</summary>
+<br />
+
+If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
+</details>`;
+        let base = core.getInput('target-branch', { required: false });
+        if (!base) {
+            base = yield repoDefaultBranch();
+        }
+        core.debug(`Target branch: ${base}`);
+        const pullRequest = yield octokit.pulls.create({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            title: shortMessage,
+            head: branchName,
+            base,
+            body
+        });
+        core.debug(`PullRequest changed files: ${pullRequest.data.changed_files}`);
+        core.debug(`PullRequest mergeable: ${pullRequest.data.mergeable}`);
+        core.debug(`PullRequest user: ${pullRequest.data.user.login}`);
+        return pullRequest.data;
+    });
+}
+function repoDefaultBranch() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const repo = yield octokit.repos.get({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo
+        });
+        return repo.data.default_branch;
+    });
+}
+function findLabel() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const label = yield octokit.issues.getLabel({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                name: LABEL_NAME
+            });
+            core.debug(`Label description: ${label.data.description}`);
+            return label.data;
+        }
+        catch (error) {
+            if (error.status !== 404) {
+                throw error;
+            }
+            core.debug('Label not found');
+            return yield createLabel();
+        }
+    });
+}
+function createLabel() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const label = yield octokit.issues.createLabel({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            name: LABEL_NAME,
+            color: '02303A',
+            description: 'Pull requests that update Gradle wrapper'
+        });
+        core.debug(`Label id: ${label.data.id}`);
+        return label.data;
+    });
+}
+function addReviewers(pr, reviewers) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Adding PR reviewers: ${reviewers}`);
+        try {
+            const res = yield octokit.pulls.requestReviewers({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                pull_number: pr,
+                reviewers
+            });
+            if (res.data.requested_reviewers.length !== reviewers.length) {
+                core.debug(`Added reviewers: ${res.data.requested_reviewers
+                    .map(r => r.login)
+                    .join(' ')}`);
+                core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
+            }
+        }
+        catch (error) {
+            if (error.status !== 422) {
+                throw error;
+            }
+            core.warning(error.message);
+        }
+    });
+}
+
+
+/***/ }),
+
+/***/ 4610:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.push = exports.config = exports.commit = exports.add = exports.checkout = exports.gitDiffNameOnly = void 0;
 const core = __importStar(__webpack_require__(2186));
 const cmd = __importStar(__webpack_require__(816));
 function gitDiffNameOnly() {
@@ -406,16 +332,105 @@ function gitDiffNameOnly() {
     });
 }
 exports.gitDiffNameOnly = gitDiffNameOnly;
-function gitFileMode(path) {
+function checkout(branchName, startPoint) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { stdout } = yield cmd.execWithOutput('git', ['ls-files', '-s', path]);
-        const [mode] = stdout.split(' ');
-        core.debug(`Path: ${path}`);
-        core.debug(`Mode: ${mode}`);
-        return mode;
+        yield cmd.execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
     });
 }
-exports.gitFileMode = gitFileMode;
+exports.checkout = checkout;
+function add(paths) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', ['add', ...paths]);
+    });
+}
+exports.add = add;
+function commit(message) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', ['commit', '-m', message, '--signoff']);
+    });
+}
+exports.commit = commit;
+function config(key, value) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', ['config', '--local', key, value]);
+    });
+}
+exports.config = config;
+function push(branchName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', [
+            'push',
+            '--force-with-lease',
+            'origin',
+            `HEAD:refs/heads/${branchName}`
+        ]);
+    });
+}
+exports.push = push;
+
+
+/***/ }),
+
+/***/ 1331:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+// Copyright 2020 Cristian Greco
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.commit = void 0;
+const git = __importStar(__webpack_require__(4610));
+function commit(files, targetVersion, sourceVersion) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield git.add(files);
+        const message = `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
+
+Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
+- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`;
+        yield git.commit(message);
+    });
+}
+exports.commit = commit;
 
 
 /***/ }),
@@ -469,11 +484,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const glob = __importStar(__webpack_require__(8090));
+const git_commit_1 = __webpack_require__(1331);
 const wrapperInfo_1 = __webpack_require__(6832);
 const wrapperUpdater_1 = __webpack_require__(7412);
-const api = __importStar(__webpack_require__(8947));
-const git = __importStar(__webpack_require__(3374));
+const git = __importStar(__webpack_require__(4610));
+const github = __importStar(__webpack_require__(5473));
 const releases = __importStar(__webpack_require__(5715));
+/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
+const currentCommitSha = process.env.GITHUB_SHA;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -482,7 +500,7 @@ function run() {
             }
             const targetRelease = yield releases.latest();
             core.info(`Latest release: ${targetRelease.version}`);
-            const ref = yield api.findMatchingRef(targetRelease.version);
+            const ref = yield github.findMatchingRef(targetRelease.version);
             if (ref) {
                 core.info('Found an existing ref, stopping here.');
                 core.debug(`Ref url: ${ref.url}`);
@@ -492,14 +510,20 @@ function run() {
             }
             const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
             const wrappers = yield globber.glob();
-            core.debug(`Wrappers: ${wrappers}`);
+            core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
             if (!wrappers.length) {
                 core.warning('Unable to find Gradle Wrapper files in this project.');
                 return;
             }
             core.debug(`Wrappers count: ${wrappers.length}`);
             const wrapperInfos = wrappers.map(path => new wrapperInfo_1.WrapperInfo(path));
-            let allModifiedFiles = [];
+            const commitDataList = [];
+            yield git.config('user.name', 'gradle-update-robot');
+            yield git.config('user.email', 'gradle-update-robot@regolo.cc');
+            core.startGroup('Creating branch');
+            const branchName = `gradlew-update-${targetRelease.version}`;
+            yield git.checkout(branchName, currentCommitSha);
+            core.endGroup();
             for (const wrapper of wrapperInfos) {
                 core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
                 // read current version before updating the wrapper
@@ -508,37 +532,50 @@ function run() {
                     core.debug(`Wrapper is already up-to-date`);
                     continue;
                 }
-                core.info('Updating Wrapper');
                 const updater = new wrapperUpdater_1.WrapperUpdater({ wrapper, targetRelease });
+                core.startGroup('Updating Wrapper');
                 yield updater.update();
-                core.info('Checking whether any file has been updated');
+                core.endGroup();
+                core.startGroup('Checking whether any file has been updated');
                 const modifiedFiles = yield git.gitDiffNameOnly();
                 core.debug(`Modified files count: ${modifiedFiles.length}`);
                 core.debug(`Modified files list: ${modifiedFiles}`);
-                if (modifiedFiles.length > allModifiedFiles.length) {
-                    core.info(`Keeping track of modified files`);
-                    core.info('Verifying Wrapper');
+                core.endGroup();
+                if (modifiedFiles.length) {
+                    core.startGroup('Verifying Wrapper');
                     yield updater.verify();
-                    allModifiedFiles = allModifiedFiles.concat(modifiedFiles);
+                    core.endGroup();
+                    core.startGroup('Committing');
+                    yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
+                    core.endGroup();
+                    commitDataList.push({
+                        files: modifiedFiles,
+                        targetVersion: targetRelease.version,
+                        sourceVersion: wrapper.version
+                    });
                 }
                 else {
                     core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
                 }
                 core.endGroup();
             }
-            core.debug(`All modified files count: ${allModifiedFiles.length}`);
-            core.debug(`All modified files list: ${allModifiedFiles}`);
-            if (!allModifiedFiles.length) {
+            if (!commitDataList.length) {
                 core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
                 return;
             }
+            const changedFilesCount = commitDataList
+                .map(cd => cd.files.length)
+                .reduce((acc, item) => acc + item);
+            core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
+            core.info('Pushing branch');
+            yield git.push(branchName);
             core.info('Creating Pull Request');
-            const pullRequestUrl = yield api.commitAndCreatePR(allModifiedFiles, targetRelease.version, wrapperInfos.length === 1 ? wrapperInfos[0].version : undefined);
+            const pullRequestUrl = yield github.createPullRequest(branchName, targetRelease.version, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
             core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
         }
         catch (error) {
-            // setFailed is fatal (terminates action), core.error creates a failure
-            // annotation instead
+            // setFailed is fatal (terminates action), core.error
+            // creates a failure annotation instead
             core.setFailed(`❌ ${error.message}`);
         }
     });
@@ -785,10 +822,10 @@ class WrapperInfo {
         this.path = path;
         this.basePath = path.replace('gradle/wrapper/gradle-wrapper.properties', '');
         core.debug('WrapperInfo');
-        core.debug(`path: ${this.path}`);
-        core.debug(`basePath: ${this.basePath}`);
+        core.debug(`  path: ${this.path}`);
+        core.debug(`  basePath: ${this.basePath}`);
         const props = fs_1.readFileSync(path).toString();
-        core.debug(`props: ${props}`);
+        core.debug(`  props: ${props.replace('\n', ' ')}`);
         const distributionUrl = props
             .trim()
             .split('\n')
@@ -797,8 +834,8 @@ class WrapperInfo {
         const parsed = /^distributionUrl=.*\/gradle-([^-]+)-([^.]+)\.zip$/.exec(distributionUrl);
         if (parsed) {
             const [, version, distType] = parsed;
-            core.debug(`Version: ${version}`);
-            core.debug(`Distribution: ${distType}`);
+            core.debug(`  version: ${version}`);
+            core.debug(`  distribution: ${distType}`);
             [this.version, this.distType] = [version, distType];
             return;
         }
