@@ -20,11 +20,7 @@ export async function commit(
   sourceVersion: string
 ) {
   await git.add(files);
-
-  const message = `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
-
-Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
-- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`;
-
-  await git.commit(message);
+  await git.commit(
+    `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
+  );
 }

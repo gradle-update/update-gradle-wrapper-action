@@ -129,10 +129,10 @@ exports.createPullRequest = exports.findMatchingRef = void 0;
 const github_1 = __webpack_require__(5438);
 const core = __importStar(__webpack_require__(2186));
 /* eslint-enable @typescript-eslint/no-unused-vars */
+const inputs_1 = __webpack_require__(4629);
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const LABEL_NAME = 'gradle-wrapper';
-const token = core.getInput('repo-token');
-const octokit = github_1.getOctokit(token);
+const octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
 function findMatchingRef(targetVersion) {
     return __awaiter(this, void 0, void 0, function* () {
         const { data: refs } = yield octokit.git.listMatchingRefs({
@@ -154,14 +154,7 @@ function createPullRequest(branchName, targetVersion, sourceVersion) {
             issue_number: pullRequest.number,
             labels: [LABEL_NAME]
         });
-        const reviewers = core
-            .getInput('reviewers')
-            .split(/[\n\s,]/)
-            .map(r => r.trim())
-            .filter(r => r.length);
-        if (reviewers.length) {
-            yield addReviewers(pullRequest.number, reviewers);
-        }
+        yield addReviewers(pullRequest.number, inputs_1.inputs.reviewers);
         return pullRequest.html_url;
     });
 }
@@ -177,16 +170,17 @@ See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
 
 ---
 
+🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
+
 <details>
-<summary>Need help?</summary>
+<summary>Need help? 🤔</summary>
 <br />
 
-If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
+If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
 </details>`;
-        let base = core.getInput('target-branch', { required: false });
-        if (!base) {
-            base = yield repoDefaultBranch();
-        }
+        const base = inputs_1.inputs.targetBranch !== ''
+            ? inputs_1.inputs.targetBranch
+            : yield repoDefaultBranch();
         core.debug(`Target branch: ${base}`);
         const pullRequest = yield octokit.pulls.create({
             owner: github_1.context.repo.owner,
@@ -246,7 +240,11 @@ function createLabel() {
 }
 function addReviewers(pr, reviewers) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Adding PR reviewers: ${reviewers}`);
+        if (!reviewers.length) {
+            core.info('No Pull Request reviewers to add');
+            return;
+        }
+        core.info(`Adding PR reviewers: ${reviewers.join(',')}`);
         try {
             const res = yield octokit.pulls.requestReviewers({
                 owner: github_1.context.repo.owner,
@@ -423,11 +421,7 @@ const git = __importStar(__webpack_require__(4610));
 function commit(files, targetVersion, sourceVersion) {
     return __awaiter(this, void 0, void 0, function* () {
         yield git.add(files);
-        const message = `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
-
-Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.
-- [Release notes](https://docs.gradle.org/${targetVersion}/release-notes.html)`;
-        yield git.commit(message);
+        yield git.commit(`Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`);
     });
 }
 exports.commit = commit;
@@ -529,7 +523,7 @@ function run() {
                 // read current version before updating the wrapper
                 core.debug(`Current Wrapper version: ${wrapper.version}`);
                 if (wrapper.version === targetRelease.version) {
-                    core.debug(`Wrapper is already up-to-date`);
+                    core.info(`Wrapper is already up-to-date`);
                     continue;
                 }
                 const updater = new wrapperUpdater_1.WrapperUpdater({ wrapper, targetRelease });

@@ -83,7 +83,7 @@ async function run() {
       core.debug(`Current Wrapper version: ${wrapper.version}`);
 
       if (wrapper.version === targetRelease.version) {
-        core.debug(`Wrapper is already up-to-date`);
+        core.info(`Wrapper is already up-to-date`);
         continue;
       }
 

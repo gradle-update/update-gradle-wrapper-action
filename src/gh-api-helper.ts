@@ -24,13 +24,14 @@ import {
 } from '@octokit/types';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
+import {inputs} from './inputs';
+
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 
 const LABEL_NAME = 'gradle-wrapper';
 
-const token = core.getInput('repo-token');
-const octokit = getOctokit(token);
+const octokit = getOctokit(inputs.repoToken);
 
 export type MatchingRefType = GitListMatchingRefsResponseData[0] | undefined;
 
@@ -66,15 +67,7 @@ export async function createPullRequest(
     labels: [LABEL_NAME]
   });
 
-  const reviewers = core
-    .getInput('reviewers')
-    .split(/[\n\s,]/)
-    .map(r => r.trim())
-    .filter(r => r.length);
-
-  if (reviewers.length) {
-    await addReviewers(pullRequest.number, reviewers);
-  }
+  await addReviewers(pullRequest.number, inputs.reviewers);
 
   return pullRequest.html_url;
 }
@@ -94,17 +87,19 @@ See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
 
 ---
 
+🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
+
 <details>
-<summary>Need help?</summary>
+<summary>Need help? 🤔</summary>
 <br />
 
-If something doesn't look right with this PR please file a bug [here](${ISSUES_URL}) 🙏
+If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
 </details>`;
 
-  let base = core.getInput('target-branch', {required: false});
-  if (!base) {
-    base = await repoDefaultBranch();
-  }
+  const base =
+    inputs.targetBranch !== ''
+      ? inputs.targetBranch
+      : await repoDefaultBranch();
   core.debug(`Target branch: ${base}`);
 
   const pullRequest = await octokit.pulls.create({
@@ -169,7 +164,12 @@ async function createLabel(): Promise<IssuesCreateLabelResponseData> {
 }
 
 async function addReviewers(pr: number, reviewers: string[]) {
-  core.info(`Adding PR reviewers: ${reviewers}`);
+  if (!reviewers.length) {
+    core.info('No Pull Request reviewers to add');
+    return;
+  }
+
+  core.info(`Adding PR reviewers: ${reviewers.join(',')}`);
 
   try {
     const res = await octokit.pulls.requestReviewers({

@@ -160,7 +160,7 @@ into your repository.
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No | |
+| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No | (empty) |
 
 Request a review from these GitHub usernames (notifications will be triggered).
 
@@ -184,7 +184,7 @@ with:
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `target-branch` | Branch to create Pull Requests against. | No | The default branch name of your repository |
+| `target-branch` | Branch to create Pull Requests against. | No | The default branch name of your repository. |
 
 The name of the branch to pull changes into. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
 
