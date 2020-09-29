@@ -6,10 +6,10 @@
   "main": "lib/index.js",
   "scripts": {
     "clean": "rm -rf lib/ dist/",
-    "format": "prettier --write src/**/*.ts tests/**/*.ts",
-    "format-check": "prettier --check src/**/*.ts tests/**/*.ts",
-    "lint": "eslint --fix --ext ts src/",
-    "lint-check": "eslint --ext ts src/",
+    "format": "prettier --write '{src,tests}/**/*.ts'",
+    "format-check": "prettier --check '{src,tests}/**/*.ts'",
+    "lint": "eslint . --ext ts --fix",
+    "lint-check": "eslint . --ext ts",
     "build": "tsc",
     "pack": "ncc build",
     "test": "jest",
@@ -38,6 +38,7 @@
     "eslint-plugin-jest": "^23.20.0",
     "prettier": "^2.1.2",
     "jest": "^26.4.2",
-    "ts-jest": "^26.4.0"
+    "ts-jest": "^26.4.0",
+    "nock": "^13.0.4"
   }
 }
