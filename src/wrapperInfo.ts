@@ -35,11 +35,11 @@ export class WrapperInfo {
     );
 
     core.debug('WrapperInfo');
-    core.debug(`path: ${this.path}`);
-    core.debug(`basePath: ${this.basePath}`);
+    core.debug(`  path: ${this.path}`);
+    core.debug(`  basePath: ${this.basePath}`);
 
     const props = readFileSync(path).toString();
-    core.debug(`props: ${props}`);
+    core.debug(`  props: ${props.replace('\n', ' ')}`);
 
     const distributionUrl = props
       .trim()
@@ -54,8 +54,8 @@ export class WrapperInfo {
 
     if (parsed) {
       const [, version, distType] = parsed;
-      core.debug(`Version: ${version}`);
-      core.debug(`Distribution: ${distType}`);
+      core.debug(`  version: ${version}`);
+      core.debug(`  distribution: ${distType}`);
 
       [this.version, this.distType] = [version, distType];
       return;
