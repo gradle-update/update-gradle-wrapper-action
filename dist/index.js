@@ -7,19 +7,6 @@ module.exports =
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -78,217 +65,11 @@ exports.execWithOutput = execWithOutput;
 
 /***/ }),
 
-/***/ 5473:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createPullRequest = exports.findMatchingRef = void 0;
-const github_1 = __webpack_require__(5438);
-const core = __importStar(__webpack_require__(2186));
-/* eslint-enable @typescript-eslint/no-unused-vars */
-const inputs_1 = __webpack_require__(4629);
-const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
-const LABEL_NAME = 'gradle-wrapper';
-const octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
-function findMatchingRef(targetVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { data: refs } = yield octokit.git.listMatchingRefs({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            ref: `heads/gradlew-update-${targetVersion}`
-        });
-        return refs.length ? refs[0] : undefined;
-    });
-}
-exports.findMatchingRef = findMatchingRef;
-function createPullRequest(branchName, targetVersion, sourceVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const pullRequest = yield openPullRequest(`refs/heads/${branchName}`, targetVersion, sourceVersion);
-        yield findLabel();
-        yield octokit.issues.addLabels({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            issue_number: pullRequest.number,
-            labels: [LABEL_NAME]
-        });
-        yield addReviewers(pullRequest.number, inputs_1.inputs.reviewers);
-        return pullRequest.html_url;
-    });
-}
-exports.createPullRequest = createPullRequest;
-function openPullRequest(branchName, targetVersion, sourceVersion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const shortMessage = sourceVersion
-            ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-            : `Updates Gradle Wrapper to ${targetVersion}.`;
-        const body = `${shortMessage}
-
-See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
-
----
-
-🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
-
-<details>
-<summary>Need help? 🤔</summary>
-<br />
-
-If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
-</details>`;
-        const base = inputs_1.inputs.targetBranch !== ''
-            ? inputs_1.inputs.targetBranch
-            : yield repoDefaultBranch();
-        core.debug(`Target branch: ${base}`);
-        const pullRequest = yield octokit.pulls.create({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            title: shortMessage,
-            head: branchName,
-            base,
-            body
-        });
-        core.debug(`PullRequest changed files: ${pullRequest.data.changed_files}`);
-        core.debug(`PullRequest mergeable: ${pullRequest.data.mergeable}`);
-        core.debug(`PullRequest user: ${pullRequest.data.user.login}`);
-        return pullRequest.data;
-    });
-}
-function repoDefaultBranch() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const repo = yield octokit.repos.get({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo
-        });
-        return repo.data.default_branch;
-    });
-}
-function findLabel() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const label = yield octokit.issues.getLabel({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                name: LABEL_NAME
-            });
-            core.debug(`Label description: ${label.data.description}`);
-            return label.data;
-        }
-        catch (error) {
-            if (error.status !== 404) {
-                throw error;
-            }
-            core.debug('Label not found');
-            return yield createLabel();
-        }
-    });
-}
-function createLabel() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const label = yield octokit.issues.createLabel({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            name: LABEL_NAME,
-            color: '02303A',
-            description: 'Pull requests that update Gradle wrapper'
-        });
-        core.debug(`Label id: ${label.data.id}`);
-        return label.data;
-    });
-}
-function addReviewers(pr, reviewers) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!reviewers.length) {
-            core.info('No Pull Request reviewers to add');
-            return;
-        }
-        core.info(`Adding PR reviewers: ${reviewers.join(',')}`);
-        try {
-            const res = yield octokit.pulls.requestReviewers({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                pull_number: pr,
-                reviewers
-            });
-            if (res.data.requested_reviewers.length !== reviewers.length) {
-                core.debug(`Added reviewers: ${res.data.requested_reviewers
-                    .map(r => r.login)
-                    .join(' ')}`);
-                core.warning(`Unable to set all the PR reviewers, check usernames are correct.`);
-            }
-        }
-        catch (error) {
-            if (error.status !== 422) {
-                throw error;
-            }
-            core.warning(error.message);
-        }
-    });
-}
-
-
-/***/ }),
-
 /***/ 4610:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -374,19 +155,6 @@ exports.push = push;
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -429,24 +197,273 @@ exports.commit = commit;
 
 /***/ }),
 
+/***/ 3422:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GitHubApi = void 0;
+const github_1 = __webpack_require__(5438);
+const core = __importStar(__webpack_require__(2186));
+const inputs_1 = __webpack_require__(4629);
+class GitHubApi {
+    constructor() {
+        this.octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
+    }
+    repoDefaultBranch() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data: repo } = yield this.octokit.repos.get({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo
+            });
+            return repo.default_branch;
+        });
+    }
+    createPullRequest({ branchName, target, title, body }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data: pullRequest } = yield this.octokit.pulls.create({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                head: branchName,
+                base: target,
+                title,
+                body
+            });
+            return pullRequest;
+        });
+    }
+    addReviewers(pullRequestNumber, reviewers) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!reviewers.length) {
+                core.info('No reviewers to add');
+                return;
+            }
+            core.info(`Requesting review from: ${reviewers.join(',')}`);
+            let result;
+            try {
+                result = yield this.octokit.pulls.requestReviewers({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    pull_number: pullRequestNumber,
+                    reviewers
+                });
+            }
+            catch (error) {
+                core.warning(`Unable to set all the PR reviewers, got error: ${error.message}`);
+                return;
+            }
+            if ((result === null || result === void 0 ? void 0 : result.data.requested_reviewers.length) !== reviewers.length) {
+                const addedReviewers = result === null || result === void 0 ? void 0 : result.data.requested_reviewers.map(r => r.login).join(' ');
+                core.debug(`Added reviewers: ${addedReviewers}`);
+                core.warning('Unable to set all the PR reviewers, check usernames are correct.');
+            }
+        });
+    }
+    addLabels(pullRequestNumber, labels) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!labels.length) {
+                core.info('No labels to add');
+                return;
+            }
+            core.info(`Adding labels: ${labels.join(',')}`);
+            try {
+                yield this.octokit.issues.addLabels({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    issue_number: pullRequestNumber,
+                    labels
+                });
+            }
+            catch (error) {
+                core.warning(`Unable to add all labels to PR, got error: ${error.message}`);
+            }
+        });
+    }
+    createLabelIfMissing(labelName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const label = yield this.octokit.issues.getLabel({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    name: labelName
+                });
+                core.debug(`Label already exists with id: ${label.data.id}`);
+                return true;
+            }
+            catch (error) {
+                if (error.status === 404) {
+                    core.debug('Label not found');
+                    return yield this.createLabel(labelName);
+                }
+                return false;
+            }
+        });
+    }
+    createLabel(labelName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const label = yield this.octokit.issues.createLabel({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    name: labelName,
+                    color: '02303A',
+                    description: 'Pull requests that update Gradle wrapper'
+                });
+                core.debug(`Created label with id: ${label.data.id}`);
+                return true;
+            }
+            catch (error) {
+                core.warning(`Unable to create label "${labelName}", got error: ${error.message}`);
+                return false;
+            }
+        });
+    }
+}
+exports.GitHubApi = GitHubApi;
+
+
+/***/ }),
+
+/***/ 1288:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GitHubOps = void 0;
+const github_1 = __webpack_require__(5438);
+const core = __importStar(__webpack_require__(2186));
+const gh_api_1 = __webpack_require__(3422);
+const inputs_1 = __webpack_require__(4629);
+const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
+const DEFAULT_LABEL = 'gradle-wrapper';
+class GitHubOps {
+    constructor(api) {
+        this.api = api !== null && api !== void 0 ? api : new gh_api_1.GitHubApi();
+        this.octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
+    }
+    findMatchingRef(targetVersion) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const refName = `heads/gradlew-update-${targetVersion}`;
+            const { data: refs } = yield this.octokit.git.listMatchingRefs({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                ref: refName
+            });
+            if (refs.length) {
+                const matchingRefs = refs.filter(ref => ref.ref === `refs/${refName}`);
+                if (matchingRefs.length === 1) {
+                    return matchingRefs[0];
+                }
+            }
+            return;
+        });
+    }
+    createPullRequest(branchName, targetVersion, sourceVersion) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const title = sourceVersion
+                ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
+                : `Updates Gradle Wrapper to ${targetVersion}.`;
+            const body = `${title}
+
+See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
+
+---
+
+🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
+
+<details>
+<summary>Need help? 🤔</summary>
+<br />
+
+If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
+</details>`;
+            const targetBranch = inputs_1.inputs.targetBranch !== ''
+                ? inputs_1.inputs.targetBranch
+                : yield this.api.repoDefaultBranch();
+            core.debug(`Target branch: ${targetBranch}`);
+            const pullRequest = yield this.api.createPullRequest({
+                branchName: `refs/heads/${branchName}`,
+                target: targetBranch,
+                title,
+                body
+            });
+            core.debug(`PullRequest id: ${pullRequest.id}`);
+            core.debug(`PullRequest changed files: ${pullRequest.changed_files}`);
+            yield this.api.createLabelIfMissing(DEFAULT_LABEL);
+            yield this.api.addLabels(pullRequest.number, [DEFAULT_LABEL]);
+            yield this.api.addReviewers(pullRequest.number, inputs_1.inputs.reviewers);
+            return pullRequest.html_url;
+        });
+    }
+}
+exports.GitHubOps = GitHubOps;
+
+
+/***/ }),
+
 /***/ 4822:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -481,10 +498,9 @@ const glob = __importStar(__webpack_require__(8090));
 const git_commit_1 = __webpack_require__(1331);
 const wrapperInfo_1 = __webpack_require__(6832);
 const wrapperUpdater_1 = __webpack_require__(7412);
+const gh = __importStar(__webpack_require__(1288));
 const git = __importStar(__webpack_require__(4610));
-const github = __importStar(__webpack_require__(5473));
 const releases = __importStar(__webpack_require__(5715));
-/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
 const currentCommitSha = process.env.GITHUB_SHA;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -494,7 +510,8 @@ function run() {
             }
             const targetRelease = yield releases.latest();
             core.info(`Latest release: ${targetRelease.version}`);
-            const ref = yield github.findMatchingRef(targetRelease.version);
+            const githubOps = new gh.GitHubOps();
+            const ref = yield githubOps.findMatchingRef(targetRelease.version);
             if (ref) {
                 core.info('Found an existing ref, stopping here.');
                 core.debug(`Ref url: ${ref.url}`);
@@ -520,7 +537,6 @@ function run() {
             core.endGroup();
             for (const wrapper of wrapperInfos) {
                 core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
-                // read current version before updating the wrapper
                 core.debug(`Current Wrapper version: ${wrapper.version}`);
                 if (wrapper.version === targetRelease.version) {
                     core.info(`Wrapper is already up-to-date`);
@@ -564,12 +580,10 @@ function run() {
             core.info('Pushing branch');
             yield git.push(branchName);
             core.info('Creating Pull Request');
-            const pullRequestUrl = yield github.createPullRequest(branchName, targetRelease.version, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
+            const pullRequestUrl = yield githubOps.createPullRequest(branchName, targetRelease.version, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
             core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
         }
         catch (error) {
-            // setFailed is fatal (terminates action), core.error
-            // creates a failure annotation instead
             core.setFailed(`❌ ${error.message}`);
         }
     });
@@ -584,19 +598,6 @@ run();
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -613,19 +614,6 @@ exports.inputs = new inputs_1.default();
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -675,19 +663,6 @@ exports.default = Inputs;
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -723,9 +698,7 @@ const http_client_1 = __webpack_require__(9925);
 const client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
 function latest() {
     return __awaiter(this, void 0, void 0, function* () {
-        const response = yield client.getJson(
-        // TODO: with 404 result is null, 500 throws
-        'https://services.gradle.org/versions/current');
+        const response = yield client.getJson('https://services.gradle.org/versions/current');
         core.debug(`statusCode: ${response.statusCode}`);
         const data = response.result;
         if (data) {
@@ -771,19 +744,6 @@ function fetch(url) {
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -846,19 +806,6 @@ exports.WrapperInfo = WrapperInfo;
 
 "use strict";
 
-// Copyright 2020 Cristian Greco
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -891,7 +838,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WrapperUpdater = void 0;
 const core = __importStar(__webpack_require__(2186));
 const cmd = __importStar(__webpack_require__(816));
-/* eslint-enable @typescript-eslint/no-unused-vars */
 const inputs_1 = __webpack_require__(4629);
 class WrapperUpdater {
     constructor({ wrapper, targetRelease }) {
@@ -911,8 +857,6 @@ class WrapperUpdater {
                 const sha256sum = this.wrapper.distType === 'bin'
                     ? this.targetRelease.binChecksum
                     : this.targetRelease.allChecksum;
-                // Writes checksum of the distribution binary in gradle-wrapper.properties
-                // so that it will be verified on first execution
                 args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
             }
             const { exitCode, stderr } = yield cmd.execWithOutput('gradle', args, this.wrapper.basePath);
@@ -939,7 +883,6 @@ class WrapperUpdater {
             }
         });
     }
-    // if the checksum is incorrect this will fail
     verifyRun() {
         return __awaiter(this, void 0, void 0, function* () {
             const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', ['--help'], this.wrapper.basePath);

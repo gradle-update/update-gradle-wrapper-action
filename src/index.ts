@@ -18,8 +18,8 @@ import * as glob from '@actions/glob';
 import {commit} from './git-commit';
 import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
+import * as gh from './github/gh-ops';
 import * as git from './git-cmds';
-import * as github from './gh-api-helper';
 import * as releases from './releases';
 
 /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
@@ -34,7 +34,9 @@ async function run() {
     const targetRelease = await releases.latest();
     core.info(`Latest release: ${targetRelease.version}`);
 
-    const ref = await github.findMatchingRef(targetRelease.version);
+    const githubOps = new gh.GitHubOps();
+
+    const ref = await githubOps.findMatchingRef(targetRelease.version);
 
     if (ref) {
       core.info('Found an existing ref, stopping here.');
@@ -138,7 +140,7 @@ async function run() {
     await git.push(branchName);
 
     core.info('Creating Pull Request');
-    const pullRequestUrl = await github.createPullRequest(
+    const pullRequestUrl = await githubOps.createPullRequest(
       branchName,
       targetRelease.version,
       commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined

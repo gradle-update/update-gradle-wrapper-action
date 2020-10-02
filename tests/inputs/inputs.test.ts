@@ -13,25 +13,33 @@
 // limitations under the License.
 
 import * as core from '@actions/core';
-jest.mock('@actions/core');
 
 import Inputs from '../../src/inputs/inputs';
-
-function mockGetInput(actionInputs: {[key: string]: string}) {
-  (core.getInput as jest.Mock).mockImplementation(
-    name => actionInputs[name] || ''
-  );
-}
+jest.mock('@actions/core');
 
 describe('inputs', () => {
+  let actionInputs = {} as {[key: string]: string};
+
+  beforeAll(() => {
+    jest.spyOn(core, 'getInput').mockImplementation((name: string) => {
+      return actionInputs[name] || '';
+    });
+  });
+
+  beforeEach(() => {
+    actionInputs = {};
+  });
+
   it('throws if repo-token is empty', () => {
-    mockGetInput({});
+    actionInputs = {};
 
     expect(() => new Inputs()).toThrowError();
   });
 
   it('sets default values for all inputs', () => {
-    mockGetInput({'repo-token': 's3cr3t'});
+    actionInputs = {
+      'repo-token': 's3cr3t'
+    };
 
     expect(new Inputs()).toMatchInlineSnapshot(`
       Inputs {
@@ -55,11 +63,11 @@ describe('inputs', () => {
         ['foo\n\tbar, baz', ['foo', 'bar', 'baz']]
       ];
 
-      for (let [value, expected] of tests) {
-        mockGetInput({
+      for (const [value, expected] of tests) {
+        actionInputs = {
           'repo-token': 's3cr3t',
           reviewers: value
-        });
+        };
 
         expect(new Inputs().reviewers).toStrictEqual(expected);
       }
@@ -77,11 +85,11 @@ describe('inputs', () => {
         ['FALSE', false]
       ];
 
-      for (let [value, expected] of tests) {
-        mockGetInput({
+      for (const [value, expected] of tests) {
+        actionInputs = {
           'repo-token': 's3cr3t',
           'set-distribution-checksum': value
-        });
+        };
 
         expect(new Inputs().setDistributionChecksum).toEqual(expected);
       }
