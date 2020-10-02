@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
+import {getInputs} from './inputs';
 import {commit} from './git-commit';
 import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
@@ -31,10 +32,12 @@ async function run() {
       core.debug(JSON.stringify(process.env, null, 2));
     }
 
+    const inputs = getInputs();
+
     const targetRelease = await releases.latest();
     core.info(`Latest release: ${targetRelease.version}`);
 
-    const githubOps = new gh.GitHubOps();
+    const githubOps = new gh.GitHubOps(inputs);
 
     const ref = await githubOps.findMatchingRef(targetRelease.version);
 
@@ -89,7 +92,11 @@ async function run() {
         continue;
       }
 
-      const updater = new WrapperUpdater({wrapper, targetRelease});
+      const updater = new WrapperUpdater(
+        wrapper,
+        targetRelease,
+        inputs.setDistributionChecksum
+      );
 
       core.startGroup('Updating Wrapper');
       await updater.update();

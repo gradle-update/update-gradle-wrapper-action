@@ -234,10 +234,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubApi = void 0;
 const github_1 = __webpack_require__(5438);
 const core = __importStar(__webpack_require__(2186));
-const inputs_1 = __webpack_require__(4629);
 class GitHubApi {
-    constructor() {
-        this.octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
+    constructor(repoToken) {
+        this.octokit = github_1.getOctokit(repoToken);
     }
     repoDefaultBranch() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -316,7 +315,7 @@ class GitHubApi {
                     repo: github_1.context.repo.repo,
                     name: labelName
                 });
-                core.debug(`Label already exists with id: ${label.data.id}`);
+                core.debug(`Label ${labelName} already exists with id: ${label.data.id}`);
                 return true;
             }
             catch (error) {
@@ -338,7 +337,7 @@ class GitHubApi {
                     color: '02303A',
                     description: 'Pull requests that update Gradle wrapper'
                 });
-                core.debug(`Created label with id: ${label.data.id}`);
+                core.debug(`Created label ${labelName} with id: ${label.data.id}`);
                 return true;
             }
             catch (error) {
@@ -391,13 +390,13 @@ exports.GitHubOps = void 0;
 const github_1 = __webpack_require__(5438);
 const core = __importStar(__webpack_require__(2186));
 const gh_api_1 = __webpack_require__(3422);
-const inputs_1 = __webpack_require__(4629);
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const DEFAULT_LABEL = 'gradle-wrapper';
 class GitHubOps {
-    constructor(api) {
-        this.api = api !== null && api !== void 0 ? api : new gh_api_1.GitHubApi();
-        this.octokit = github_1.getOctokit(inputs_1.inputs.repoToken);
+    constructor(inputs, api) {
+        this.inputs = inputs;
+        this.api = api !== null && api !== void 0 ? api : new gh_api_1.GitHubApi(inputs.repoToken);
+        this.octokit = github_1.getOctokit(inputs.repoToken);
     }
     findMatchingRef(targetVersion) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -419,9 +418,9 @@ class GitHubOps {
     createPullRequest(branchName, targetVersion, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
             const title = sourceVersion
-                ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-                : `Updates Gradle Wrapper to ${targetVersion}.`;
-            const body = `${title}
+                ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
+                : `Updates Gradle Wrapper to ${targetVersion}`;
+            const body = `${title}.
 
 See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
 
@@ -435,8 +434,8 @@ See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
 
 If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
 </details>`;
-            const targetBranch = inputs_1.inputs.targetBranch !== ''
-                ? inputs_1.inputs.targetBranch
+            const targetBranch = this.inputs.targetBranch !== ''
+                ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
             const pullRequest = yield this.api.createPullRequest({
@@ -445,11 +444,14 @@ If something doesn't look right with this PR please file an issue [here](${ISSUE
                 title,
                 body
             });
-            core.debug(`PullRequest id: ${pullRequest.id}`);
+            core.debug(`PullRequest number: ${pullRequest.number}`);
             core.debug(`PullRequest changed files: ${pullRequest.changed_files}`);
             yield this.api.createLabelIfMissing(DEFAULT_LABEL);
-            yield this.api.addLabels(pullRequest.number, [DEFAULT_LABEL]);
-            yield this.api.addReviewers(pullRequest.number, inputs_1.inputs.reviewers);
+            yield this.api.addLabels(pullRequest.number, [
+                DEFAULT_LABEL,
+                ...this.inputs.labels
+            ]);
+            yield this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
             return pullRequest.html_url;
         });
     }
@@ -495,6 +497,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const glob = __importStar(__webpack_require__(8090));
+const inputs_1 = __webpack_require__(4629);
 const git_commit_1 = __webpack_require__(1331);
 const wrapperInfo_1 = __webpack_require__(6832);
 const wrapperUpdater_1 = __webpack_require__(7412);
@@ -508,9 +511,10 @@ function run() {
             if (core.isDebug()) {
                 core.debug(JSON.stringify(process.env, null, 2));
             }
+            const inputs = inputs_1.getInputs();
             const targetRelease = yield releases.latest();
             core.info(`Latest release: ${targetRelease.version}`);
-            const githubOps = new gh.GitHubOps();
+            const githubOps = new gh.GitHubOps(inputs);
             const ref = yield githubOps.findMatchingRef(targetRelease.version);
             if (ref) {
                 core.info('Found an existing ref, stopping here.');
@@ -542,7 +546,7 @@ function run() {
                     core.info(`Wrapper is already up-to-date`);
                     continue;
                 }
-                const updater = new wrapperUpdater_1.WrapperUpdater({ wrapper, targetRelease });
+                const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, inputs.setDistributionChecksum);
                 core.startGroup('Updating Wrapper');
                 yield updater.update();
                 core.endGroup();
@@ -598,22 +602,6 @@ run();
 
 "use strict";
 
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.inputs = void 0;
-const inputs_1 = __importDefault(__webpack_require__(5513));
-exports.inputs = new inputs_1.default();
-
-
-/***/ }),
-
-/***/ 5513:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -634,26 +622,40 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getInputs = void 0;
 const core = __importStar(__webpack_require__(2186));
-class Inputs {
+function getInputs() {
+    return new ActionInputs();
+}
+exports.getInputs = getInputs;
+class ActionInputs {
     constructor() {
-        this.repoToken = core.getInput('repo-token', { required: true });
+        this.repoToken = core.getInput('repo-token', { required: true }).trim();
         if (this.repoToken === '') {
             throw new Error(`repo-token is required`);
         }
         this.reviewers = core
             .getInput('reviewers', { required: false })
-            .split(/[\n\s,]/)
+            .trim()
+            .split(/[\n,]/)
             .map(r => r.trim())
             .filter(r => r.length);
-        this.targetBranch = core.getInput('target-branch', { required: false });
+        this.labels = core
+            .getInput('labels', { required: false })
+            .trim()
+            .split(/[\n,]/)
+            .map(l => l.trim())
+            .filter(l => l.length);
+        this.targetBranch = core
+            .getInput('target-branch', { required: false })
+            .trim();
         this.setDistributionChecksum =
             core
                 .getInput('set-distribution-checksum', { required: false })
+                .trim()
                 .toLowerCase() !== 'false';
     }
 }
-exports.default = Inputs;
 
 
 /***/ }),
@@ -838,11 +840,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WrapperUpdater = void 0;
 const core = __importStar(__webpack_require__(2186));
 const cmd = __importStar(__webpack_require__(816));
-const inputs_1 = __webpack_require__(4629);
 class WrapperUpdater {
-    constructor({ wrapper, targetRelease }) {
+    constructor(wrapper, targetRelease, setDistributionChecksum) {
         this.wrapper = wrapper;
         this.targetRelease = targetRelease;
+        this.setDistributionChecksum = setDistributionChecksum;
     }
     update() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -853,7 +855,7 @@ class WrapperUpdater {
                 '--distribution-type',
                 this.wrapper.distType
             ];
-            if (inputs_1.inputs.setDistributionChecksum) {
+            if (this.setDistributionChecksum) {
                 const sha256sum = this.wrapper.distType === 'bin'
                     ? this.targetRelease.binChecksum
                     : this.targetRelease.allChecksum;

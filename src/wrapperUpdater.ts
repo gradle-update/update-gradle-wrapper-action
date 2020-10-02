@@ -21,21 +21,19 @@ import type {WrapperInfo} from './wrapperInfo';
 import type {Release} from './releases';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
-import {inputs} from './inputs';
-
 export class WrapperUpdater {
   private targetRelease: Release;
   private wrapper: WrapperInfo;
+  private setDistributionChecksum: boolean;
 
-  constructor({
-    wrapper,
-    targetRelease
-  }: {
-    wrapper: WrapperInfo;
-    targetRelease: Release;
-  }) {
+  constructor(
+    wrapper: WrapperInfo,
+    targetRelease: Release,
+    setDistributionChecksum: boolean
+  ) {
     this.wrapper = wrapper;
     this.targetRelease = targetRelease;
+    this.setDistributionChecksum = setDistributionChecksum;
   }
 
   async update() {
@@ -47,7 +45,7 @@ export class WrapperUpdater {
       this.wrapper.distType
     ];
 
-    if (inputs.setDistributionChecksum) {
+    if (this.setDistributionChecksum) {
       const sha256sum =
         this.wrapper.distType === 'bin'
           ? this.targetRelease.binChecksum

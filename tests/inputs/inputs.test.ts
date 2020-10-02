@@ -14,35 +14,36 @@
 
 import * as core from '@actions/core';
 
-import Inputs from '../../src/inputs/inputs';
+import {getInputs} from '../../src/inputs';
 jest.mock('@actions/core');
 
-describe('inputs', () => {
-  let actionInputs = {} as {[key: string]: string};
+describe('getInputs', () => {
+  let ymlInputs = {} as {[key: string]: string};
 
   beforeAll(() => {
     jest.spyOn(core, 'getInput').mockImplementation((name: string) => {
-      return actionInputs[name] || '';
+      return ymlInputs[name] || '';
     });
   });
 
   beforeEach(() => {
-    actionInputs = {};
+    ymlInputs = {};
   });
 
   it('throws if repo-token is empty', () => {
-    actionInputs = {};
+    ymlInputs = {};
 
-    expect(() => new Inputs()).toThrowError();
+    expect(() => getInputs()).toThrowError();
   });
 
   it('sets default values for all inputs', () => {
-    actionInputs = {
+    ymlInputs = {
       'repo-token': 's3cr3t'
     };
 
-    expect(new Inputs()).toMatchInlineSnapshot(`
-      Inputs {
+    expect(getInputs()).toMatchInlineSnapshot(`
+      ActionInputs {
+        "labels": Array [],
         "repoToken": "s3cr3t",
         "reviewers": Array [],
         "setDistributionChecksum": true,
@@ -52,24 +53,49 @@ describe('inputs', () => {
   });
 
   describe('reviewers', () => {
-    it('accepts comma, space and newline-separated values', () => {
+    it('accepts comma and newline-separated values', () => {
       const tests: [string, string[]][] = [
         ['', []],
         ['foo', ['foo']],
-        ['foo bar', ['foo', 'bar']],
         ['foo,bar', ['foo', 'bar']],
         ['foo, bar', ['foo', 'bar']],
+        ['foo bar', ['foo bar']],
         ['foo\nbar', ['foo', 'bar']],
-        ['foo\n\tbar, baz', ['foo', 'bar', 'baz']]
+        ['foo \n bar, baz', ['foo', 'bar', 'baz']],
+        ['foo \n bar baz ', ['foo', 'bar baz']]
       ];
 
       for (const [value, expected] of tests) {
-        actionInputs = {
+        ymlInputs = {
           'repo-token': 's3cr3t',
           reviewers: value
         };
 
-        expect(new Inputs().reviewers).toStrictEqual(expected);
+        expect(getInputs().reviewers).toStrictEqual(expected);
+      }
+    });
+  });
+
+  describe('labels', () => {
+    it('accepts comma and newline-separated values', () => {
+      const tests: [string, string[]][] = [
+        ['', []],
+        ['foo', ['foo']],
+        ['foo,bar', ['foo', 'bar']],
+        ['foo, bar', ['foo', 'bar']],
+        ['foo bar', ['foo bar']],
+        ['foo\nbar', ['foo', 'bar']],
+        ['foo \n bar, baz', ['foo', 'bar', 'baz']],
+        ['foo \n bar baz ', ['foo', 'bar baz']]
+      ];
+
+      for (const [value, expected] of tests) {
+        ymlInputs = {
+          'repo-token': 's3cr3t',
+          labels: value
+        };
+
+        expect(getInputs().labels).toStrictEqual(expected);
       }
     });
   });
@@ -86,12 +112,12 @@ describe('inputs', () => {
       ];
 
       for (const [value, expected] of tests) {
-        actionInputs = {
+        ymlInputs = {
           'repo-token': 's3cr3t',
           'set-distribution-checksum': value
         };
 
-        expect(new Inputs().setDistributionChecksum).toEqual(expected);
+        expect(getInputs().setDistributionChecksum).toEqual(expected);
       }
     });
   });
