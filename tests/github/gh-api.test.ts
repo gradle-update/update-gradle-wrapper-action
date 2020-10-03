@@ -18,21 +18,6 @@ import nock from 'nock';
 
 import {GitHubApi} from '../../src/github/gh-api';
 
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-import Inputs from '../../src/inputs/inputs';
-jest.mock('../../src/inputs', () => {
-  const mockInputs: Inputs = {
-    repoToken: 's3cr3t',
-    reviewers: [],
-    targetBranch: '',
-    setDistributionChecksum: true
-  };
-
-  return {
-    inputs: mockInputs
-  };
-});
-
 nock.disableNetConnect();
 
 const nockScope = nock('https://api.github.com');
@@ -40,7 +25,9 @@ const nockScope = nock('https://api.github.com');
 let api: GitHubApi;
 
 beforeEach(() => {
-  api = new GitHubApi();
+  nock.cleanAll();
+
+  api = new GitHubApi('s3cr3t');
 
   jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
     return {
@@ -48,10 +35,6 @@ beforeEach(() => {
       repo: 'repo-name'
     };
   });
-});
-
-afterEach(() => {
-  nock.cleanAll();
 });
 
 describe('repoDefaultBranch', () => {

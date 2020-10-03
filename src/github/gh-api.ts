@@ -18,8 +18,6 @@ import * as core from '@actions/core';
 /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import {PullsCreateResponseData} from '@octokit/types';
 
-import {inputs} from '../inputs';
-
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;
 
@@ -50,8 +48,8 @@ export interface IGitHubApi {
 export class GitHubApi implements IGitHubApi {
   private octokit;
 
-  constructor() {
-    this.octokit = getOctokit(inputs.repoToken);
+  constructor(repoToken: string) {
+    this.octokit = getOctokit(repoToken);
   }
 
   async repoDefaultBranch(): Promise<string> {
@@ -152,7 +150,7 @@ export class GitHubApi implements IGitHubApi {
         name: labelName
       });
 
-      core.debug(`Label already exists with id: ${label.data.id}`);
+      core.debug(`Label ${labelName} already exists with id: ${label.data.id}`);
 
       return true;
     } catch (error) {
@@ -176,7 +174,7 @@ export class GitHubApi implements IGitHubApi {
         description: 'Pull requests that update Gradle wrapper'
       });
 
-      core.debug(`Created label with id: ${label.data.id}`);
+      core.debug(`Created label ${labelName} with id: ${label.data.id}`);
 
       return true;
     } catch (error) {

@@ -18,42 +18,43 @@ import nock from 'nock';
 
 import {GitHubOps} from '../../src/github/gh-ops';
 
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {IGitHubApi} from '../../src/github/gh-api';
-
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-import Inputs from '../../src/inputs/inputs';
-jest.mock('../../src/inputs', () => {
-  const mockInputs: Inputs = {
-    repoToken: 's3cr3t',
-    reviewers: [],
-    targetBranch: '',
-    setDistributionChecksum: true
-  };
-
-  return {
-    inputs: mockInputs
-  };
-});
+import {Inputs} from '../../src/inputs/';
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 nock.disableNetConnect();
 
 const nockScope = nock('https://api.github.com');
 
+const defaultMockInputs: Inputs = {
+  repoToken: 's3cr3t',
+  reviewers: [],
+  labels: [],
+  targetBranch: '',
+  setDistributionChecksum: true
+};
+
+const defaultMockGitHubApi: IGitHubApi = {
+  repoDefaultBranch: jest.fn(),
+  createPullRequest: jest.fn(),
+  addReviewers: jest.fn(),
+  addLabels: jest.fn(),
+  createLabel: jest.fn(),
+  createLabelIfMissing: jest.fn()
+};
+
+let mockInputs: Inputs;
 let mockGitHubApi: IGitHubApi;
 let githubOps: GitHubOps;
 
 beforeEach(() => {
-  mockGitHubApi = {
-    repoDefaultBranch: jest.fn(),
-    createPullRequest: jest.fn(),
-    addReviewers: jest.fn(),
-    addLabels: jest.fn(),
-    createLabel: jest.fn(),
-    createLabelIfMissing: jest.fn()
-  };
+  nock.cleanAll();
 
-  githubOps = new GitHubOps(mockGitHubApi);
+  mockInputs = Object.create(defaultMockInputs);
+  mockGitHubApi = Object.create(defaultMockGitHubApi);
+
+  githubOps = new GitHubOps(mockInputs, mockGitHubApi);
 
   jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
     return {
@@ -63,61 +64,166 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
-  nock.cleanAll();
-});
-
 describe('createPullRequest', () => {
-  it('creates a Pull Request and returns its url', async () => {
-    mockGitHubApi.repoDefaultBranch = jest.fn().mockResolvedValue('master');
+  describe('Pull Request creation', () => {
+    beforeEach(() => {
+      mockGitHubApi.repoDefaultBranch = jest.fn().mockResolvedValue('master');
 
-    mockGitHubApi.createPullRequest = jest.fn().mockResolvedValue({
-      url: 'https://api.github.com/repos/owner-name/repo-name/pulls/42',
-      id: 123456,
-      html_url: 'https://github.com/owner-name/repo-name/pull/42',
-      number: 42,
-      title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1.',
-      body: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
-      commits: 1,
-      changed_files: 4,
-      user: {},
-      head: {},
-      base: {}
+      mockGitHubApi.createPullRequest = jest.fn().mockResolvedValue({
+        url: 'https://api.github.com/repos/owner-name/repo-name/pulls/42',
+        id: 123456,
+        html_url: 'https://github.com/owner-name/repo-name/pull/42',
+        number: 42,
+        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1'
+      });
     });
 
-    const pullRequestUrl = await githubOps.createPullRequest(
-      'a-branch-name',
-      '1.0.1',
-      '1.0.0'
-    );
+    it('creates a Pull Request and returns its url', async () => {
+      const pullRequestUrl = await githubOps.createPullRequest(
+        'a-branch-name',
+        '1.0.1',
+        '1.0.0'
+      );
 
-    expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
 
-    expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
-      branchName: 'refs/heads/a-branch-name',
-      target: 'master',
-      title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1.',
-      body: expect.stringContaining(
-        'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
-      )
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+
+      expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
+        'gradle-wrapper'
+      );
+
+      expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
+        'gradle-wrapper'
+      ]);
+
+      expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(pullRequestUrl).toEqual(
+        'https://github.com/owner-name/repo-name/pull/42'
+      );
     });
 
-    expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
-      'gradle-wrapper'
-    );
+    it('sets the input targetBranch', async () => {
+      mockInputs.targetBranch = 'release-v2';
 
-    expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
-      'gradle-wrapper'
-    ]);
+      const pullRequestUrl = await githubOps.createPullRequest(
+        'a-branch-name',
+        '1.0.1',
+        '1.0.0'
+      );
 
-    expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+      expect(mockGitHubApi.repoDefaultBranch).not.toHaveBeenCalled();
 
-    expect(pullRequestUrl).toEqual(
-      'https://github.com/owner-name/repo-name/pull/42'
-    );
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'release-v2',
+        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+
+      expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
+        'gradle-wrapper'
+      );
+
+      expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
+        'gradle-wrapper'
+      ]);
+
+      expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(pullRequestUrl).toEqual(
+        'https://github.com/owner-name/repo-name/pull/42'
+      );
+    });
+
+    it('adds the input reviewers', async () => {
+      mockInputs.reviewers = ['username', 'collaborator'];
+
+      const pullRequestUrl = await githubOps.createPullRequest(
+        'a-branch-name',
+        '1.0.1',
+        '1.0.0'
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+
+      expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
+        'gradle-wrapper'
+      );
+
+      expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
+        'gradle-wrapper'
+      ]);
+
+      expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, [
+        'username',
+        'collaborator'
+      ]);
+
+      expect(pullRequestUrl).toEqual(
+        'https://github.com/owner-name/repo-name/pull/42'
+      );
+    });
+
+    it('adds the input labels', async () => {
+      mockInputs.labels = ['custom-label', 'help wanted'];
+
+      const pullRequestUrl = await githubOps.createPullRequest(
+        'a-branch-name',
+        '1.0.1',
+        '1.0.0'
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+
+      expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
+        'gradle-wrapper'
+      );
+
+      expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
+        'gradle-wrapper',
+        'custom-label',
+        'help wanted'
+      ]);
+
+      expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(pullRequestUrl).toEqual(
+        'https://github.com/owner-name/repo-name/pull/42'
+      );
+    });
   });
 
-  describe('blows up on some core GitHubApi error cases', () => {
+  describe('blowing up on some core GitHubApi error cases', () => {
     it('throws if repoDefaultBranch() throws', async () => {
       mockGitHubApi.repoDefaultBranch = jest.fn().mockImplementation(() => {
         throw new Error('fetch repo error');

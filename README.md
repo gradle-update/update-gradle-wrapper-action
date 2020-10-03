@@ -21,6 +21,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [Action inputs](#action-inputs)
   - [`repo-token`](#repo-token)
   - [`reviewers`](#reviewers)
+  - [`labels`](#labels)
   - [`target-branch`](#target-branch)
   - [`set-distribution-checksum`](#set-distribution-checksum)
 - [Examples](#examples)
@@ -120,10 +121,13 @@ the Gradle executable itself can be verified once it is downloaded locally.
 
 This is the list of supported inputs:
 
-- [`repo-token`](#repo-token)
-- [`reviewers`](#reviewers)
-- [`target-branch`](#target-branch)
-- [`set-distribution-checksum`](#set-distribution-checksum)
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| [`repo-token`](#repo-token) | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes | |
+| [`reviewers`](#reviewers) | List of users to request a review from (comma or newline-separated). | No | (empty) |
+| [`labels`](#labels) | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
+| [`target-branch`](#target-branch) | Branch to create Pull Requests against. | No | The default branch name of your repository. |
+| [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
 
 ### `repo-token`
 
@@ -160,7 +164,7 @@ into your repository.
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `reviewers` | List of users to request a review from (comma, space or newline-separate). | No | (empty) |
+| `reviewers` | List of users to request a review from (comma or newline-separated). | No | (empty) |
 
 Request a review from these GitHub usernames (notifications will be triggered).
 
@@ -168,7 +172,7 @@ For example:
 
 ```yaml
 with:
-  reviewers: username1 username2
+  reviewers: username1, username2
 ```
 
 or
@@ -178,6 +182,28 @@ with:
   reviewers: |
     username1
     username2
+```
+
+### `labels`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `labels` | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
+
+Add custom labels to the Pull Request.
+
+```yaml
+with:
+  reviewers: automated pr, dependencies
+```
+
+or
+
+```yaml
+with:
+  reviewers: |
+    automated pr
+    dependencies
 ```
 
 ### `target-branch`

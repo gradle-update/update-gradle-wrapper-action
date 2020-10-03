@@ -12,6 +12,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Inputs from './inputs';
+import * as core from '@actions/core';
 
-export const inputs = new Inputs();
+export interface Inputs {
+  repoToken: string;
+  reviewers: string[];
+  labels: string[];
+  targetBranch: string;
+  setDistributionChecksum: boolean;
+}
+
+export function getInputs(): Inputs {
+  return new ActionInputs();
+}
+
+class ActionInputs implements Inputs {
+  repoToken: string;
+  reviewers: string[];
+  labels: string[];
+  targetBranch: string;
+  setDistributionChecksum: boolean;
+
+  constructor() {
+    this.repoToken = core.getInput('repo-token', {required: true}).trim();
+    if (this.repoToken === '') {
+      throw new Error(`repo-token is required`);
+    }
+
+    this.reviewers = core
+      .getInput('reviewers', {required: false})
+      .trim()
+      .split(/[\n,]/)
+      .map(r => r.trim())
+      .filter(r => r.length);
+
+    this.labels = core
+      .getInput('labels', {required: false})
+      .trim()
+      .split(/[\n,]/)
+      .map(l => l.trim())
+      .filter(l => l.length);
+
+    this.targetBranch = core
+      .getInput('target-branch', {required: false})
+      .trim();
+
+    this.setDistributionChecksum =
+      core
+        .getInput('set-distribution-checksum', {required: false})
+        .trim()
+        .toLowerCase() !== 'false';
+  }
+}
