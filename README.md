@@ -129,6 +129,8 @@ This is the list of supported inputs:
 | [`target-branch`](#target-branch) | Branch to create Pull Requests against. | No | The default branch name of your repository. |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
 
+---
+
 ### `repo-token`
 
 | Name | Description | Required | Default |
@@ -160,6 +162,8 @@ with `repo` scope and add it [as a
 secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
 into your repository.
 
+---
+
 ### `reviewers`
 
 | Name | Description | Required | Default |
@@ -184,6 +188,8 @@ with:
     username2
 ```
 
+---
+
 ### `labels`
 
 | Name | Description | Required | Default |
@@ -206,6 +212,8 @@ with:
     dependencies
 ```
 
+---
+
 ### `target-branch`
 
 | Name | Description | Required | Default |
@@ -221,6 +229,7 @@ with:
   target-branch: unstable
 ```
 
+---
 
 ### `set-distribution-checksum`
 
