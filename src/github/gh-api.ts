@@ -13,10 +13,8 @@
 // limitations under the License.
 
 import {context, getOctokit} from '@actions/github';
-import * as core from '@actions/core';
-
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import {PullsCreateResponseData} from '@octokit/types';
+import * as core from '@actions/core';
 
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;

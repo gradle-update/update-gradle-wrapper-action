@@ -13,13 +13,11 @@
 // limitations under the License.
 
 import {context, getOctokit} from '@actions/github';
+import {GitListMatchingRefsResponseData} from '@octokit/types';
 import * as core from '@actions/core';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import {GitListMatchingRefsResponseData} from '@octokit/types';
 import {GitHubApi, IGitHubApi} from './gh-api';
 import {Inputs} from '../inputs';
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
