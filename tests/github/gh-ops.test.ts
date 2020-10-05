@@ -17,11 +17,8 @@ import * as github from '@actions/github';
 import nock from 'nock';
 
 import {GitHubOps} from '../../src/github/gh-ops';
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {IGitHubApi} from '../../src/github/gh-api';
 import {Inputs} from '../../src/inputs/';
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 nock.disableNetConnect();
 

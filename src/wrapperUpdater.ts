@@ -15,11 +15,8 @@
 import * as core from '@actions/core';
 
 import * as cmd from './cmd';
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import type {WrapperInfo} from './wrapperInfo';
 import type {Release} from './releases';
-/* eslint-enable @typescript-eslint/no-unused-vars */
+import type {WrapperInfo} from './wrapperInfo';
 
 export class WrapperUpdater {
   private targetRelease: Release;
