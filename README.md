@@ -200,14 +200,14 @@ Add custom labels to the Pull Request.
 
 ```yaml
 with:
-  reviewers: automated pr, dependencies
+  labels: automated pr, dependencies
 ```
 
 or
 
 ```yaml
 with:
-  reviewers: |
+  labels: |
     automated pr
     dependencies
 ```
