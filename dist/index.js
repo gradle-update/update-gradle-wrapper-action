@@ -503,7 +503,7 @@ const wrapperInfo_1 = __webpack_require__(6832);
 const wrapperUpdater_1 = __webpack_require__(7412);
 const gh = __importStar(__webpack_require__(1288));
 const git = __importStar(__webpack_require__(4610));
-const releases = __importStar(__webpack_require__(5715));
+const releases_1 = __webpack_require__(5715);
 const currentCommitSha = process.env.GITHUB_SHA;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -512,7 +512,7 @@ function run() {
                 core.debug(JSON.stringify(process.env, null, 2));
             }
             const inputs = inputs_1.getInputs();
-            const targetRelease = yield releases.latest();
+            const targetRelease = yield new releases_1.Releases().current();
             core.info(`Latest release: ${targetRelease.version}`);
             const githubOps = new gh.GitHubOps(inputs);
             const ref = yield githubOps.findMatchingRef(targetRelease.version);
@@ -694,49 +694,53 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.latest = void 0;
+exports.Releases = void 0;
 const core = __importStar(__webpack_require__(2186));
 const http_client_1 = __webpack_require__(9925);
-const client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
-function latest() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const response = yield client.getJson('https://services.gradle.org/versions/current');
-        core.debug(`statusCode: ${response.statusCode}`);
-        const data = response.result;
-        if (data) {
-            core.debug(`current?: ${data.current}`);
-            const version = data.version;
-            core.debug(`version ${version}`);
-            core.debug(`checksumUrl: ${data.checksumUrl}`);
-            const distBinChecksum = yield fetch(data.checksumUrl);
-            core.debug(`distBinChecksum ${distBinChecksum}`);
-            const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
-            core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
-            const distAllChecksum = yield fetch(distAllChecksumUrl);
-            core.debug(`computed distAllChecksum ${distAllChecksum}`);
-            core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
-            const wrapperChecksum = yield fetch(data.wrapperChecksumUrl);
-            core.debug(`wrapperChecksum ${wrapperChecksum}`);
-            return {
-                version,
-                allChecksum: distAllChecksum,
-                binChecksum: distBinChecksum,
-                wrapperChecksum
-            };
-        }
-        throw new Error('Unable to fetch release data');
-    });
+class Releases {
+    constructor() {
+        this.client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
+    }
+    current() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const response = yield this.client.getJson('https://services.gradle.org/versions/current');
+            core.debug(`statusCode: ${response.statusCode}`);
+            const data = response.result;
+            if (data) {
+                core.debug(`current?: ${data.current}`);
+                const version = data.version;
+                core.debug(`version ${version}`);
+                core.debug(`checksumUrl: ${data.checksumUrl}`);
+                const distBinChecksum = yield this.fetch(data.checksumUrl);
+                core.debug(`distBinChecksum ${distBinChecksum}`);
+                const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
+                core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
+                const distAllChecksum = yield this.fetch(distAllChecksumUrl);
+                core.debug(`computed distAllChecksum ${distAllChecksum}`);
+                core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
+                const wrapperChecksum = yield this.fetch(data.wrapperChecksumUrl);
+                core.debug(`wrapperChecksum ${wrapperChecksum}`);
+                return {
+                    version,
+                    allChecksum: distAllChecksum,
+                    binChecksum: distBinChecksum,
+                    wrapperChecksum
+                };
+            }
+            throw new Error('Unable to fetch release data');
+        });
+    }
+    fetch(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const response = yield this.client.get(url);
+            core.debug(`statusCode: ${response.message.statusCode}`);
+            const body = yield response.readBody();
+            core.debug(`body: ${body}`);
+            return body;
+        });
+    }
 }
-exports.latest = latest;
-function fetch(url) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const response = yield client.get(url);
-        core.debug(`statusCode: ${response.message.statusCode}`);
-        const body = yield response.readBody();
-        core.debug(`body: ${body}`);
-        return body;
-    });
-}
+exports.Releases = Releases;
 
 
 /***/ }),

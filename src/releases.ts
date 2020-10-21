@@ -39,53 +39,62 @@ interface ReleaseData {
   wrapperChecksumUrl: string;
 }
 
-const client = new HttpClient('Update Gradle Wrapper Action');
+export class Releases {
+  private client: HttpClient;
 
-export async function latest(): Promise<Release> {
-  const response = await client.getJson<ReleaseData>(
-    // TODO: with 404 result is null, 500 throws
-    'https://services.gradle.org/versions/current'
-  );
-  core.debug(`statusCode: ${response.statusCode}`);
-
-  const data = response.result;
-
-  if (data) {
-    core.debug(`current?: ${data.current}`);
-
-    const version = data.version;
-    core.debug(`version ${version}`);
-
-    core.debug(`checksumUrl: ${data.checksumUrl}`);
-    const distBinChecksum = await fetch(data.checksumUrl);
-    core.debug(`distBinChecksum ${distBinChecksum}`);
-
-    const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
-    core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
-    const distAllChecksum = await fetch(distAllChecksumUrl);
-    core.debug(`computed distAllChecksum ${distAllChecksum}`);
-
-    core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
-    const wrapperChecksum = await fetch(data.wrapperChecksumUrl);
-    core.debug(`wrapperChecksum ${wrapperChecksum}`);
-
-    return {
-      version,
-      allChecksum: distAllChecksum,
-      binChecksum: distBinChecksum,
-      wrapperChecksum
-    };
+  constructor() {
+    this.client = new HttpClient('Update Gradle Wrapper Action');
   }
 
-  throw new Error('Unable to fetch release data');
-}
+  async current(): Promise<Release> {
+    const response = await this.client.getJson<ReleaseData>(
+      // TODO: with 404 result is null, 500 throws
+      'https://services.gradle.org/versions/current'
+    );
+    core.debug(`statusCode: ${response.statusCode}`);
 
-async function fetch(url: string): Promise<string> {
-  const response = await client.get(url);
-  core.debug(`statusCode: ${response.message.statusCode}`);
+    const data = response.result;
 
-  const body = await response.readBody();
-  core.debug(`body: ${body}`);
+    if (data) {
+      core.debug(`current?: ${data.current}`);
 
-  return body;
+      const version = data.version;
+      core.debug(`version ${version}`);
+
+      core.debug(`checksumUrl: ${data.checksumUrl}`);
+      const distBinChecksum = await this.fetch(data.checksumUrl);
+      core.debug(`distBinChecksum ${distBinChecksum}`);
+
+      const distAllChecksumUrl = data.checksumUrl.replace(
+        '-bin.zip',
+        '-all.zip'
+      );
+      core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
+      const distAllChecksum = await this.fetch(distAllChecksumUrl);
+      core.debug(`computed distAllChecksum ${distAllChecksum}`);
+
+      core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
+      const wrapperChecksum = await this.fetch(data.wrapperChecksumUrl);
+      core.debug(`wrapperChecksum ${wrapperChecksum}`);
+
+      return {
+        version,
+        allChecksum: distAllChecksum,
+        binChecksum: distBinChecksum,
+        wrapperChecksum
+      };
+    }
+
+    throw new Error('Unable to fetch release data');
+  }
+
+  private async fetch(url: string): Promise<string> {
+    const response = await this.client.get(url);
+    core.debug(`statusCode: ${response.message.statusCode}`);
+
+    const body = await response.readBody();
+    core.debug(`body: ${body}`);
+
+    return body;
+  }
 }
