@@ -194,7 +194,7 @@ with:
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `labels` | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
+| `labels` | List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
 
 Add custom labels to the Pull Request.
 
