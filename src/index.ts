@@ -21,7 +21,7 @@ import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
 import * as gh from './github/gh-ops';
 import * as git from './git-cmds';
-import * as releases from './releases';
+import {Releases} from './releases';
 
 /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
 const currentCommitSha = process.env.GITHUB_SHA!;
@@ -34,7 +34,7 @@ async function run() {
 
     const inputs = getInputs();
 
-    const targetRelease = await releases.latest();
+    const targetRelease = await new Releases().current();
     core.info(`Latest release: ${targetRelease.version}`);
 
     const githubOps = new gh.GitHubOps(inputs);
