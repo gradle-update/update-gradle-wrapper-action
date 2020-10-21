@@ -13,7 +13,7 @@
     "build": "tsc",
     "pack": "ncc build",
     "test": "jest",
-    "all": "npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
+    "all": "npm ls && npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
   },
   "author": "Cristian Greco",
   "license": "Apache 2.0",
@@ -26,7 +26,7 @@
     "@actions/exec": "^1.0.4",
     "@actions/glob": "^0.1.0",
     "@actions/github": "^4.0.0",
-    "@actions/http-client": "^1.0.8"
+    "@actions/http-client": "^1.0.9"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.24.1",
