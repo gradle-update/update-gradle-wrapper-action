@@ -13,7 +13,7 @@
     "build": "tsc",
     "pack": "ncc build",
     "test": "jest",
-    "all": "npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
+    "all": "npm ls && npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
   },
   "author": "Cristian Greco",
   "license": "Apache 2.0",
