@@ -81,6 +81,8 @@ async function run() {
     await git.checkout(branchName, currentCommitSha);
     core.endGroup();
 
+    const distTypes = new Set<string>();
+
     for (const wrapper of wrapperInfos) {
       core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
 
@@ -91,6 +93,8 @@ async function run() {
         core.info(`Wrapper is already up-to-date`);
         continue;
       }
+
+      distTypes.add(wrapper.distType);
 
       const updater = new WrapperUpdater(
         wrapper,
@@ -149,7 +153,8 @@ async function run() {
     core.info('Creating Pull Request');
     const pullRequestUrl = await githubOps.createPullRequest(
       branchName,
-      targetRelease.version,
+      distTypes,
+      targetRelease,
       commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined
     );
 

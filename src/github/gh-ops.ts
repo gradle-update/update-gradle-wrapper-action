@@ -18,9 +18,8 @@ import * as core from '@actions/core';
 
 import {GitHubApi, IGitHubApi} from './gh-api';
 import {Inputs} from '../inputs';
-
-const ISSUES_URL =
-  'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
+import {pullRequestText} from '../messages';
+import {Release} from '../releases';
 
 const DEFAULT_LABEL = 'gradle-wrapper';
 
@@ -59,34 +58,22 @@ export class GitHubOps {
 
   async createPullRequest(
     branchName: string,
-    targetVersion: string,
+    distTypes: Set<string>,
+    targetRelease: Release,
     sourceVersion?: string
   ): Promise<string> {
-    const title = sourceVersion
-      ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
-      : `Updates Gradle Wrapper to ${targetVersion}`;
-
-    const body = `${title}.
-
-See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
-
----
-
-🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
-
-<details>
-<summary>Need help? 🤔</summary>
-<br />
-
-If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
-</details>`;
-
     const targetBranch =
       this.inputs.targetBranch !== ''
         ? this.inputs.targetBranch
         : await this.api.repoDefaultBranch();
 
     core.debug(`Target branch: ${targetBranch}`);
+
+    const {title, body} = pullRequestText(
+      distTypes,
+      targetRelease,
+      sourceVersion
+    );
 
     const pullRequest = await this.api.createPullRequest({
       branchName: `refs/heads/${branchName}`,
