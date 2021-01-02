@@ -34,9 +34,9 @@ describe('pullRequestText', () => {
       sourceVersion
     );
 
-    expect(title).toEqual('Updates Gradle Wrapper from 1.0.0 to 1.0.1');
+    expect(title).toEqual('Update Gradle Wrapper from 1.0.0 to 1.0.1');
 
-    expect(body).toEqual(`Updates Gradle Wrapper from 1.0.0 to 1.0.1.
+    expect(body).toEqual(`Update Gradle Wrapper from 1.0.0 to 1.0.1.
 
 Read the release notes: https://docs.gradle.org/1.0.1/release-notes.html
 
@@ -67,9 +67,9 @@ If something doesn't look right with this PR please file an issue [here](https:/
     it('returns title and body text with only the target version', () => {
       const {title, body} = pullRequestText(distributionTypes, targetRelease);
 
-      expect(title).toEqual('Updates Gradle Wrapper to 1.0.1');
+      expect(title).toEqual('Update Gradle Wrapper to 1.0.1');
 
-      expect(body).toEqual(`Updates Gradle Wrapper to 1.0.1.
+      expect(body).toEqual(`Update Gradle Wrapper to 1.0.1.
 
 Read the release notes: https://docs.gradle.org/1.0.1/release-notes.html
 
@@ -107,9 +107,9 @@ If something doesn't look right with this PR please file an issue [here](https:/
         sourceVersion
       );
 
-      expect(title).toEqual('Updates Gradle Wrapper from 1.0.0 to 1.0.1');
+      expect(title).toEqual('Update Gradle Wrapper from 1.0.0 to 1.0.1');
 
-      expect(body).toEqual(`Updates Gradle Wrapper from 1.0.0 to 1.0.1.
+      expect(body).toEqual(`Update Gradle Wrapper from 1.0.0 to 1.0.1.
 
 Read the release notes: https://docs.gradle.org/1.0.1/release-notes.html
 
@@ -146,9 +146,9 @@ If something doesn't look right with this PR please file an issue [here](https:/
         sourceVersion
       );
 
-      expect(title).toEqual('Updates Gradle Wrapper from 1.0.0 to 1.0.1');
+      expect(title).toEqual('Update Gradle Wrapper from 1.0.0 to 1.0.1');
 
-      expect(body).toEqual(`Updates Gradle Wrapper from 1.0.0 to 1.0.1.
+      expect(body).toEqual(`Update Gradle Wrapper from 1.0.0 to 1.0.1.
 
 Read the release notes: https://docs.gradle.org/1.0.1/release-notes.html
 

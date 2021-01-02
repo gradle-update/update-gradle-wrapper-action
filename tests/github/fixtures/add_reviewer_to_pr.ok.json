@@ -9,12 +9,12 @@
   "number": 147,
   "state": "open",
   "locked": false,
-  "title": "Updates Gradle Wrapper from 1.0.0 to 1.0.1.",
+  "title": "Update Gradle Wrapper from 1.0.0 to 1.0.1.",
   "user": {
     "login": "cristiangreco",
     "id": 123123
   },
-  "body": "Updates Gradle Wrapper from 1.0.0 to 1.0.1.\n\nSee release notes",
+  "body": "Update Gradle Wrapper from 1.0.0 to 1.0.1.\n\nRead the release notes",
   "created_at": "2020-10-01T15:34:51Z",
   "updated_at": "2020-10-01T15:34:51Z",
   "closed_at": null,

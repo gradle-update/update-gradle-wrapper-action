@@ -85,8 +85,8 @@ describe('createPullRequest', () => {
         id: 123456,
         html_url: 'https://github.com/owner-name/repo-name/pull/42',
         number: 42,
-        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
-        body: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1'
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: 'Update Gradle Wrapper from 1.0.0 to 1.0.1'
       });
     });
 
@@ -103,9 +103,9 @@ describe('createPullRequest', () => {
       expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
         branchName: 'refs/heads/a-branch-name',
         target: 'master',
-        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
         body: expect.stringContaining(
-          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+          'Update Gradle Wrapper from 1.0.0 to 1.0.1.'
         )
       });
 
@@ -139,9 +139,9 @@ describe('createPullRequest', () => {
       expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
         branchName: 'refs/heads/a-branch-name',
         target: 'release-v2',
-        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
         body: expect.stringContaining(
-          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+          'Update Gradle Wrapper from 1.0.0 to 1.0.1.'
         )
       });
 
@@ -175,9 +175,9 @@ describe('createPullRequest', () => {
       expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
         branchName: 'refs/heads/a-branch-name',
         target: 'master',
-        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
         body: expect.stringContaining(
-          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+          'Update Gradle Wrapper from 1.0.0 to 1.0.1.'
         )
       });
 
@@ -214,9 +214,9 @@ describe('createPullRequest', () => {
       expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
         branchName: 'refs/heads/a-branch-name',
         target: 'master',
-        title: 'Updates Gradle Wrapper from 1.0.0 to 1.0.1',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
         body: expect.stringContaining(
-          'Updates Gradle Wrapper from 1.0.0 to 1.0.1.'
+          'Update Gradle Wrapper from 1.0.0 to 1.0.1.'
         )
       });
 
