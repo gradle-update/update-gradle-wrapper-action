@@ -657,8 +657,8 @@ const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-actio
 function pullRequestText(distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
     const title = sourceVersion
-        ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
-        : `Updates Gradle Wrapper to ${targetVersion}`;
+        ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
+        : `Update Gradle Wrapper to ${targetVersion}`;
     const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
