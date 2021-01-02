@@ -19,6 +19,7 @@ import nock from 'nock';
 import {GitHubOps} from '../../src/github/gh-ops';
 import {IGitHubApi} from '../../src/github/gh-api';
 import {Inputs} from '../../src/inputs/';
+import {Release} from '../../src/releases';
 
 nock.disableNetConnect();
 
@@ -62,6 +63,19 @@ beforeEach(() => {
 });
 
 describe('createPullRequest', () => {
+  const branchName = 'a-branch-name';
+
+  const distributionTypes = new Set(['bin']);
+
+  const targetRelease: Release = {
+    version: '1.0.1',
+    allChecksum: 'distAllChecksum',
+    binChecksum: 'distBinChecksum',
+    wrapperChecksum: 'wrapperChecksum'
+  };
+
+  const sourceVersion = '1.0.0';
+
   describe('Pull Request creation', () => {
     beforeEach(() => {
       mockGitHubApi.repoDefaultBranch = jest.fn().mockResolvedValue('master');
@@ -78,9 +92,10 @@ describe('createPullRequest', () => {
 
     it('creates a Pull Request and returns its url', async () => {
       const pullRequestUrl = await githubOps.createPullRequest(
-        'a-branch-name',
-        '1.0.1',
-        '1.0.0'
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
       );
 
       expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
@@ -113,9 +128,10 @@ describe('createPullRequest', () => {
       mockInputs.targetBranch = 'release-v2';
 
       const pullRequestUrl = await githubOps.createPullRequest(
-        'a-branch-name',
-        '1.0.1',
-        '1.0.0'
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
       );
 
       expect(mockGitHubApi.repoDefaultBranch).not.toHaveBeenCalled();
@@ -148,9 +164,10 @@ describe('createPullRequest', () => {
       mockInputs.reviewers = ['username', 'collaborator'];
 
       const pullRequestUrl = await githubOps.createPullRequest(
-        'a-branch-name',
-        '1.0.1',
-        '1.0.0'
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
       );
 
       expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
@@ -186,9 +203,10 @@ describe('createPullRequest', () => {
       mockInputs.labels = ['custom-label', 'help wanted'];
 
       const pullRequestUrl = await githubOps.createPullRequest(
-        'a-branch-name',
-        '1.0.1',
-        '1.0.0'
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
       );
 
       expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
@@ -227,7 +245,12 @@ describe('createPullRequest', () => {
       });
 
       await expect(
-        githubOps.createPullRequest('a-branch-name', '1.0.1', '1.0.0')
+        githubOps.createPullRequest(
+          branchName,
+          distributionTypes,
+          targetRelease,
+          sourceVersion
+        )
       ).rejects.toThrowError('fetch repo error');
     });
 
@@ -239,7 +262,12 @@ describe('createPullRequest', () => {
       });
 
       await expect(
-        githubOps.createPullRequest('a-branch-name', '1.0.1', '1.0.0')
+        githubOps.createPullRequest(
+          branchName,
+          distributionTypes,
+          targetRelease,
+          sourceVersion
+        )
       ).rejects.toThrowError('create pull request error');
     });
   });

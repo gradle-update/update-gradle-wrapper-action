@@ -390,7 +390,7 @@ exports.GitHubOps = void 0;
 const github_1 = __webpack_require__(5438);
 const core = __importStar(__webpack_require__(2186));
 const gh_api_1 = __webpack_require__(3422);
-const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
+const messages_1 = __webpack_require__(9112);
 const DEFAULT_LABEL = 'gradle-wrapper';
 class GitHubOps {
     constructor(inputs, api) {
@@ -415,29 +415,13 @@ class GitHubOps {
             return;
         });
     }
-    createPullRequest(branchName, targetVersion, sourceVersion) {
+    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
-            const title = sourceVersion
-                ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
-                : `Updates Gradle Wrapper to ${targetVersion}`;
-            const body = `${title}.
-
-See release notes: https://docs.gradle.org/${targetVersion}/release-notes.html
-
----
-
-🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
-
-<details>
-<summary>Need help? 🤔</summary>
-<br />
-
-If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
-</details>`;
             const targetBranch = this.inputs.targetBranch !== ''
                 ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
+            const { title, body } = messages_1.pullRequestText(distTypes, targetRelease, sourceVersion);
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
                 target: targetBranch,
@@ -539,6 +523,7 @@ function run() {
             const branchName = `gradlew-update-${targetRelease.version}`;
             yield git.checkout(branchName, currentCommitSha);
             core.endGroup();
+            const distTypes = new Set();
             for (const wrapper of wrapperInfos) {
                 core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
                 core.debug(`Current Wrapper version: ${wrapper.version}`);
@@ -546,6 +531,7 @@ function run() {
                     core.info(`Wrapper is already up-to-date`);
                     continue;
                 }
+                distTypes.add(wrapper.distType);
                 const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, inputs.setDistributionChecksum);
                 core.startGroup('Updating Wrapper');
                 yield updater.update();
@@ -584,7 +570,7 @@ function run() {
             core.info('Pushing branch');
             yield git.push(branchName);
             core.info('Creating Pull Request');
-            const pullRequestUrl = yield githubOps.createPullRequest(branchName, targetRelease.version, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
+            const pullRequestUrl = yield githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
             core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
         }
         catch (error) {
@@ -656,6 +642,51 @@ class ActionInputs {
                 .toLowerCase() !== 'false';
     }
 }
+
+
+/***/ }),
+
+/***/ 9112:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pullRequestText = void 0;
+const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
+function pullRequestText(distTypes, targetRelease, sourceVersion) {
+    const targetVersion = targetRelease.version;
+    const title = sourceVersion
+        ? `Updates Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
+        : `Updates Gradle Wrapper to ${targetVersion}`;
+    const bodyHeader = `${title}.
+
+Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
+    let bodyChecksum = `The checksums of the Wrapper JAR and the distribution binary have been successfully verified.
+
+- Gradle release: \`${targetVersion}\`
+`;
+    if (distTypes.has('bin')) {
+        bodyChecksum += `- Distribution (-bin) zip checksum: \`${targetRelease.binChecksum}\`\n`;
+    }
+    if (distTypes.has('all')) {
+        bodyChecksum += `- Distribution (-all) zip checksum: \`${targetRelease.allChecksum}\`\n`;
+    }
+    bodyChecksum += `- Wrapper JAR Checksum: \`${targetRelease.wrapperChecksum}\`
+
+You can find the reference checksum values at https://gradle.org/release-checksums/`;
+    const bodyFooter = `🤖 This PR has been created by the [Update Gradle Wrapper](https://github.com/gradle-update/update-gradle-wrapper-action) action.
+
+<details>
+<summary>Need help? 🤔</summary>
+<br />
+
+If something doesn't look right with this PR please file an issue [here](${ISSUES_URL}).
+</details>`;
+    const body = `${bodyHeader}\n\n---\n\n${bodyChecksum}\n\n---\n\n${bodyFooter}`;
+    return { title, body };
+}
+exports.pullRequestText = pullRequestText;
 
 
 /***/ }),
