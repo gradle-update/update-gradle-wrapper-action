@@ -1,12 +1,16 @@
 # Changelog
 
+## v1.0.10
+
+- Added link to Gradle Releases Checksum page in PR message.
+
 ## v1.0.9
 
 - Added `labels` input parameter.
 
 ## v1.0.8
 
-- In repositories with multiple Wrapper files, each one gets updated in a separate commit. 
+- In repositories with multiple Wrapper files, each one gets updated in a separate commit.
 
 ## v1.0.7
 
