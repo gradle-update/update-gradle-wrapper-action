@@ -16,6 +16,8 @@ import {context, getOctokit} from '@actions/github';
 import {PullsCreateResponseData} from '@octokit/types';
 import * as core from '@actions/core';
 
+import * as store from '../store';
+
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;
 
@@ -107,13 +109,18 @@ export class GitHubApi implements IGitHubApi {
     }
 
     if (result?.data.requested_reviewers.length !== reviewers.length) {
-      const addedReviewers = result?.data.requested_reviewers
-        .map(r => r.login)
-        .join(' ');
-      core.debug(`Added reviewers: ${addedReviewers}`);
+      const addedReviewers = result?.data.requested_reviewers.map(r => r.login);
+      core.debug(`Added reviewers: ${addedReviewers.join(', ')}`);
+
+      const erroredReviewers = reviewers.filter(
+        id => !addedReviewers.includes(id)
+      );
+
+      store.setErroredReviewers(erroredReviewers);
 
       core.warning(
-        'Unable to set all the PR reviewers, check usernames are correct.'
+        `Unable to set all the PR reviewers, check the following ` +
+          `usernames are correct: ${erroredReviewers.join(', ')}`
       );
     }
   }
