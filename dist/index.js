@@ -234,6 +234,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubApi = void 0;
 const github_1 = __webpack_require__(5438);
 const core = __importStar(__webpack_require__(2186));
+const store = __importStar(__webpack_require__(5826));
 class GitHubApi {
     constructor(repoToken) {
         this.octokit = github_1.getOctokit(repoToken);
@@ -281,9 +282,12 @@ class GitHubApi {
                 return;
             }
             if ((result === null || result === void 0 ? void 0 : result.data.requested_reviewers.length) !== reviewers.length) {
-                const addedReviewers = result === null || result === void 0 ? void 0 : result.data.requested_reviewers.map(r => r.login).join(' ');
-                core.debug(`Added reviewers: ${addedReviewers}`);
-                core.warning('Unable to set all the PR reviewers, check usernames are correct.');
+                const addedReviewers = result === null || result === void 0 ? void 0 : result.data.requested_reviewers.map(r => r.login);
+                core.debug(`Added reviewers: ${addedReviewers.join(', ')}`);
+                const erroredReviewers = reviewers.filter(id => !addedReviewers.includes(id));
+                store.setErroredReviewers(erroredReviewers);
+                core.warning(`Unable to set all the PR reviewers, check the following ` +
+                    `usernames are correct: ${erroredReviewers.join(', ')}`);
             }
         });
     }
@@ -481,15 +485,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const glob = __importStar(__webpack_require__(8090));
-const inputs_1 = __webpack_require__(4629);
 const git_commit_1 = __webpack_require__(1331);
+const inputs_1 = __webpack_require__(4629);
+const releases_1 = __webpack_require__(5715);
 const wrapperInfo_1 = __webpack_require__(6832);
 const wrapperUpdater_1 = __webpack_require__(7412);
 const gh = __importStar(__webpack_require__(1288));
 const git = __importStar(__webpack_require__(4610));
-const releases_1 = __webpack_require__(5715);
+const store = __importStar(__webpack_require__(5826));
 const currentCommitSha = process.env.GITHUB_SHA;
-function run() {
+function runMain() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (core.isDebug()) {
@@ -572,13 +577,24 @@ function run() {
             core.info('Creating Pull Request');
             const pullRequestUrl = yield githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
             core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
+            store.setActionMainCompleted();
         }
         catch (error) {
             core.setFailed(`❌ ${error.message}`);
         }
     });
 }
-run();
+function runPost() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.debug('executing post action');
+    });
+}
+if (!store.isMainActionCompleted()) {
+    runMain();
+}
+else {
+    runPost();
+}
 
 
 /***/ }),
@@ -772,6 +788,53 @@ class Releases {
     }
 }
 exports.Releases = Releases;
+
+
+/***/ }),
+
+/***/ 5826:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getErroredReviewers = exports.setErroredReviewers = exports.isMainActionCompleted = exports.setActionMainCompleted = void 0;
+const core = __importStar(__webpack_require__(2186));
+function setActionMainCompleted() {
+    core.saveState('main-completed', 'true');
+}
+exports.setActionMainCompleted = setActionMainCompleted;
+function isMainActionCompleted() {
+    return core.getState('main-completed') === 'true';
+}
+exports.isMainActionCompleted = isMainActionCompleted;
+function setErroredReviewers(reviewers) {
+    core.saveState('errored-reviewers', JSON.stringify(reviewers));
+}
+exports.setErroredReviewers = setErroredReviewers;
+function getErroredReviewers() {
+    return JSON.parse(core.getState('errored-reviewers'));
+}
+exports.getErroredReviewers = getErroredReviewers;
 
 
 /***/ }),

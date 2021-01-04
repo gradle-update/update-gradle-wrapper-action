@@ -15,18 +15,19 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
-import {getInputs} from './inputs';
 import {commit} from './git-commit';
+import {getInputs} from './inputs';
+import {Releases} from './releases';
 import {WrapperInfo} from './wrapperInfo';
 import {WrapperUpdater} from './wrapperUpdater';
 import * as gh from './github/gh-ops';
 import * as git from './git-cmds';
-import {Releases} from './releases';
+import * as store from './store';
 
 /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
 const currentCommitSha = process.env.GITHUB_SHA!;
 
-async function run() {
+async function runMain() {
   try {
     if (core.isDebug()) {
       core.debug(JSON.stringify(process.env, null, 2));
@@ -159,6 +160,8 @@ async function run() {
     );
 
     core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
+
+    store.setActionMainCompleted();
   } catch (error) {
     // setFailed is fatal (terminates action), core.error
     // creates a failure annotation instead
@@ -166,4 +169,12 @@ async function run() {
   }
 }
 
-run();
+async function runPost() {
+  core.debug('executing post action');
+}
+
+if (!store.isMainActionCompleted()) {
+  runMain();
+} else {
+  runPost();
+}
