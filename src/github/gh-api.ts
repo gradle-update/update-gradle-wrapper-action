@@ -43,6 +43,8 @@ export interface IGitHubApi {
   createLabelIfMissing: (labelName: string) => Promise<boolean>;
 
   createLabel: (labelName: string) => Promise<boolean>;
+
+  createComment: (pullRequestNumber: number, body: string) => Promise<boolean>;
 }
 
 export class GitHubApi implements IGitHubApi {
@@ -92,37 +94,53 @@ export class GitHubApi implements IGitHubApi {
 
     core.info(`Requesting review from: ${reviewers.join(',')}`);
 
-    let result;
+    const erroredReviewers: string[] = [];
 
-    try {
-      result = await this.octokit.pulls.requestReviewers({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        pull_number: pullRequestNumber,
-        reviewers
-      });
-    } catch (error) {
-      core.warning(
-        `Unable to set all the PR reviewers, got error: ${error.message}`
-      );
-      return;
+    for (const reviewer of reviewers) {
+      const success = await this.addReviewer(pullRequestNumber, reviewer);
+      if (!success) {
+        erroredReviewers.push(reviewer);
+      }
     }
 
-    if (result?.data.requested_reviewers.length !== reviewers.length) {
-      const addedReviewers = result?.data.requested_reviewers.map(r => r.login);
-      core.debug(`Added reviewers: ${addedReviewers.join(', ')}`);
-
-      const erroredReviewers = reviewers.filter(
-        id => !addedReviewers.includes(id)
-      );
-
-      store.setErroredReviewers(erroredReviewers);
-
+    if (erroredReviewers.length) {
       core.warning(
         `Unable to set all the PR reviewers, check the following ` +
           `usernames are correct: ${erroredReviewers.join(', ')}`
       );
+
+      store.setErroredReviewers(erroredReviewers);
     }
+  }
+
+  async addReviewer(
+    pullRequestNumber: number,
+    reviewer: string
+  ): Promise<boolean> {
+    try {
+      const result = await this.octokit.pulls.requestReviewers({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: pullRequestNumber,
+        reviewers: [reviewer]
+      });
+
+      const requested_reviewers = result.data.requested_reviewers.map(
+        user => user.login
+      );
+
+      if (!requested_reviewers.includes(reviewer)) {
+        core.warning(`Unable to set PR reviewer ${reviewer}`);
+        return false;
+      }
+    } catch (error) {
+      core.warning(
+        `Unable to set PR reviewer ${reviewer}, got error: ${error.message}`
+      );
+      return false;
+    }
+
+    return true;
   }
 
   async addLabels(pullRequestNumber: number, labels: string[]) {
@@ -185,6 +203,31 @@ export class GitHubApi implements IGitHubApi {
     } catch (error) {
       core.warning(
         `Unable to create label "${labelName}", got error: ${error.message}`
+      );
+      return false;
+    }
+  }
+
+  async createComment(
+    pullRequestNumber: number,
+    body: string
+  ): Promise<boolean> {
+    try {
+      const result = await this.octokit.issues.createComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: pullRequestNumber,
+        body
+      });
+
+      core.debug(
+        `Created comment for PR ${pullRequestNumber} with id: ${result.data.id}`
+      );
+
+      return true;
+    } catch (error) {
+      core.warning(
+        `Unable to create comment for PR ${pullRequestNumber}, got error: ${error.message}`
       );
       return false;
     }

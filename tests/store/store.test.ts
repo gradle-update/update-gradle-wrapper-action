@@ -16,33 +16,41 @@ import * as core from '@actions/core';
 
 import * as store from '../../src/store';
 
-describe('setActionMainCompleted', () => {
-  it('saves a state variable as "true" string', () => {
+describe('setPullRequestData', () => {
+  it('saves a state variable as json representation of input data', () => {
     const saveState = jest.spyOn(core, 'saveState');
 
-    store.setActionMainCompleted();
+    store.setPullRequestData({url: 'https://github.com/pull/42', number: 42});
 
-    expect(saveState).toHaveBeenCalledWith('main-completed', 'true');
+    expect(saveState).toHaveBeenCalledWith(
+      'pull_request_data',
+      '{"url":"https://github.com/pull/42","number":42}'
+    );
   });
 });
 
-describe('isMainActionCompleted', () => {
-  it('returns true if the state variable is the "true" string', () => {
-    const getState = jest.spyOn(core, 'getState').mockReturnValue('true');
+describe('getPullRequestData', () => {
+  it('returns undefined if the state variable is empty', () => {
+    const getState = jest.spyOn(core, 'getState').mockReturnValue('');
 
-    const isCompleted = store.isMainActionCompleted();
+    const pullRequestData = store.getPullRequestData();
 
-    expect(getState).toHaveBeenCalledWith('main-completed');
-    expect(isCompleted).toBe(true);
+    expect(getState).toHaveBeenCalledWith('pull_request_data');
+    expect(pullRequestData).toBeUndefined();
   });
 
-  it('returns false if the state variable is other than the "true" string', () => {
-    const getState = jest.spyOn(core, 'getState').mockReturnValue('something');
+  it('returns data if the state variable is set to valid json', () => {
+    const getState = jest
+      .spyOn(core, 'getState')
+      .mockReturnValue('{"url":"https://github.com/pull/42","number":42}');
 
-    const isCompleted = store.isMainActionCompleted();
+    const isCompleted = store.getPullRequestData();
 
-    expect(getState).toHaveBeenCalledWith('main-completed');
-    expect(isCompleted).toBe(false);
+    expect(getState).toHaveBeenCalledWith('pull_request_data');
+    expect(isCompleted).toEqual({
+      url: 'https://github.com/pull/42',
+      number: 42
+    });
   });
 });
 
@@ -52,7 +60,7 @@ describe('setErroredReviewers', () => {
 
     store.setErroredReviewers(['a', 'b']);
 
-    expect(saveState).toHaveBeenCalledWith('errored-reviewers', '["a","b"]');
+    expect(saveState).toHaveBeenCalledWith('errored_reviewers', '["a","b"]');
   });
 
   describe('when input is empty', () => {
@@ -61,18 +69,27 @@ describe('setErroredReviewers', () => {
 
       store.setErroredReviewers([]);
 
-      expect(saveState).toHaveBeenCalledWith('errored-reviewers', '[]');
+      expect(saveState).toHaveBeenCalledWith('errored_reviewers', '[]');
     });
   });
 });
 
 describe('getErroredReviewers', () => {
-  it('returns an array of strings from json state', () => {
+  it('returns undefined if the state variable is empty', () => {
+    const getState = jest.spyOn(core, 'getState').mockReturnValue('');
+
+    const pullRequestData = store.getErroredReviewers();
+
+    expect(getState).toHaveBeenCalledWith('errored_reviewers');
+    expect(pullRequestData).toBeUndefined();
+  });
+
+  it('returns an array of strings if the state variable is set to valid json', () => {
     const getState = jest.spyOn(core, 'getState').mockReturnValue('["a"]');
 
     const reviewers = store.getErroredReviewers();
 
     expect(reviewers).toEqual(['a']);
-    expect(getState).toHaveBeenCalledWith('errored-reviewers');
+    expect(getState).toHaveBeenCalledWith('errored_reviewers');
   });
 });

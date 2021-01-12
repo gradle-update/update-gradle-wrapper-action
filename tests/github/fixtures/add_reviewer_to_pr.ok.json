@@ -24,8 +24,12 @@
   "assignees": [],
   "requested_reviewers": [
     {
-      "login": "cristiangreco",
+      "login": "reviewer1",
       "id": 123123
+    },
+    {
+      "login": "reviewer2",
+      "id": 456456
     }
   ],
   "requested_teams": [],
