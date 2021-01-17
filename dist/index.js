@@ -268,27 +268,40 @@ class GitHubApi {
                 return;
             }
             core.info(`Requesting review from: ${reviewers.join(',')}`);
-            let result;
+            const erroredReviewers = [];
+            for (const reviewer of reviewers) {
+                const success = yield this.addReviewer(pullRequestNumber, reviewer);
+                if (!success) {
+                    erroredReviewers.push(reviewer);
+                }
+            }
+            if (erroredReviewers.length) {
+                core.warning(`Unable to set all the PR reviewers, check the following ` +
+                    `usernames are correct: ${erroredReviewers.join(', ')}`);
+                store.setErroredReviewers(erroredReviewers);
+            }
+        });
+    }
+    addReviewer(pullRequestNumber, reviewer) {
+        return __awaiter(this, void 0, void 0, function* () {
             try {
-                result = yield this.octokit.pulls.requestReviewers({
+                const result = yield this.octokit.pulls.requestReviewers({
                     owner: github_1.context.repo.owner,
                     repo: github_1.context.repo.repo,
                     pull_number: pullRequestNumber,
-                    reviewers
+                    reviewers: [reviewer]
                 });
+                const requested_reviewers = result.data.requested_reviewers.map(user => user.login);
+                if (!requested_reviewers.includes(reviewer)) {
+                    core.warning(`Unable to set PR reviewer ${reviewer}`);
+                    return false;
+                }
             }
             catch (error) {
-                core.warning(`Unable to set all the PR reviewers, got error: ${error.message}`);
-                return;
+                core.warning(`Unable to set PR reviewer ${reviewer}, got error: ${error.message}`);
+                return false;
             }
-            if ((result === null || result === void 0 ? void 0 : result.data.requested_reviewers.length) !== reviewers.length) {
-                const addedReviewers = result === null || result === void 0 ? void 0 : result.data.requested_reviewers.map(r => r.login);
-                core.debug(`Added reviewers: ${addedReviewers.join(', ')}`);
-                const erroredReviewers = reviewers.filter(id => !addedReviewers.includes(id));
-                store.setErroredReviewers(erroredReviewers);
-                core.warning(`Unable to set all the PR reviewers, check the following ` +
-                    `usernames are correct: ${erroredReviewers.join(', ')}`);
-            }
+            return true;
         });
     }
     addLabels(pullRequestNumber, labels) {
@@ -346,6 +359,24 @@ class GitHubApi {
             }
             catch (error) {
                 core.warning(`Unable to create label "${labelName}", got error: ${error.message}`);
+                return false;
+            }
+        });
+    }
+    createComment(pullRequestNumber, body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield this.octokit.issues.createComment({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    issue_number: pullRequestNumber,
+                    body
+                });
+                core.debug(`Created comment for PR ${pullRequestNumber} with id: ${result.data.id}`);
+                return true;
+            }
+            catch (error) {
+                core.warning(`Unable to create comment for PR ${pullRequestNumber}, got error: ${error.message}`);
                 return false;
             }
         });
@@ -440,7 +471,10 @@ class GitHubOps {
                 ...this.inputs.labels
             ]);
             yield this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
-            return pullRequest.html_url;
+            return {
+                url: pullRequest.html_url,
+                number: pullRequest.number
+            };
         });
     }
 }
@@ -473,127 +507,19 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(2186));
-const glob = __importStar(__nccwpck_require__(8090));
-const git_commit_1 = __nccwpck_require__(1331);
 const inputs_1 = __nccwpck_require__(4629);
-const releases_1 = __nccwpck_require__(5715);
-const wrapperInfo_1 = __nccwpck_require__(6832);
-const wrapperUpdater_1 = __nccwpck_require__(7412);
-const gh = __importStar(__nccwpck_require__(1288));
-const git = __importStar(__nccwpck_require__(4610));
+const gh_api_1 = __nccwpck_require__(3422);
+const post_1 = __nccwpck_require__(1645);
+const main_1 = __nccwpck_require__(8888);
 const store = __importStar(__nccwpck_require__(5826));
-const currentCommitSha = process.env.GITHUB_SHA;
-function runMain() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            if (core.isDebug()) {
-                core.debug(JSON.stringify(process.env, null, 2));
-            }
-            const inputs = inputs_1.getInputs();
-            const targetRelease = yield new releases_1.Releases().current();
-            core.info(`Latest release: ${targetRelease.version}`);
-            const githubOps = new gh.GitHubOps(inputs);
-            const ref = yield githubOps.findMatchingRef(targetRelease.version);
-            if (ref) {
-                core.info('Found an existing ref, stopping here.');
-                core.debug(`Ref url: ${ref.url}`);
-                core.debug(`Ref sha: ${ref.object.sha}`);
-                core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
-                return;
-            }
-            const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
-            const wrappers = yield globber.glob();
-            core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
-            if (!wrappers.length) {
-                core.warning('Unable to find Gradle Wrapper files in this project.');
-                return;
-            }
-            core.debug(`Wrappers count: ${wrappers.length}`);
-            const wrapperInfos = wrappers.map(path => new wrapperInfo_1.WrapperInfo(path));
-            const commitDataList = [];
-            yield git.config('user.name', 'gradle-update-robot');
-            yield git.config('user.email', 'gradle-update-robot@regolo.cc');
-            core.startGroup('Creating branch');
-            const branchName = `gradlew-update-${targetRelease.version}`;
-            yield git.checkout(branchName, currentCommitSha);
-            core.endGroup();
-            const distTypes = new Set();
-            for (const wrapper of wrapperInfos) {
-                core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
-                core.debug(`Current Wrapper version: ${wrapper.version}`);
-                if (wrapper.version === targetRelease.version) {
-                    core.info(`Wrapper is already up-to-date`);
-                    continue;
-                }
-                distTypes.add(wrapper.distType);
-                const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, inputs.setDistributionChecksum);
-                core.startGroup('Updating Wrapper');
-                yield updater.update();
-                core.endGroup();
-                core.startGroup('Checking whether any file has been updated');
-                const modifiedFiles = yield git.gitDiffNameOnly();
-                core.debug(`Modified files count: ${modifiedFiles.length}`);
-                core.debug(`Modified files list: ${modifiedFiles}`);
-                core.endGroup();
-                if (modifiedFiles.length) {
-                    core.startGroup('Verifying Wrapper');
-                    yield updater.verify();
-                    core.endGroup();
-                    core.startGroup('Committing');
-                    yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
-                    core.endGroup();
-                    commitDataList.push({
-                        files: modifiedFiles,
-                        targetVersion: targetRelease.version,
-                        sourceVersion: wrapper.version
-                    });
-                }
-                else {
-                    core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
-                }
-                core.endGroup();
-            }
-            if (!commitDataList.length) {
-                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
-                return;
-            }
-            const changedFilesCount = commitDataList
-                .map(cd => cd.files.length)
-                .reduce((acc, item) => acc + item);
-            core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
-            core.info('Pushing branch');
-            yield git.push(branchName);
-            core.info('Creating Pull Request');
-            const pullRequestUrl = yield githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
-            core.info(`✅ Created a Pull Request at ${pullRequestUrl} ✨`);
-            store.setActionMainCompleted();
-        }
-        catch (error) {
-            core.setFailed(`❌ ${error.message}`);
-        }
-    });
-}
-function runPost() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug('executing post action');
-    });
-}
-if (!store.isMainActionCompleted()) {
-    runMain();
+const pullRequestData = store.getPullRequestData();
+if (pullRequestData) {
+    const githubApi = new gh_api_1.GitHubApi(inputs_1.getInputs().repoToken);
+    new post_1.PostAction(githubApi, pullRequestData).run();
 }
 else {
-    runPost();
+    main_1.runMain();
 }
 
 
@@ -817,24 +743,248 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getErroredReviewers = exports.setErroredReviewers = exports.isMainActionCompleted = exports.setActionMainCompleted = void 0;
+exports.getErroredReviewers = exports.setErroredReviewers = exports.getPullRequestData = exports.setPullRequestData = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-function setActionMainCompleted() {
-    core.saveState('main-completed', 'true');
+const PULL_REQUEST_DATA = 'pull_request_data';
+const ERRORED_REVIEWERS = 'errored_reviewers';
+function setPullRequestData(pullRequestData) {
+    core.saveState(PULL_REQUEST_DATA, JSON.stringify(pullRequestData));
 }
-exports.setActionMainCompleted = setActionMainCompleted;
-function isMainActionCompleted() {
-    return core.getState('main-completed') === 'true';
+exports.setPullRequestData = setPullRequestData;
+function getPullRequestData() {
+    const state = core.getState(PULL_REQUEST_DATA);
+    return state.length ? JSON.parse(state) : undefined;
 }
-exports.isMainActionCompleted = isMainActionCompleted;
+exports.getPullRequestData = getPullRequestData;
 function setErroredReviewers(reviewers) {
-    core.saveState('errored-reviewers', JSON.stringify(reviewers));
+    core.saveState(ERRORED_REVIEWERS, JSON.stringify(reviewers));
 }
 exports.setErroredReviewers = setErroredReviewers;
 function getErroredReviewers() {
-    return JSON.parse(core.getState('errored-reviewers'));
+    const reviewers = core.getState(ERRORED_REVIEWERS);
+    return reviewers.length ? JSON.parse(reviewers) : undefined;
 }
 exports.getErroredReviewers = getErroredReviewers;
+
+
+/***/ }),
+
+/***/ 8888:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runMain = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const glob = __importStar(__nccwpck_require__(8090));
+const git_commit_1 = __nccwpck_require__(1331);
+const inputs_1 = __nccwpck_require__(4629);
+const gh_ops_1 = __nccwpck_require__(1288);
+const releases_1 = __nccwpck_require__(5715);
+const wrapperInfo_1 = __nccwpck_require__(6832);
+const wrapperUpdater_1 = __nccwpck_require__(7412);
+const git = __importStar(__nccwpck_require__(4610));
+const store = __importStar(__nccwpck_require__(5826));
+const currentCommitSha = process.env.GITHUB_SHA;
+function runMain() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            if (core.isDebug()) {
+                core.debug(JSON.stringify(process.env, null, 2));
+            }
+            const inputs = inputs_1.getInputs();
+            const targetRelease = yield new releases_1.Releases().current();
+            core.info(`Latest release: ${targetRelease.version}`);
+            const githubOps = new gh_ops_1.GitHubOps(inputs);
+            const ref = yield githubOps.findMatchingRef(targetRelease.version);
+            if (ref) {
+                core.info('Found an existing ref, stopping here.');
+                core.debug(`Ref url: ${ref.url}`);
+                core.debug(`Ref sha: ${ref.object.sha}`);
+                core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
+                return;
+            }
+            const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
+            const wrappers = yield globber.glob();
+            core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
+            if (!wrappers.length) {
+                core.warning('Unable to find Gradle Wrapper files in this project.');
+                return;
+            }
+            core.debug(`Wrappers count: ${wrappers.length}`);
+            const wrapperInfos = wrappers.map(path => new wrapperInfo_1.WrapperInfo(path));
+            const commitDataList = [];
+            yield git.config('user.name', 'gradle-update-robot');
+            yield git.config('user.email', 'gradle-update-robot@regolo.cc');
+            core.startGroup('Creating branch');
+            const branchName = `gradlew-update-${targetRelease.version}`;
+            yield git.checkout(branchName, currentCommitSha);
+            core.endGroup();
+            const distTypes = new Set();
+            for (const wrapper of wrapperInfos) {
+                core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
+                core.debug(`Current Wrapper version: ${wrapper.version}`);
+                if (wrapper.version === targetRelease.version) {
+                    core.info(`Wrapper is already up-to-date`);
+                    continue;
+                }
+                distTypes.add(wrapper.distType);
+                const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, inputs.setDistributionChecksum);
+                core.startGroup('Updating Wrapper');
+                yield updater.update();
+                core.endGroup();
+                core.startGroup('Checking whether any file has been updated');
+                const modifiedFiles = yield git.gitDiffNameOnly();
+                core.debug(`Modified files count: ${modifiedFiles.length}`);
+                core.debug(`Modified files list: ${modifiedFiles}`);
+                core.endGroup();
+                if (modifiedFiles.length) {
+                    core.startGroup('Verifying Wrapper');
+                    yield updater.verify();
+                    core.endGroup();
+                    core.startGroup('Committing');
+                    yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
+                    core.endGroup();
+                    commitDataList.push({
+                        files: modifiedFiles,
+                        targetVersion: targetRelease.version,
+                        sourceVersion: wrapper.version
+                    });
+                }
+                else {
+                    core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
+                }
+                core.endGroup();
+            }
+            if (!commitDataList.length) {
+                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
+                return;
+            }
+            const changedFilesCount = commitDataList
+                .map(cd => cd.files.length)
+                .reduce((acc, item) => acc + item);
+            core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
+            core.info('Pushing branch');
+            yield git.push(branchName);
+            core.info('Creating Pull Request');
+            const pullRequestData = yield githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
+            core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
+            store.setPullRequestData(pullRequestData);
+        }
+        catch (error) {
+            core.setFailed(`❌ ${error.message}`);
+        }
+    });
+}
+exports.runMain = runMain;
+
+
+/***/ }),
+
+/***/ 1645:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PostAction = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const store = __importStar(__nccwpck_require__(5826));
+class PostAction {
+    constructor(githubApi, pullRequestData) {
+        this.githubApi = githubApi;
+        this.pullRequestData = pullRequestData;
+    }
+    run() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.reportErroredReviewers();
+            }
+            catch (error) {
+                core.debug(`post action task failed with: ${error.message}`);
+            }
+        });
+    }
+    reportErroredReviewers() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const erroredReviewers = store.getErroredReviewers();
+            if (erroredReviewers === null || erroredReviewers === void 0 ? void 0 : erroredReviewers.length) {
+                let usernames = '';
+                for (const reviewer of erroredReviewers) {
+                    usernames += `- @${reviewer} \n`;
+                }
+                const body = `Unable to set all the PR reviewers, check the following usernames are correct:
+
+${usernames}
+
+Please refer to the documentation for the [\`reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#reviewers) input.
+
+---
+
+🤖 This is an automatic comment by the Update Gradle Wrapper action.`;
+                yield this.githubApi.createComment(this.pullRequestData.number, body);
+            }
+        });
+    }
+}
+exports.PostAction = PostAction;
 
 
 /***/ }),

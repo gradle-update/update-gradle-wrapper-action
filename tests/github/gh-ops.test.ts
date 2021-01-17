@@ -38,8 +38,9 @@ const defaultMockGitHubApi: IGitHubApi = {
   createPullRequest: jest.fn(),
   addReviewers: jest.fn(),
   addLabels: jest.fn(),
+  createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
-  createLabelIfMissing: jest.fn()
+  createComment: jest.fn()
 };
 
 let mockInputs: Inputs;
@@ -90,8 +91,8 @@ describe('createPullRequest', () => {
       });
     });
 
-    it('creates a Pull Request and returns its url', async () => {
-      const pullRequestUrl = await githubOps.createPullRequest(
+    it('creates a Pull Request and returns its data', async () => {
+      const pullRequestData = await githubOps.createPullRequest(
         branchName,
         distributionTypes,
         targetRelease,
@@ -119,15 +120,17 @@ describe('createPullRequest', () => {
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
 
-      expect(pullRequestUrl).toEqual(
+      expect(pullRequestData).toBeDefined();
+      expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
       );
+      expect(pullRequestData.number).toEqual(42);
     });
 
     it('sets the input targetBranch', async () => {
       mockInputs.targetBranch = 'release-v2';
 
-      const pullRequestUrl = await githubOps.createPullRequest(
+      const pullRequestData = await githubOps.createPullRequest(
         branchName,
         distributionTypes,
         targetRelease,
@@ -155,15 +158,17 @@ describe('createPullRequest', () => {
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
 
-      expect(pullRequestUrl).toEqual(
+      expect(pullRequestData).toBeDefined();
+      expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
       );
+      expect(pullRequestData.number).toEqual(42);
     });
 
     it('adds the input reviewers', async () => {
       mockInputs.reviewers = ['username', 'collaborator'];
 
-      const pullRequestUrl = await githubOps.createPullRequest(
+      const pullRequestData = await githubOps.createPullRequest(
         branchName,
         distributionTypes,
         targetRelease,
@@ -194,15 +199,17 @@ describe('createPullRequest', () => {
         'collaborator'
       ]);
 
-      expect(pullRequestUrl).toEqual(
+      expect(pullRequestData).toBeDefined();
+      expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
       );
+      expect(pullRequestData.number).toEqual(42);
     });
 
     it('adds the input labels', async () => {
       mockInputs.labels = ['custom-label', 'help wanted'];
 
-      const pullRequestUrl = await githubOps.createPullRequest(
+      const pullRequestData = await githubOps.createPullRequest(
         branchName,
         distributionTypes,
         targetRelease,
@@ -232,9 +239,11 @@ describe('createPullRequest', () => {
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
 
-      expect(pullRequestUrl).toEqual(
+      expect(pullRequestData).toBeDefined();
+      expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
       );
+      expect(pullRequestData.number).toEqual(42);
     });
   });
 
