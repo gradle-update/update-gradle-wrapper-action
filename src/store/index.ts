@@ -14,18 +14,28 @@
 
 import * as core from '@actions/core';
 
-export function setActionMainCompleted() {
-  core.saveState('main-completed', 'true');
+const PULL_REQUEST_DATA = 'pull_request_data';
+const ERRORED_REVIEWERS = 'errored_reviewers';
+
+export interface PullRequestData {
+  url: string;
+  number: number;
 }
 
-export function isMainActionCompleted(): boolean {
-  return core.getState('main-completed') === 'true';
+export function setPullRequestData(pullRequestData: PullRequestData) {
+  core.saveState(PULL_REQUEST_DATA, JSON.stringify(pullRequestData));
+}
+
+export function getPullRequestData(): PullRequestData | undefined {
+  const state = core.getState(PULL_REQUEST_DATA);
+  return state.length ? (JSON.parse(state) as PullRequestData) : undefined;
 }
 
 export function setErroredReviewers(reviewers: string[]) {
-  core.saveState('errored-reviewers', JSON.stringify(reviewers));
+  core.saveState(ERRORED_REVIEWERS, JSON.stringify(reviewers));
 }
 
-export function getErroredReviewers(): string[] {
-  return JSON.parse(core.getState('errored-reviewers')) as string[];
+export function getErroredReviewers(): string[] | undefined {
+  const reviewers = core.getState(ERRORED_REVIEWERS);
+  return reviewers.length ? (JSON.parse(reviewers) as string[]) : undefined;
 }

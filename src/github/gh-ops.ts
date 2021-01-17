@@ -18,6 +18,7 @@ import * as core from '@actions/core';
 
 import {GitHubApi, IGitHubApi} from './gh-api';
 import {Inputs} from '../inputs';
+import {PullRequestData} from '../store';
 import {pullRequestText} from '../messages';
 import {Release} from '../releases';
 
@@ -61,7 +62,7 @@ export class GitHubOps {
     distTypes: Set<string>,
     targetRelease: Release,
     sourceVersion?: string
-  ): Promise<string> {
+  ): Promise<PullRequestData> {
     const targetBranch =
       this.inputs.targetBranch !== ''
         ? this.inputs.targetBranch
@@ -94,6 +95,9 @@ export class GitHubOps {
 
     await this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
 
-    return pullRequest.html_url;
+    return {
+      url: pullRequest.html_url,
+      number: pullRequest.number
+    };
   }
 }

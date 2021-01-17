@@ -172,14 +172,14 @@ into your repository.
 
 Request a review from these GitHub usernames (notifications will be triggered).
 
-For example:
+For example, use a comma-separated list:
 
 ```yaml
 with:
   reviewers: username1, username2
 ```
 
-or
+or add each reviewer on a different line (no comma needed):
 
 ```yaml
 with:
@@ -187,6 +187,8 @@ with:
     username1
     username2
 ```
+
+Note that if you're using a Personal Access Token (PAT) as `repo-token` you cannot request a review from the user that the PAT belongs to.
 
 ---
 
@@ -198,12 +200,14 @@ with:
 
 Add custom labels to the Pull Request.
 
+For example, use a comma-separated list:
+
 ```yaml
 with:
   labels: automated pr, dependencies
 ```
 
-or
+or add each label on a different line (no comma needed):
 
 ```yaml
 with:
@@ -211,6 +215,8 @@ with:
     automated pr
     dependencies
 ```
+
+Label names can include spaces. Note that the action will create a label if it doesn't already exist within your organisation.
 
 ---
 

@@ -124,13 +124,19 @@ describe('addReviewers', () => {
   it('adds multiple reviewers', async () => {
     nockScope
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['username', 'collaborator']
+        reviewers: ['reviewer1']
+      })
+      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
+        'Content-Type': 'application/json'
+      })
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['reviewer2']
       })
       .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
         'Content-Type': 'application/json'
       });
 
-    await api.addReviewers(1, ['username', 'collaborator']);
+    await api.addReviewers(1, ['reviewer1', 'reviewer2']);
 
     nockScope.done();
   });
@@ -162,6 +168,51 @@ describe('addReviewers', () => {
 
     await api.addReviewers(1, ['not_a_collaborator']);
 
+    nockScope.done();
+  });
+});
+
+describe('addReviewer', () => {
+  it('adds a reviewer', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['reviewer1']
+      })
+      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
+        'Content-Type': 'application/json'
+      });
+
+    const success = await api.addReviewer(1, 'reviewer1');
+
+    expect(success).toBeTruthy();
+    nockScope.done();
+  });
+
+  it('returns false if reviewer cannot be added', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['not_a_collaborator']
+      })
+      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
+        'Content-Type': 'application/json'
+      });
+
+    const success = await api.addReviewer(1, 'not_a_collaborator');
+
+    expect(success).toBeFalsy();
+    nockScope.done();
+  });
+
+  it('returns false on api error', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['not_a_collaborator']
+      })
+      .reply(500);
+
+    const success = await api.addReviewer(1, 'not_a_collaborator');
+
+    expect(success).toBeFalsy();
     nockScope.done();
   });
 });
@@ -296,6 +347,36 @@ describe('createLabel', () => {
 
     await api.createLabel('gradle-wrapper');
 
+    nockScope.done();
+  });
+});
+
+describe('createComment', () => {
+  it('creates a comment', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/issues/42/comments', {
+        body: 'test comment'
+      })
+      .replyWithFile(201, `${__dirname}/fixtures/create_comment.ok.json`, {
+        'Content-Type': 'application/json'
+      });
+
+    const created = await api.createComment(42, 'test comment');
+
+    expect(created).toBeTruthy();
+    nockScope.done();
+  });
+
+  it('does not throw on api error', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/issues/42/comments', {
+        body: 'test comment'
+      })
+      .reply(500);
+
+    const created = await api.createComment(42, 'test comment');
+
+    expect(created).toBeFalsy();
     nockScope.done();
   });
 });
