@@ -14,12 +14,22 @@
 
 import * as core from '@actions/core';
 
+const MAIN_ACTION_EXECUTED = 'main_action_executed';
 const PULL_REQUEST_DATA = 'pull_request_data';
 const ERRORED_REVIEWERS = 'errored_reviewers';
+const ERRORED_TEAM_REVIEWERS = 'errored_team_reviewers';
 
 export interface PullRequestData {
   url: string;
   number: number;
+}
+
+export function setMainActionExecuted() {
+  core.saveState(MAIN_ACTION_EXECUTED, 'true');
+}
+
+export function mainActionExecuted(): boolean {
+  return core.getState(MAIN_ACTION_EXECUTED) === 'true';
 }
 
 export function setPullRequestData(pullRequestData: PullRequestData) {
@@ -38,4 +48,13 @@ export function setErroredReviewers(reviewers: string[]) {
 export function getErroredReviewers(): string[] | undefined {
   const reviewers = core.getState(ERRORED_REVIEWERS);
   return reviewers.length ? (JSON.parse(reviewers) as string[]) : undefined;
+}
+
+export function setErroredTeamReviewers(reviewers: string[]) {
+  core.saveState(ERRORED_TEAM_REVIEWERS, JSON.stringify(reviewers));
+}
+
+export function getErroredTeamReviewers(): string[] | undefined {
+  const teams = core.getState(ERRORED_TEAM_REVIEWERS);
+  return teams.length ? (JSON.parse(teams) as string[]) : undefined;
 }

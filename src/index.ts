@@ -18,11 +18,13 @@ import {PostAction} from './tasks/post';
 import {runMain} from './tasks/main';
 import * as store from './store';
 
-const pullRequestData = store.getPullRequestData();
-
-if (pullRequestData) {
-  const githubApi = new GitHubApi(getInputs().repoToken);
-  new PostAction(githubApi, pullRequestData).run();
-} else {
+if (!store.mainActionExecuted()) {
   runMain();
+} else {
+  const pullRequestData = store.getPullRequestData();
+
+  if (pullRequestData) {
+    const githubApi = new GitHubApi(getInputs().repoToken);
+    new PostAction(githubApi, pullRequestData).run();
+  }
 }

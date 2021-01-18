@@ -48,6 +48,7 @@ describe('getInputs', () => {
         "reviewers": Array [],
         "setDistributionChecksum": true,
         "targetBranch": "",
+        "teamReviewers": Array [],
       }
     `);
   });
@@ -72,6 +73,30 @@ describe('getInputs', () => {
         };
 
         expect(getInputs().reviewers).toStrictEqual(expected);
+      }
+    });
+  });
+
+  describe('team-reviewers', () => {
+    it('accepts comma and newline-separated values', () => {
+      const tests: [string, string[]][] = [
+        ['', []],
+        ['foo', ['foo']],
+        ['foo,bar', ['foo', 'bar']],
+        ['foo, bar', ['foo', 'bar']],
+        ['foo bar', ['foo bar']],
+        ['foo\nbar', ['foo', 'bar']],
+        ['foo \n bar, baz', ['foo', 'bar', 'baz']],
+        ['foo \n bar baz ', ['foo', 'bar baz']]
+      ];
+
+      for (const [value, expected] of tests) {
+        ymlInputs = {
+          'repo-token': 's3cr3t',
+          'team-reviewers': value
+        };
+
+        expect(getInputs().teamReviewers).toStrictEqual(expected);
       }
     });
   });

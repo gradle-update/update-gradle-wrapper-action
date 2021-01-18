@@ -267,7 +267,7 @@ class GitHubApi {
                 core.info('No reviewers to add');
                 return;
             }
-            core.info(`Requesting review from: ${reviewers.join(',')}`);
+            core.info(`Requesting review from users: ${reviewers.join(',')}`);
             const erroredReviewers = [];
             for (const reviewer of reviewers) {
                 const success = yield this.addReviewer(pullRequestNumber, reviewer);
@@ -299,6 +299,49 @@ class GitHubApi {
             }
             catch (error) {
                 core.warning(`Unable to set PR reviewer ${reviewer}, got error: ${error.message}`);
+                return false;
+            }
+            return true;
+        });
+    }
+    addTeamReviewers(pullRequestNumber, teams) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!teams.length) {
+                core.info('No team reviewers to add');
+                return;
+            }
+            core.info(`Requesting review from teams: ${teams.join(',')}`);
+            const erroredTeamReviewers = [];
+            for (const team of teams) {
+                const success = yield this.addTeamReviewer(pullRequestNumber, team);
+                if (!success) {
+                    erroredTeamReviewers.push(team);
+                }
+            }
+            if (erroredTeamReviewers.length) {
+                core.warning(`Unable to set all the PR team reviewers, check the following ` +
+                    `team names are correct: ${erroredTeamReviewers.join(', ')}`);
+                store.setErroredTeamReviewers(erroredTeamReviewers);
+            }
+        });
+    }
+    addTeamReviewer(pullRequestNumber, team) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield this.octokit.pulls.requestReviewers({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    pull_number: pullRequestNumber,
+                    team_reviewers: [team]
+                });
+                const requested_teams = result.data.requested_teams.map(t => t.slug);
+                if (!requested_teams.includes(team)) {
+                    core.warning(`Unable to set PR team reviewer ${team}`);
+                    return false;
+                }
+            }
+            catch (error) {
+                core.warning(`Unable to set PR team reviewer ${team}, got error: ${error.message}`);
                 return false;
             }
             return true;
@@ -513,13 +556,15 @@ const gh_api_1 = __nccwpck_require__(3422);
 const post_1 = __nccwpck_require__(1645);
 const main_1 = __nccwpck_require__(8888);
 const store = __importStar(__nccwpck_require__(5826));
-const pullRequestData = store.getPullRequestData();
-if (pullRequestData) {
-    const githubApi = new gh_api_1.GitHubApi(inputs_1.getInputs().repoToken);
-    new post_1.PostAction(githubApi, pullRequestData).run();
+if (!store.mainActionExecuted()) {
+    main_1.runMain();
 }
 else {
-    main_1.runMain();
+    const pullRequestData = store.getPullRequestData();
+    if (pullRequestData) {
+        const githubApi = new gh_api_1.GitHubApi(inputs_1.getInputs().repoToken);
+        new post_1.PostAction(githubApi, pullRequestData).run();
+    }
 }
 
 
@@ -564,6 +609,12 @@ class ActionInputs {
         }
         this.reviewers = core
             .getInput('reviewers', { required: false })
+            .trim()
+            .split(/[\n,]/)
+            .map(r => r.trim())
+            .filter(r => r.length);
+        this.teamReviewers = core
+            .getInput('team-reviewers', { required: false })
             .trim()
             .split(/[\n,]/)
             .map(r => r.trim())
@@ -743,10 +794,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getErroredReviewers = exports.setErroredReviewers = exports.getPullRequestData = exports.setPullRequestData = void 0;
+exports.getErroredTeamReviewers = exports.setErroredTeamReviewers = exports.getErroredReviewers = exports.setErroredReviewers = exports.getPullRequestData = exports.setPullRequestData = exports.mainActionExecuted = exports.setMainActionExecuted = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const MAIN_ACTION_EXECUTED = 'main_action_executed';
 const PULL_REQUEST_DATA = 'pull_request_data';
 const ERRORED_REVIEWERS = 'errored_reviewers';
+const ERRORED_TEAM_REVIEWERS = 'errored_team_reviewers';
+function setMainActionExecuted() {
+    core.saveState(MAIN_ACTION_EXECUTED, 'true');
+}
+exports.setMainActionExecuted = setMainActionExecuted;
+function mainActionExecuted() {
+    return core.getState(MAIN_ACTION_EXECUTED) === 'true';
+}
+exports.mainActionExecuted = mainActionExecuted;
 function setPullRequestData(pullRequestData) {
     core.saveState(PULL_REQUEST_DATA, JSON.stringify(pullRequestData));
 }
@@ -765,6 +826,15 @@ function getErroredReviewers() {
     return reviewers.length ? JSON.parse(reviewers) : undefined;
 }
 exports.getErroredReviewers = getErroredReviewers;
+function setErroredTeamReviewers(reviewers) {
+    core.saveState(ERRORED_TEAM_REVIEWERS, JSON.stringify(reviewers));
+}
+exports.setErroredTeamReviewers = setErroredTeamReviewers;
+function getErroredTeamReviewers() {
+    const teams = core.getState(ERRORED_TEAM_REVIEWERS);
+    return teams.length ? JSON.parse(teams) : undefined;
+}
+exports.getErroredTeamReviewers = getErroredTeamReviewers;
 
 
 /***/ }),
@@ -818,6 +888,7 @@ const currentCommitSha = process.env.GITHUB_SHA;
 function runMain() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            store.setMainActionExecuted();
             if (core.isDebug()) {
                 core.debug(JSON.stringify(process.env, null, 2));
             }
@@ -964,17 +1035,26 @@ class PostAction {
     }
     reportErroredReviewers() {
         return __awaiter(this, void 0, void 0, function* () {
-            const erroredReviewers = store.getErroredReviewers();
-            if (erroredReviewers === null || erroredReviewers === void 0 ? void 0 : erroredReviewers.length) {
-                let usernames = '';
-                for (const reviewer of erroredReviewers) {
-                    usernames += `- @${reviewer} \n`;
+            let usernames = '';
+            const reviewers = store.getErroredReviewers();
+            if (reviewers) {
+                for (const reviewer of reviewers) {
+                    usernames += `- @${reviewer}\n`;
                 }
+            }
+            const teams = store.getErroredTeamReviewers();
+            if (teams) {
+                for (const team of teams) {
+                    usernames += `- @${team}\n`;
+                }
+            }
+            if (usernames.length) {
                 const body = `Unable to set all the PR reviewers, check the following usernames are correct:
 
 ${usernames}
 
-Please refer to the documentation for the [\`reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#reviewers) input.
+Please refer to the documentation for the [\`reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#reviewers) \
+and [\`team-reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#team-reviewers) input parameters.
 
 ---
 

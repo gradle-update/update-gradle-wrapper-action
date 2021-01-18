@@ -17,6 +17,7 @@ import * as core from '@actions/core';
 export interface Inputs {
   repoToken: string;
   reviewers: string[];
+  teamReviewers: string[];
   labels: string[];
   targetBranch: string;
   setDistributionChecksum: boolean;
@@ -29,6 +30,7 @@ export function getInputs(): Inputs {
 class ActionInputs implements Inputs {
   repoToken: string;
   reviewers: string[];
+  teamReviewers: string[];
   labels: string[];
   targetBranch: string;
   setDistributionChecksum: boolean;
@@ -41,6 +43,13 @@ class ActionInputs implements Inputs {
 
     this.reviewers = core
       .getInput('reviewers', {required: false})
+      .trim()
+      .split(/[\n,]/)
+      .map(r => r.trim())
+      .filter(r => r.length);
+
+    this.teamReviewers = core
+      .getInput('team-reviewers', {required: false})
       .trim()
       .split(/[\n,]/)
       .map(r => r.trim())

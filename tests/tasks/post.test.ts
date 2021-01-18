@@ -23,6 +23,7 @@ const defaultMockGitHubApi: IGitHubApi = {
   repoDefaultBranch: jest.fn(),
   createPullRequest: jest.fn(),
   addReviewers: jest.fn(),
+  addTeamReviewers: jest.fn(),
   addLabels: jest.fn(),
   createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
@@ -39,19 +40,21 @@ beforeEach(() => {
 });
 
 describe('run', () => {
-  describe('when there are errored reviewers', () => {
+  describe('when there are some errored reviewers', () => {
     beforeEach(() => {
-      jest.spyOn(store, 'getErroredReviewers').mockReturnValue(['username1']);
+      jest.spyOn(store, 'getErroredReviewers').mockReturnValue(['username']);
+      jest.spyOn(store, 'getErroredTeamReviewers').mockReturnValue(['team']);
     });
 
     it('reports errored reviewers to a Pull Request comment', async () => {
       await postAction.run();
 
       expect(store.getErroredReviewers).toHaveBeenCalled();
+      expect(store.getErroredTeamReviewers).toHaveBeenCalled();
 
       expect(mockGitHubApi.createComment).toHaveBeenCalledWith(
         42,
-        expect.stringContaining('username1')
+        expect.stringContaining(`- @username\n- @team\n`)
       );
     });
   });
@@ -59,10 +62,12 @@ describe('run', () => {
   describe('when there are no errored reviewers', () => {
     it('does nothing', async () => {
       jest.spyOn(store, 'getErroredReviewers').mockReturnValue([]);
+      jest.spyOn(store, 'getErroredTeamReviewers').mockReturnValue([]);
 
       await postAction.run();
 
       expect(store.getErroredReviewers).toHaveBeenCalled();
+      expect(store.getErroredTeamReviewers).toHaveBeenCalled();
 
       expect(mockGitHubApi.createComment).not.toHaveBeenCalled();
     });

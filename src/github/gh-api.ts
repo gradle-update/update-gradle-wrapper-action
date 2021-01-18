@@ -38,6 +38,11 @@ export interface IGitHubApi {
     reviewers: string[]
   ) => Promise<void>;
 
+  addTeamReviewers: (
+    pullRequestNumber: number,
+    teams: string[]
+  ) => Promise<void>;
+
   addLabels: (pullRequestNumber: number, labels: string[]) => Promise<void>;
 
   createLabelIfMissing: (labelName: string) => Promise<boolean>;
@@ -92,7 +97,7 @@ export class GitHubApi implements IGitHubApi {
       return;
     }
 
-    core.info(`Requesting review from: ${reviewers.join(',')}`);
+    core.info(`Requesting review from users: ${reviewers.join(',')}`);
 
     const erroredReviewers: string[] = [];
 
@@ -136,6 +141,64 @@ export class GitHubApi implements IGitHubApi {
     } catch (error) {
       core.warning(
         `Unable to set PR reviewer ${reviewer}, got error: ${error.message}`
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  async addTeamReviewers(
+    pullRequestNumber: number,
+    teams: string[]
+  ): Promise<void> {
+    if (!teams.length) {
+      core.info('No team reviewers to add');
+      return;
+    }
+
+    core.info(`Requesting review from teams: ${teams.join(',')}`);
+
+    const erroredTeamReviewers: string[] = [];
+
+    for (const team of teams) {
+      const success = await this.addTeamReviewer(pullRequestNumber, team);
+      if (!success) {
+        erroredTeamReviewers.push(team);
+      }
+    }
+
+    if (erroredTeamReviewers.length) {
+      core.warning(
+        `Unable to set all the PR team reviewers, check the following ` +
+          `team names are correct: ${erroredTeamReviewers.join(', ')}`
+      );
+
+      store.setErroredTeamReviewers(erroredTeamReviewers);
+    }
+  }
+
+  async addTeamReviewer(
+    pullRequestNumber: number,
+    team: string
+  ): Promise<boolean> {
+    try {
+      const result = await this.octokit.pulls.requestReviewers({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: pullRequestNumber,
+        team_reviewers: [team]
+      });
+
+      const requested_teams = result.data.requested_teams.map(t => t.slug);
+
+      if (!requested_teams.includes(team)) {
+        core.warning(`Unable to set PR team reviewer ${team}`);
+        return false;
+      }
+    } catch (error) {
+      core.warning(
+        `Unable to set PR team reviewer ${team}, got error: ${error.message}`
       );
       return false;
     }
