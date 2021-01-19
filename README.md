@@ -17,7 +17,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 ## Table of Contents
 
 - [Usage](#usage)
-- [Why shoud I use this?](#why-should-i-use-this)
+- [Why shoud I use this action?](#why-should-i-use-this-action)
 - [Action inputs](#action-inputs)
   - [`repo-token`](#repo-token)
   - [`reviewers`](#reviewers)
@@ -28,6 +28,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
+- [FAQ](#faq)
   - [Android Studio warning about `distributionSha256Sum`](#android-studio-warning-about-distributionsha256sum)
 - [Debugging](#debugging)
 - [License](#license)
@@ -66,7 +67,7 @@ available and create a Pull Request to update the Gradle Wrapper script.
 Check the detailed description of [action inputs](#action-inputs) and some more
 [usage examples](#examples).
 
-## Why should I use this?
+## Why should I use this action?
 
 Gradle Wrapper is the recommended way to setup Gradle in your project. The
 Wrapper is a script that downloads and invokes a declared Gradle version. By
@@ -191,6 +192,8 @@ with:
 ```
 
 Note that if you're using a Personal Access Token (PAT) as `repo-token` you cannot request a review from the user that the PAT belongs to.
+
+---
 
 ### `team-reviewers`
 
@@ -333,6 +336,8 @@ If you want Pull Requests to be created against a non-default branch use the `ta
 with:
   target-branch: v2-dev
 ```
+
+## FAQ
 
 ### Android Studio warning about `distributionSha256Sum`
 
