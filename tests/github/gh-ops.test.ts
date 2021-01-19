@@ -122,6 +122,8 @@ describe('createPullRequest', () => {
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
 
+      expect(mockGitHubApi.addTeamReviewers).toHaveBeenCalledWith(42, []);
+
       expect(pullRequestData).toBeDefined();
       expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
@@ -159,6 +161,8 @@ describe('createPullRequest', () => {
       ]);
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(mockGitHubApi.addTeamReviewers).toHaveBeenCalledWith(42, []);
 
       expect(pullRequestData).toBeDefined();
       expect(pullRequestData.url).toEqual(
@@ -201,6 +205,51 @@ describe('createPullRequest', () => {
         'collaborator'
       ]);
 
+      expect(mockGitHubApi.addTeamReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(pullRequestData).toBeDefined();
+      expect(pullRequestData.url).toEqual(
+        'https://github.com/owner-name/repo-name/pull/42'
+      );
+      expect(pullRequestData.number).toEqual(42);
+    });
+
+    it('adds the input team reviewers', async () => {
+      mockInputs.teamReviewers = ['devops', 'frontend'];
+
+      const pullRequestData = await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'Update Gradle Wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+
+      expect(mockGitHubApi.createLabelIfMissing).toHaveBeenCalledWith(
+        'gradle-wrapper'
+      );
+
+      expect(mockGitHubApi.addLabels).toHaveBeenCalledWith(42, [
+        'gradle-wrapper'
+      ]);
+
+      expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(mockGitHubApi.addTeamReviewers).toHaveBeenCalledWith(42, [
+        'devops',
+        'frontend'
+      ]);
+
       expect(pullRequestData).toBeDefined();
       expect(pullRequestData.url).toEqual(
         'https://github.com/owner-name/repo-name/pull/42'
@@ -240,6 +289,8 @@ describe('createPullRequest', () => {
       ]);
 
       expect(mockGitHubApi.addReviewers).toHaveBeenCalledWith(42, []);
+
+      expect(mockGitHubApi.addTeamReviewers).toHaveBeenCalledWith(42, []);
 
       expect(pullRequestData).toBeDefined();
       expect(pullRequestData.url).toEqual(

@@ -21,6 +21,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [Action inputs](#action-inputs)
   - [`repo-token`](#repo-token)
   - [`reviewers`](#reviewers)
+  - [`team-reviewers`](#team-reviewers)
   - [`labels`](#labels)
   - [`target-branch`](#target-branch)
   - [`set-distribution-checksum`](#set-distribution-checksum)
@@ -214,6 +215,8 @@ with:
     team1
     team2
 ```
+
+Note that you might need to use a Personal Access Token (PAT) as `repo-token` in order to request a review from a team in your organisation.
 
 ---
 
