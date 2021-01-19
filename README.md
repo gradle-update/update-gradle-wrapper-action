@@ -199,7 +199,7 @@ Note that if you're using a Personal Access Token (PAT) as `repo-token` you cann
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `reviewers` | List of teams to request a review from (comma or newline-separated). | No | (empty) |
+| `team-reviewers` | List of teams to request a review from (comma or newline-separated). | No | (empty) |
 
 Request a review from these teams (notifications will be triggered).
 
@@ -207,14 +207,14 @@ For example, use a comma-separated list:
 
 ```yaml
 with:
-  reviewers: team1, team2
+  team-reviewers: team1, team2
 ```
 
 or add each team on a different line (no comma needed):
 
 ```yaml
 with:
-  reviewers: |
+  team-reviewers: |
     team1
     team2
 ```
