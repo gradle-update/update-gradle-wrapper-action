@@ -125,6 +125,7 @@ This is the list of supported inputs:
 | --- | --- | --- | --- |
 | [`repo-token`](#repo-token) | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes | |
 | [`reviewers`](#reviewers) | List of users to request a review from (comma or newline-separated). | No | (empty) |
+| [`team-reviewers`](#team-reviewers) | List of teams to request a review from (comma or newline-separated). | No | (empty) |
 | [`labels`](#labels) | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
 | [`target-branch`](#target-branch) | Branch to create Pull Requests against. | No | The default branch name of your repository. |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
@@ -189,6 +190,30 @@ with:
 ```
 
 Note that if you're using a Personal Access Token (PAT) as `repo-token` you cannot request a review from the user that the PAT belongs to.
+
+### `team-reviewers`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `reviewers` | List of teams to request a review from (comma or newline-separated). | No | (empty) |
+
+Request a review from these teams (notifications will be triggered).
+
+For example, use a comma-separated list:
+
+```yaml
+with:
+  reviewers: team1, team2
+```
+
+or add each team on a different line (no comma needed):
+
+```yaml
+with:
+  reviewers: |
+    team1
+    team2
+```
 
 ---
 

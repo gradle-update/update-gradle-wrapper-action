@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: |
+          if [ ! -f dist/index.js ]; then
+            echo "Missing dist file"
+            ls -l dist/
+            exit 1
+          fi
       - run: npm ci
       - run: npm run format-check
       - run: npm run lint-check

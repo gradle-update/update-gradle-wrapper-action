@@ -16,6 +16,36 @@ import * as core from '@actions/core';
 
 import * as store from '../../src/store';
 
+describe('setMainActionExecuted', () => {
+  it('saves a state variable as "true"', () => {
+    const saveState = jest.spyOn(core, 'saveState');
+
+    store.setMainActionExecuted();
+
+    expect(saveState).toHaveBeenCalledWith('main_action_executed', 'true');
+  });
+});
+
+describe('mainActionExecuted', () => {
+  it('returns true if the state variable is set to string "true"', () => {
+    const saveState = jest.spyOn(core, 'getState').mockReturnValue('true');
+
+    const executed = store.mainActionExecuted();
+
+    expect(saveState).toHaveBeenCalledWith('main_action_executed');
+    expect(executed).toBeTruthy();
+  });
+
+  it('returns false if the state variable is not set to string "true', () => {
+    const saveState = jest.spyOn(core, 'getState').mockReturnValue('');
+
+    const executed = store.mainActionExecuted();
+
+    expect(saveState).toHaveBeenCalledWith('main_action_executed');
+    expect(executed).toBeFalsy();
+  });
+});
+
 describe('setPullRequestData', () => {
   it('saves a state variable as json representation of input data', () => {
     const saveState = jest.spyOn(core, 'saveState');
@@ -91,5 +121,48 @@ describe('getErroredReviewers', () => {
 
     expect(reviewers).toEqual(['a']);
     expect(getState).toHaveBeenCalledWith('errored_reviewers');
+  });
+});
+
+describe('setErroredTeamReviewers', () => {
+  it('saves a state variable as json representation of input array', () => {
+    const saveState = jest.spyOn(core, 'saveState');
+
+    store.setErroredTeamReviewers(['a', 'b']);
+
+    expect(saveState).toHaveBeenCalledWith(
+      'errored_team_reviewers',
+      '["a","b"]'
+    );
+  });
+
+  describe('when input is empty', () => {
+    it('saves a state variable as json empty array', () => {
+      const saveState = jest.spyOn(core, 'saveState');
+
+      store.setErroredTeamReviewers([]);
+
+      expect(saveState).toHaveBeenCalledWith('errored_team_reviewers', '[]');
+    });
+  });
+});
+
+describe('getErroredTeamReviewers', () => {
+  it('returns undefined if the state variable is empty', () => {
+    const getState = jest.spyOn(core, 'getState').mockReturnValue('');
+
+    const pullRequestData = store.getErroredTeamReviewers();
+
+    expect(getState).toHaveBeenCalledWith('errored_team_reviewers');
+    expect(pullRequestData).toBeUndefined();
+  });
+
+  it('returns an array of strings if the state variable is set to valid json', () => {
+    const getState = jest.spyOn(core, 'getState').mockReturnValue('["a"]');
+
+    const reviewers = store.getErroredTeamReviewers();
+
+    expect(reviewers).toEqual(['a']);
+    expect(getState).toHaveBeenCalledWith('errored_team_reviewers');
   });
 });

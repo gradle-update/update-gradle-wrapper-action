@@ -35,19 +35,29 @@ export class PostAction {
   }
 
   private async reportErroredReviewers() {
-    const erroredReviewers = store.getErroredReviewers();
+    let usernames = '';
 
-    if (erroredReviewers?.length) {
-      let usernames = '';
-      for (const reviewer of erroredReviewers) {
-        usernames += `- @${reviewer} \n`;
+    const reviewers = store.getErroredReviewers();
+    if (reviewers) {
+      for (const reviewer of reviewers) {
+        usernames += `- @${reviewer}\n`;
       }
+    }
 
+    const teams = store.getErroredTeamReviewers();
+    if (teams) {
+      for (const team of teams) {
+        usernames += `- @${team}\n`;
+      }
+    }
+
+    if (usernames.length) {
       const body = `Unable to set all the PR reviewers, check the following usernames are correct:
 
 ${usernames}
 
-Please refer to the documentation for the [\`reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#reviewers) input.
+Please refer to the documentation for the [\`reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#reviewers) \
+and [\`team-reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-action#team-reviewers) input parameters.
 
 ---
 
