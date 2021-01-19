@@ -94,6 +94,10 @@ export class GitHubOps {
     ]);
 
     await this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
+    await this.api.addTeamReviewers(
+      pullRequest.number,
+      this.inputs.teamReviewers
+    );
 
     return {
       url: pullRequest.html_url,

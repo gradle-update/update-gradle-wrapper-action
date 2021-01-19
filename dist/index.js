@@ -514,6 +514,7 @@ class GitHubOps {
                 ...this.inputs.labels
             ]);
             yield this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
+            yield this.api.addTeamReviewers(pullRequest.number, this.inputs.teamReviewers);
             return {
                 url: pullRequest.html_url,
                 number: pullRequest.number
