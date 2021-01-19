@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.11
+
+- Added `team-reviewers` input parameter.
+- Added failure report (as PR comment) for reviewers assignment.
+
 ## v1.0.10
 
 - Added link to Gradle Releases Checksum page in PR message.
