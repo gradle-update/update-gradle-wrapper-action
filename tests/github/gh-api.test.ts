@@ -17,6 +17,7 @@ import * as github from '@actions/github';
 import nock from 'nock';
 
 import {GitHubApi} from '../../src/github/gh-api';
+import * as store from '../../src/store';
 
 nock.disableNetConnect();
 
@@ -101,8 +102,14 @@ describe('createPullRequest', () => {
 });
 
 describe('addReviewers', () => {
+  beforeEach(() => {
+    jest.spyOn(store, 'setErroredReviewers');
+  });
+
   it('does nothing when `reviewers` is empty', async () => {
     await api.addReviewers(1, []);
+
+    expect(store.setErroredReviewers).not.toHaveBeenCalled();
 
     nockScope.done();
   });
@@ -110,13 +117,19 @@ describe('addReviewers', () => {
   it('adds a reviewer', async () => {
     nockScope
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['username']
+        reviewers: ['reviewer']
       })
-      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
 
-    await api.addReviewers(1, ['username']);
+    await api.addReviewers(1, ['reviewer']);
+
+    expect(store.setErroredReviewers).not.toHaveBeenCalled();
 
     nockScope.done();
   });
@@ -126,17 +139,57 @@ describe('addReviewers', () => {
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer1']
       })
-      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
-        'Content-Type': 'application/json'
-      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.two_users.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      )
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer2']
       })
-      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.two_users.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
 
     await api.addReviewers(1, ['reviewer1', 'reviewer2']);
+
+    expect(store.setErroredReviewers).not.toHaveBeenCalled();
+
+    nockScope.done();
+  });
+
+  it('saves all errored reviewers to store state', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['reviewer']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      )
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        reviewers: ['reviewer2']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    await api.addReviewers(1, ['reviewer', 'reviewer2']);
+
+    expect(store.setErroredReviewers).toHaveBeenCalledWith(['reviewer2']);
 
     nockScope.done();
   });
@@ -156,6 +209,10 @@ describe('addReviewers', () => {
 
     await api.addReviewers(1, ['not_a_collaborator']);
 
+    expect(store.setErroredReviewers).toHaveBeenCalledWith([
+      'not_a_collaborator'
+    ]);
+
     nockScope.done();
   });
 
@@ -168,6 +225,10 @@ describe('addReviewers', () => {
 
     await api.addReviewers(1, ['not_a_collaborator']);
 
+    expect(store.setErroredReviewers).toHaveBeenCalledWith([
+      'not_a_collaborator'
+    ]);
+
     nockScope.done();
   });
 });
@@ -176,13 +237,17 @@ describe('addReviewer', () => {
   it('adds a reviewer', async () => {
     nockScope
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer1']
+        reviewers: ['reviewer']
       })
-      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
 
-    const success = await api.addReviewer(1, 'reviewer1');
+    const success = await api.addReviewer(1, 'reviewer');
 
     expect(success).toBeTruthy();
     nockScope.done();
@@ -193,9 +258,13 @@ describe('addReviewer', () => {
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['not_a_collaborator']
       })
-      .replyWithFile(201, `${__dirname}/fixtures/add_reviewer_to_pr.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
 
     const success = await api.addReviewer(1, 'not_a_collaborator');
 
@@ -206,11 +275,172 @@ describe('addReviewer', () => {
   it('returns false on api error', async () => {
     nockScope
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['not_a_collaborator']
+        reviewers: ['reviewer']
       })
       .reply(500);
 
-    const success = await api.addReviewer(1, 'not_a_collaborator');
+    const success = await api.addReviewer(1, 'reviewer');
+
+    expect(success).toBeFalsy();
+    nockScope.done();
+  });
+});
+
+describe('addTeamReviewers', () => {
+  beforeEach(() => {
+    jest.spyOn(store, 'setErroredTeamReviewers');
+  });
+
+  it('does nothing when `teams` is empty', async () => {
+    await api.addTeamReviewers(1, []);
+
+    expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
+
+    nockScope.done();
+  });
+
+  it('adds a team reviewer', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    await api.addTeamReviewers(1, ['team']);
+
+    expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
+
+    nockScope.done();
+  });
+
+  it('adds multiple team reviewers', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team1']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.two_teams.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      )
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team2']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.two_teams.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    await api.addTeamReviewers(1, ['team1', 'team2']);
+
+    expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
+
+    nockScope.done();
+  });
+
+  it('saves all errored team reviewers to store state', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      )
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team2']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    await api.addTeamReviewers(1, ['team', 'team2']);
+
+    expect(store.setErroredTeamReviewers).toHaveBeenCalledWith(['team2']);
+
+    nockScope.done();
+  });
+
+  it('does not throw on api error', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team']
+      })
+      .reply(500);
+
+    await api.addTeamReviewers(1, ['team']);
+
+    expect(store.setErroredTeamReviewers).toHaveBeenCalledWith(['team']);
+
+    nockScope.done();
+  });
+});
+
+describe('addTeamReviewer', () => {
+  it('adds a team reviewer', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    const success = await api.addTeamReviewer(1, 'team');
+
+    expect(success).toBeTruthy();
+    nockScope.done();
+  });
+
+  it('returns false if team reviewer cannot be added', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['not_a_team_username']
+      })
+      .replyWithFile(
+        201,
+        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
+        {
+          'Content-Type': 'application/json'
+        }
+      );
+
+    const success = await api.addTeamReviewer(1, 'not_a_team_username');
+
+    expect(success).toBeFalsy();
+    nockScope.done();
+  });
+
+  it('returns false on api error', async () => {
+    nockScope
+      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
+        team_reviewers: ['team']
+      })
+      .reply(500);
+
+    const success = await api.addTeamReviewer(1, 'team');
 
     expect(success).toBeFalsy();
     nockScope.done();

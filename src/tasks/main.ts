@@ -29,6 +29,8 @@ const currentCommitSha = process.env.GITHUB_SHA!;
 
 export async function runMain() {
   try {
+    store.setMainActionExecuted();
+
     if (core.isDebug()) {
       core.debug(JSON.stringify(process.env, null, 2));
     }

@@ -28,6 +28,7 @@ const nockScope = nock('https://api.github.com');
 const defaultMockInputs: Inputs = {
   repoToken: 's3cr3t',
   reviewers: [],
+  teamReviewers: [],
   labels: [],
   targetBranch: '',
   setDistributionChecksum: true
@@ -37,6 +38,7 @@ const defaultMockGitHubApi: IGitHubApi = {
   repoDefaultBranch: jest.fn(),
   createPullRequest: jest.fn(),
   addReviewers: jest.fn(),
+  addTeamReviewers: jest.fn(),
   addLabels: jest.fn(),
   createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
