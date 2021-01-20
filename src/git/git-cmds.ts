@@ -14,7 +14,7 @@
 
 import * as core from '@actions/core';
 
-import * as cmd from './cmd';
+import * as cmd from '../cmd';
 
 export async function gitDiffNameOnly(): Promise<string[]> {
   const {stdout} = await cmd.execWithOutput('git', ['diff', '--name-only']);
@@ -39,6 +39,10 @@ export async function commit(message: string) {
 
 export async function config(key: string, value: string) {
   await cmd.execWithOutput('git', ['config', '--local', key, value]);
+}
+
+export async function unsetConfig(key: string) {
+  await cmd.execWithOutput('git', ['config', '--local', '--unset-all', key]);
 }
 
 export async function push(branchName: string) {

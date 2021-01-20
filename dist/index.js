@@ -65,7 +65,7 @@ exports.execWithOutput = execWithOutput;
 
 /***/ }),
 
-/***/ 4610:
+/***/ 1304:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -99,7 +99,67 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.push = exports.config = exports.commit = exports.add = exports.checkout = exports.gitDiffNameOnly = void 0;
+exports.cleanup = exports.setup = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const git = __importStar(__nccwpck_require__(8940));
+function setup(inputs) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const credentials = Buffer.from(`x-access-token:${inputs.repoToken}`, 'utf8').toString('base64');
+        core.setSecret(credentials);
+        yield git.config(extraheaderAuthConfigKey(), `Authorization: basic ${credentials}`);
+    });
+}
+exports.setup = setup;
+function cleanup() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield git.unsetConfig(extraheaderAuthConfigKey());
+    });
+}
+exports.cleanup = cleanup;
+function extraheaderAuthConfigKey() {
+    const serverUrl = new URL(process.env['GITHUB_SERVER_URL'] || 'https://github.com');
+    core.debug(`server=${serverUrl} origin=${serverUrl.origin}`);
+    return `http.${serverUrl.origin}/.extraheader`;
+}
+
+
+/***/ }),
+
+/***/ 8940:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.push = exports.unsetConfig = exports.config = exports.commit = exports.add = exports.checkout = exports.gitDiffNameOnly = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
 function gitDiffNameOnly() {
@@ -135,6 +195,12 @@ function config(key, value) {
     });
 }
 exports.config = config;
+function unsetConfig(key) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', ['config', '--local', '--unset-all', key]);
+    });
+}
+exports.unsetConfig = unsetConfig;
 function push(branchName) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', [
@@ -150,7 +216,7 @@ exports.push = push;
 
 /***/ }),
 
-/***/ 1331:
+/***/ 4779:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -185,7 +251,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.commit = void 0;
-const git = __importStar(__nccwpck_require__(4610));
+const git = __importStar(__nccwpck_require__(8940));
 function commit(files, targetVersion, sourceVersion) {
     return __awaiter(this, void 0, void 0, function* () {
         yield git.add(files);
@@ -877,13 +943,14 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runMain = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
-const git_commit_1 = __nccwpck_require__(1331);
+const git_commit_1 = __nccwpck_require__(4779);
 const inputs_1 = __nccwpck_require__(4629);
 const gh_ops_1 = __nccwpck_require__(1288);
 const releases_1 = __nccwpck_require__(5715);
 const wrapperInfo_1 = __nccwpck_require__(6832);
 const wrapperUpdater_1 = __nccwpck_require__(7412);
-const git = __importStar(__nccwpck_require__(4610));
+const git = __importStar(__nccwpck_require__(8940));
+const gitAuth = __importStar(__nccwpck_require__(1304));
 const store = __importStar(__nccwpck_require__(5826));
 const currentCommitSha = process.env.GITHUB_SHA;
 function runMain() {
@@ -894,6 +961,7 @@ function runMain() {
                 core.debug(JSON.stringify(process.env, null, 2));
             }
             const inputs = inputs_1.getInputs();
+            yield gitAuth.setup(inputs);
             const targetRelease = yield new releases_1.Releases().current();
             core.info(`Latest release: ${targetRelease.version}`);
             const githubOps = new gh_ops_1.GitHubOps(inputs);
@@ -1018,6 +1086,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PostAction = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const gitAuth = __importStar(__nccwpck_require__(1304));
 const store = __importStar(__nccwpck_require__(5826));
 class PostAction {
     constructor(githubApi, pullRequestData) {
@@ -1027,6 +1096,7 @@ class PostAction {
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                yield gitAuth.cleanup();
                 yield this.reportErroredReviewers();
             }
             catch (error) {

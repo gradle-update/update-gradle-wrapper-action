@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 
 import {IGitHubApi} from '../github/gh-api';
+import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
 
 export class PostAction {
@@ -28,6 +29,7 @@ export class PostAction {
 
   async run() {
     try {
+      await gitAuth.cleanup();
       await this.reportErroredReviewers();
     } catch (error) {
       core.debug(`post action task failed with: ${error.message}`);
