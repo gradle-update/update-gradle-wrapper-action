@@ -15,13 +15,14 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
-import {commit} from '../git-commit';
+import {commit} from '../git/git-commit';
 import {getInputs} from '../inputs';
 import {GitHubOps} from '../github/gh-ops';
 import {Releases} from '../releases';
 import {WrapperInfo} from '../wrapperInfo';
 import {WrapperUpdater} from '../wrapperUpdater';
-import * as git from '../git-cmds';
+import * as git from '../git/git-cmds';
+import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
 
 /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
@@ -36,6 +37,8 @@ export async function runMain() {
     }
 
     const inputs = getInputs();
+
+    await gitAuth.setup(inputs);
 
     const targetRelease = await new Releases().current();
     core.info(`Latest release: ${targetRelease.version}`);
