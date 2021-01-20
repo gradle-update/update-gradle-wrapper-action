@@ -29,6 +29,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
 - [FAQ](#faq)
+  - [Running CI workflows in Pull Requests created by the action](#running-ci-workflows-in-pull-requests-created-by-the-action)
   - [Android Studio warning about `distributionSha256Sum`](#android-studio-warning-about-distributionsha256sum)
 - [Debugging](#debugging)
 - [License](#license)
@@ -57,8 +58,6 @@ jobs:
 
       - name: Update Gradle Wrapper
         uses: gradle-update/update-gradle-wrapper-action@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 The action will run every day around midnight, check if a new Gradle version is
@@ -125,7 +124,7 @@ This is the list of supported inputs:
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| [`repo-token`](#repo-token) | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes | |
+| [`repo-token`](#repo-token) | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | No | `GITHUB_TOKEN` |
 | [`reviewers`](#reviewers) | List of users to request a review from (comma or newline-separated). | No | (empty) |
 | [`team-reviewers`](#team-reviewers) | List of teams to request a review from (comma or newline-separated). | No | (empty) |
 | [`labels`](#labels) | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
@@ -138,11 +137,13 @@ This is the list of supported inputs:
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
-| `repo-token` | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | Yes | |
+| `repo-token` | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | No | `GITHUB_TOKEN` |
 
-This input is needed to allow the action to perform tasks using the GitHub API.
+Set the authorisation token used by the action to perform tasks through the
+GitHub API and to execute authenticated git commands.
 
-To use the `GITHUB_TOKEN` that is installed in your repository:
+If empty, it defaults to the `GITHUB_TOKEN` that is installed in your
+repository, which is equivalent to the following configuration:
 
 ```yaml
 with:
@@ -156,14 +157,21 @@ workflow runs ([read
 more](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token)).
 
 So, for example, if you have any `on: pull_request` or `on: push` workflow that
-runs CI checks on Pull Requests, they won't be triggered when using
-`GITHUB_TOKEN`.
+runs CI checks on Pull Requests, they won't be triggered if the `repo-token` is
+left empty or if you set it to `GITHUB_TOKEN`.
 
-A recommended workaround is to [create a Personal Access Token
+The recommended workaround is to [create a Personal Access Token
 (PAT)](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
 with `repo` scope and add it [as a
 secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository)
-into your repository.
+into your repository. Then, set the `repo-token` to access your secret PAT:
+
+```yaml
+with:
+  repo-token: ${{ secrets.GRADLE_UPDATE_PAT }}
+```
+
+Read this [paragraph]((#running-ci-workflows-in-pull-requests-created-by-the-action)) for more details on the topic.
 
 ---
 
@@ -338,6 +346,20 @@ with:
 ```
 
 ## FAQ
+
+### Running CI workflows in Pull Requests created by the action
+
+By default, if the `repo-token` input is left empty or if you set it to `GITHUB_TOKEN`, Pull Requests created by the Update Gradle Wrapper action do not trigger any other workflow. So, for example, if you have any `on: pull_request` or `on: push` workflow that runs CI checks on Pull Requests, they won't normally be triggered.
+
+This is a restriction imposed by GitHub Actions to avoid accidentally creating recursive workflow runs ([read more](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token)).
+
+Here is what you can do to trigger additional workflows:
+
+- Manual trigger: when you use the default `GITHUB_TOKEN` the Pull Request won't run any of the configured workflows, but you can manually close and immediately reopen the Pull Request to trigger the `on: pull_request` workflows.
+
+- Use a [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token): create a PAT with the `repo` scope and add it [as a secret](https://docs.github.com/en/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository) into your repository. Then configure the [`repo-token`](#repo-token) input to use such encrypted secret. Note that the Pull Request author will be set to the GitHub user that the PAT belongs to: as Pull Request author, this user cannot be assigned as reviewer and cannot approve it.
+
+- Use a Personal Access Token of a dedicated account: use a PAT that belongs to a machine account with collaborator access to your repository.
 
 ### Android Studio warning about `distributionSha256Sum`
 

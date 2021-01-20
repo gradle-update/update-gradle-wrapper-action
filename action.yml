@@ -9,7 +9,8 @@ branding:
 inputs:
   repo-token:
     description: 'Access token for the repository, e.g. `{{ secrets.GITHUB_TOKEN }}`.'
-    required: true
+    required: false
+    default: ${{ github.token }}
   reviewers:
     description: 'List of users to request a review from (comma or newline-separated).'
     required: false
