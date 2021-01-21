@@ -36,9 +36,9 @@ class ActionInputs implements Inputs {
   setDistributionChecksum: boolean;
 
   constructor() {
-    this.repoToken = core.getInput('repo-token', {required: true}).trim();
+    this.repoToken = core.getInput('repo-token', {required: false}).trim();
     if (this.repoToken === '') {
-      throw new Error(`repo-token is required`);
+      throw new Error(`repo-token cannot be empty`);
     }
 
     this.reviewers = core
