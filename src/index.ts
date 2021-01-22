@@ -12,19 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {Releases} from './releases';
 import {getInputs} from './inputs';
 import {GitHubApi} from './github/gh-api';
+import {GitHubOps} from './github/gh-ops';
+import {MainAction} from './tasks/main';
 import {PostAction} from './tasks/post';
-import {runMain} from './tasks/main';
 import * as store from './store';
 
+const inputs = getInputs();
+const githubApi = new GitHubApi(inputs.repoToken);
+
 if (!store.mainActionExecuted()) {
-  runMain();
+  new MainAction(
+    inputs,
+    githubApi,
+    new GitHubOps(inputs),
+    new Releases()
+  ).run();
 } else {
   const pullRequestData = store.getPullRequestData();
 
   if (pullRequestData) {
-    const githubApi = new GitHubApi(getInputs().repoToken);
     new PostAction(githubApi, pullRequestData).run();
   }
 }

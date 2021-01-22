@@ -25,7 +25,27 @@ export async function gitDiffNameOnly(): Promise<string[]> {
   return files;
 }
 
-export async function checkout(branchName: string, startPoint: string) {
+export async function parseHead(): Promise<string> {
+  const {stdout: currentCommitSha} = await cmd.execWithOutput('git', [
+    'rev-parse',
+    'HEAD'
+  ]);
+  return currentCommitSha;
+}
+
+export async function fetch() {
+  await cmd.execWithOutput('git', ['fetch', '--depth=1']);
+}
+
+export async function checkout(branchName: string): Promise<number> {
+  const exec = await cmd.execWithOutput('git', ['checkout', branchName]);
+  return exec.exitCode;
+}
+
+export async function checkoutCreateBranch(
+  branchName: string,
+  startPoint: string
+) {
   await cmd.execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
 }
 

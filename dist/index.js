@@ -159,7 +159,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.push = exports.unsetConfig = exports.config = exports.commit = exports.add = exports.checkout = exports.gitDiffNameOnly = void 0;
+exports.push = exports.unsetConfig = exports.config = exports.commit = exports.add = exports.checkoutCreateBranch = exports.checkout = exports.fetch = exports.parseHead = exports.gitDiffNameOnly = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
 function gitDiffNameOnly() {
@@ -171,12 +171,35 @@ function gitDiffNameOnly() {
     });
 }
 exports.gitDiffNameOnly = gitDiffNameOnly;
-function checkout(branchName, startPoint) {
+function parseHead() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { stdout: currentCommitSha } = yield cmd.execWithOutput('git', [
+            'rev-parse',
+            'HEAD'
+        ]);
+        return currentCommitSha;
+    });
+}
+exports.parseHead = parseHead;
+function fetch() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield cmd.execWithOutput('git', ['fetch', '--depth=1']);
+    });
+}
+exports.fetch = fetch;
+function checkout(branchName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const exec = yield cmd.execWithOutput('git', ['checkout', branchName]);
+        return exec.exitCode;
+    });
+}
+exports.checkout = checkout;
+function checkoutCreateBranch(branchName, startPoint) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
     });
 }
-exports.checkout = checkout;
+exports.checkoutCreateBranch = checkoutCreateBranch;
 function add(paths) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['add', ...paths]);
@@ -618,18 +641,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const releases_1 = __nccwpck_require__(5715);
 const inputs_1 = __nccwpck_require__(4629);
 const gh_api_1 = __nccwpck_require__(3422);
-const post_1 = __nccwpck_require__(1645);
+const gh_ops_1 = __nccwpck_require__(1288);
 const main_1 = __nccwpck_require__(8888);
+const post_1 = __nccwpck_require__(1645);
 const store = __importStar(__nccwpck_require__(5826));
+const inputs = inputs_1.getInputs();
+const githubApi = new gh_api_1.GitHubApi(inputs.repoToken);
 if (!store.mainActionExecuted()) {
-    main_1.runMain();
+    new main_1.MainAction(inputs, githubApi, new gh_ops_1.GitHubOps(inputs), new releases_1.Releases()).run();
 }
 else {
     const pullRequestData = store.getPullRequestData();
     if (pullRequestData) {
-        const githubApi = new gh_api_1.GitHubApi(inputs_1.getInputs().repoToken);
         new post_1.PostAction(githubApi, pullRequestData).run();
     }
 }
@@ -692,6 +718,7 @@ class ActionInputs {
             .split(/[\n,]/)
             .map(l => l.trim())
             .filter(l => l.length);
+        this.baseBranch = core.getInput('base-branch', { required: false }).trim();
         this.targetBranch = core
             .getInput('target-branch', { required: false })
             .trim();
@@ -940,112 +967,130 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runMain = void 0;
+exports.MainAction = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
 const git_commit_1 = __nccwpck_require__(4779);
-const inputs_1 = __nccwpck_require__(4629);
-const gh_ops_1 = __nccwpck_require__(1288);
-const releases_1 = __nccwpck_require__(5715);
 const wrapperInfo_1 = __nccwpck_require__(6832);
 const wrapperUpdater_1 = __nccwpck_require__(7412);
 const git = __importStar(__nccwpck_require__(8940));
 const gitAuth = __importStar(__nccwpck_require__(1304));
 const store = __importStar(__nccwpck_require__(5826));
-const currentCommitSha = process.env.GITHUB_SHA;
-function runMain() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            store.setMainActionExecuted();
-            if (core.isDebug()) {
+class MainAction {
+    constructor(inputs, githubApi, githubOps, releases) {
+        this.inputs = inputs;
+        this.githubApi = githubApi;
+        this.githubOps = githubOps;
+        this.releases = releases;
+    }
+    run() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                store.setMainActionExecuted();
                 core.debug(JSON.stringify(process.env, null, 2));
-            }
-            const inputs = inputs_1.getInputs();
-            yield gitAuth.setup(inputs);
-            const targetRelease = yield new releases_1.Releases().current();
-            core.info(`Latest release: ${targetRelease.version}`);
-            const githubOps = new gh_ops_1.GitHubOps(inputs);
-            const ref = yield githubOps.findMatchingRef(targetRelease.version);
-            if (ref) {
-                core.info('Found an existing ref, stopping here.');
-                core.debug(`Ref url: ${ref.url}`);
-                core.debug(`Ref sha: ${ref.object.sha}`);
-                core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
-                return;
-            }
-            const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
-            const wrappers = yield globber.glob();
-            core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
-            if (!wrappers.length) {
-                core.warning('Unable to find Gradle Wrapper files in this project.');
-                return;
-            }
-            core.debug(`Wrappers count: ${wrappers.length}`);
-            const wrapperInfos = wrappers.map(path => new wrapperInfo_1.WrapperInfo(path));
-            const commitDataList = [];
-            yield git.config('user.name', 'gradle-update-robot');
-            yield git.config('user.email', 'gradle-update-robot@regolo.cc');
-            core.startGroup('Creating branch');
-            const branchName = `gradlew-update-${targetRelease.version}`;
-            yield git.checkout(branchName, currentCommitSha);
-            core.endGroup();
-            const distTypes = new Set();
-            for (const wrapper of wrapperInfos) {
-                core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
-                core.debug(`Current Wrapper version: ${wrapper.version}`);
-                if (wrapper.version === targetRelease.version) {
-                    core.info(`Wrapper is already up-to-date`);
-                    continue;
+                yield gitAuth.setup(this.inputs);
+                const targetRelease = yield this.releases.current();
+                core.info(`Latest release: ${targetRelease.version}`);
+                const ref = yield this.githubOps.findMatchingRef(targetRelease.version);
+                if (ref) {
+                    core.info('Found an existing ref, stopping here.');
+                    core.debug(`Ref url: ${ref.url}`);
+                    core.debug(`Ref sha: ${ref.object.sha}`);
+                    core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
+                    return;
                 }
-                distTypes.add(wrapper.distType);
-                const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, inputs.setDistributionChecksum);
-                core.startGroup('Updating Wrapper');
-                yield updater.update();
+                const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
+                const wrappers = yield globber.glob();
+                core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
+                if (!wrappers.length) {
+                    core.warning('Unable to find Gradle Wrapper files in this project.');
+                    return;
+                }
+                core.debug(`Wrappers count: ${wrappers.length}`);
+                const wrapperInfos = wrappers.map(path => new wrapperInfo_1.WrapperInfo(path));
+                const commitDataList = [];
+                yield git.config('user.name', 'gradle-update-robot');
+                yield git.config('user.email', 'gradle-update-robot@regolo.cc');
+                const baseBranch = this.inputs.baseBranch !== ''
+                    ? this.inputs.baseBranch
+                    : yield this.githubApi.repoDefaultBranch();
+                core.debug(`Base branch: ${baseBranch}`);
+                yield this.switchBranch(baseBranch);
+                const currentCommitSha = yield git.parseHead();
+                core.debug(`Head for branch ${baseBranch} is at ${currentCommitSha}`);
+                core.startGroup('Creating branch');
+                const branchName = `gradlew-update-${targetRelease.version}`;
+                yield git.checkoutCreateBranch(branchName, currentCommitSha);
                 core.endGroup();
-                core.startGroup('Checking whether any file has been updated');
-                const modifiedFiles = yield git.gitDiffNameOnly();
-                core.debug(`Modified files count: ${modifiedFiles.length}`);
-                core.debug(`Modified files list: ${modifiedFiles}`);
-                core.endGroup();
-                if (modifiedFiles.length) {
-                    core.startGroup('Verifying Wrapper');
-                    yield updater.verify();
+                const distTypes = new Set();
+                for (const wrapper of wrapperInfos) {
+                    core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
+                    core.debug(`Current Wrapper version: ${wrapper.version}`);
+                    if (wrapper.version === targetRelease.version) {
+                        core.info(`Wrapper is already up-to-date`);
+                        continue;
+                    }
+                    distTypes.add(wrapper.distType);
+                    const updater = new wrapperUpdater_1.WrapperUpdater(wrapper, targetRelease, this.inputs.setDistributionChecksum);
+                    core.startGroup('Updating Wrapper');
+                    yield updater.update();
                     core.endGroup();
-                    core.startGroup('Committing');
-                    yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
+                    core.startGroup('Checking whether any file has been updated');
+                    const modifiedFiles = yield git.gitDiffNameOnly();
+                    core.debug(`Modified files count: ${modifiedFiles.length}`);
+                    core.debug(`Modified files list: ${modifiedFiles}`);
                     core.endGroup();
-                    commitDataList.push({
-                        files: modifiedFiles,
-                        targetVersion: targetRelease.version,
-                        sourceVersion: wrapper.version
-                    });
+                    if (modifiedFiles.length) {
+                        core.startGroup('Verifying Wrapper');
+                        yield updater.verify();
+                        core.endGroup();
+                        core.startGroup('Committing');
+                        yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
+                        core.endGroup();
+                        commitDataList.push({
+                            files: modifiedFiles,
+                            targetVersion: targetRelease.version,
+                            sourceVersion: wrapper.version
+                        });
+                    }
+                    else {
+                        core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
+                    }
+                    core.endGroup();
                 }
-                else {
-                    core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
+                if (!commitDataList.length) {
+                    core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
+                    return;
                 }
-                core.endGroup();
+                const changedFilesCount = commitDataList
+                    .map(cd => cd.files.length)
+                    .reduce((acc, item) => acc + item);
+                core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
+                core.info('Pushing branch');
+                yield git.push(branchName);
+                core.info('Creating Pull Request');
+                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
+                    ? commitDataList[0].sourceVersion
+                    : undefined);
+                core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
+                store.setPullRequestData(pullRequestData);
             }
-            if (!commitDataList.length) {
-                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
-                return;
+            catch (error) {
+                core.setFailed(`❌ ${error.message}`);
             }
-            const changedFilesCount = commitDataList
-                .map(cd => cd.files.length)
-                .reduce((acc, item) => acc + item);
-            core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
-            core.info('Pushing branch');
-            yield git.push(branchName);
-            core.info('Creating Pull Request');
-            const pullRequestData = yield githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1 ? commitDataList[0].sourceVersion : undefined);
-            core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
-            store.setPullRequestData(pullRequestData);
-        }
-        catch (error) {
-            core.setFailed(`❌ ${error.message}`);
-        }
-    });
+        });
+    }
+    switchBranch(branchName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield git.fetch();
+            const exitCode = yield git.checkout(branchName);
+            if (exitCode !== 0) {
+                throw new Error(`Invalid base branch ${branchName}`);
+            }
+        });
+    }
 }
-exports.runMain = runMain;
+exports.MainAction = MainAction;
 
 
 /***/ }),

@@ -43,6 +43,7 @@ describe('getInputs', () => {
 
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
+        "baseBranch": "",
         "labels": Array [],
         "repoToken": "s3cr3t",
         "reviewers": Array [],

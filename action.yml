@@ -23,6 +23,9 @@ inputs:
     description: 'List of labels to set on the Pull Request (comma or newline-separated).'
     required: false
     default: ''
+  base-branch:
+    description: 'TEMP'
+    required: false
   target-branch:
     description: 'Branch to create pull requests against.'
     required: false

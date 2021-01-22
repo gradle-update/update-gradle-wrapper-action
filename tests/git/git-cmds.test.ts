@@ -50,10 +50,20 @@ describe('gitDiffNameOnly', () => {
 });
 
 describe('checkout', () => {
-  it('execs "git checkout" with the given branch and start point', async () => {
+  it('execs "git checkout" with the given branch name', async () => {
     const exec = jest.spyOn(cmd, 'execWithOutput').mockImplementation();
 
-    await git.checkout('main-branch', 'head-ref');
+    await git.checkout('main-branch');
+
+    expect(exec).toHaveBeenCalledWith('git', ['checkout', 'main-branch']);
+  });
+});
+
+describe('checkoutCreateBranch', () => {
+  it('execs "git checkout -b" with the given branch name and start point', async () => {
+    const exec = jest.spyOn(cmd, 'execWithOutput').mockImplementation();
+
+    await git.checkoutCreateBranch('main-branch', 'head-ref');
 
     expect(exec).toHaveBeenCalledWith('git', [
       'checkout',
