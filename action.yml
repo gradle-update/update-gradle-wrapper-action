@@ -23,8 +23,11 @@ inputs:
     description: 'List of labels to set on the Pull Request (comma or newline-separated).'
     required: false
     default: ''
+  base-branch:
+    description: 'Base branch where the action will run and update the Gradle Wrapper.'
+    required: false
   target-branch:
-    description: 'Branch to create pull requests against.'
+    description: 'Branch to create the Pull Request against.'
     required: false
   set-distribution-checksum:
     description: 'Whether to set the `distributionSha256Sum` property in `gradle-wrapper.properties`.'

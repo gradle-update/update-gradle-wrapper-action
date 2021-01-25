@@ -23,6 +23,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`reviewers`](#reviewers)
   - [`team-reviewers`](#team-reviewers)
   - [`labels`](#labels)
+  - [`base-branch`](#base-branch)
   - [`target-branch`](#target-branch)
   - [`set-distribution-checksum`](#set-distribution-checksum)
 - [Examples](#examples)
@@ -128,7 +129,8 @@ This is the list of supported inputs:
 | [`reviewers`](#reviewers) | List of users to request a review from (comma or newline-separated). | No | (empty) |
 | [`team-reviewers`](#team-reviewers) | List of teams to request a review from (comma or newline-separated). | No | (empty) |
 | [`labels`](#labels) | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
-| [`target-branch`](#target-branch) | Branch to create Pull Requests against. | No | The default branch name of your repository. |
+| [`base-branch`](#base-branch) | Base branch where the action will run and update the Gradle Wrapper. | No | The default branch name of your repository. |
+| [`target-branch`](#target-branch) | Branch to create the Pull Request against. | No | The default branch name of your repository. |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
 
 ---
@@ -259,13 +261,28 @@ Label names can include spaces. Note that the action will create a label if it d
 
 ---
 
+### `base-branch`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `base-branch` | Base branch where the action will run and update the Gradle Wrapper. | No | The default branch name of your repository. |
+
+The name of the branch used as a base when running the update process. The action will switch (i.e. `git checkout`) to this branch before updating the `gradle-wrapper.jar` file. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
+
+```yaml
+with:
+  base-branch: gradle-testing
+```
+
+---
+
 ### `target-branch`
 
 | Name | Description | Required | Default |
 | --- | --- | --- | --- |
 | `target-branch` | Branch to create Pull Requests against. | No | The default branch name of your repository. |
 
-The name of the branch to pull changes into. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
+The name of the branch to push changes into. By default the repository's "[default branch](https://docs.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-the-default-branch-name-for-your-repositories)" is used (most commonly `master`).
 
 For example:
 
