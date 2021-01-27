@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.13
+
+- Added `base-branch` input parameter.
+
 ## v1.0.12
 
 - `repo-token` input parameter is not mandatory anymore, and it defaults to `GITHUB_TOKEN` if not specified. Additionally, token authentication in git commands has been fixed.
