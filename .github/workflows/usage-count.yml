@@ -8,11 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v3
+        id: api-search
         with:
           debug: true
-        script: |
-          const result = await github.search.repos({
-            q: 'update-gradle-wrapper-action+in:file+language:yaml+path:.github/workflows'
-          })
-          console.log(result)
-          console.log(result?.total_count)
+          script: |
+            const result = await github.search.repos({
+              q: 'update-gradle-wrapper-action+in:file+language:yaml+path:.github/workflows'
+            })
+            console.log(result)
+            console.log(result.total_count)
+            return result.total_count || -1
+      - name: Get result
+        run: echo "${{steps.api-search.outputs.result}}"
