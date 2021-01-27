@@ -19,6 +19,7 @@ export interface Inputs {
   reviewers: string[];
   teamReviewers: string[];
   labels: string[];
+  baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
 }
@@ -32,6 +33,7 @@ class ActionInputs implements Inputs {
   reviewers: string[];
   teamReviewers: string[];
   labels: string[];
+  baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
 
@@ -61,6 +63,8 @@ class ActionInputs implements Inputs {
       .split(/[\n,]/)
       .map(l => l.trim())
       .filter(l => l.length);
+
+    this.baseBranch = core.getInput('base-branch', {required: false}).trim();
 
     this.targetBranch = core
       .getInput('target-branch', {required: false})

@@ -43,6 +43,7 @@ describe('getInputs', () => {
 
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
+        "baseBranch": "",
         "labels": Array [],
         "repoToken": "s3cr3t",
         "reviewers": Array [],
@@ -122,6 +123,44 @@ describe('getInputs', () => {
 
         expect(getInputs().labels).toStrictEqual(expected);
       }
+    });
+  });
+
+  describe('baseBranch', () => {
+    it('defaults to empty input', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().baseBranch).toStrictEqual('');
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'base-branch': 'a-branch-name'
+      };
+
+      expect(getInputs().baseBranch).toStrictEqual('a-branch-name');
+    });
+  });
+
+  describe('targetBranch', () => {
+    it('defaults to empty input', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().targetBranch).toStrictEqual('');
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'target-branch': 'a-branch-name'
+      };
+
+      expect(getInputs().targetBranch).toStrictEqual('a-branch-name');
     });
   });
 

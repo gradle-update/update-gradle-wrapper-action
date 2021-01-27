@@ -14,12 +14,12 @@
 
 import * as path from 'path';
 
-import {WrapperInfo} from '../src/wrapperInfo';
+import {createWrapperInfo} from '../src/wrapperInfo';
 
 test('parses a valid properties file', () => {
   const propsPath = path.resolve('tests/data/gradle-wrapper.properties');
 
-  const wrapperInfo = new WrapperInfo(propsPath);
+  const wrapperInfo = createWrapperInfo(propsPath);
   expect(wrapperInfo.version).toBe('6.6.1');
   expect(wrapperInfo.distType).toBe('all');
 });

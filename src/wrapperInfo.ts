@@ -17,7 +17,18 @@ import * as core from '@actions/core';
 import {readFileSync} from 'fs';
 import {isAbsolute} from 'path';
 
-export class WrapperInfo {
+export interface IWrapperInfo {
+  readonly version: string;
+  readonly path: string;
+  readonly distType: string;
+  readonly basePath: string;
+}
+
+export function createWrapperInfo(path: string): IWrapperInfo {
+  return new WrapperInfo(path);
+}
+
+class WrapperInfo implements IWrapperInfo {
   readonly version: string;
   readonly path: string;
   readonly distType: string;

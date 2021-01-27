@@ -16,15 +16,28 @@ import * as core from '@actions/core';
 
 import * as cmd from './cmd';
 import type {Release} from './releases';
-import type {WrapperInfo} from './wrapperInfo';
+import type {IWrapperInfo} from './wrapperInfo';
 
-export class WrapperUpdater {
+export interface IWrapperUpdater {
+  update: () => Promise<void>;
+  verify: () => Promise<void>;
+}
+
+export function createWrapperUpdater(
+  wrapper: IWrapperInfo,
+  targetRelease: Release,
+  setDistributionChecksum: boolean
+): IWrapperUpdater {
+  return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum);
+}
+
+class WrapperUpdater implements IWrapperUpdater {
   private targetRelease: Release;
-  private wrapper: WrapperInfo;
+  private wrapper: IWrapperInfo;
   private setDistributionChecksum: boolean;
 
   constructor(
-    wrapper: WrapperInfo,
+    wrapper: IWrapperInfo,
     targetRelease: Release,
     setDistributionChecksum: boolean
   ) {
