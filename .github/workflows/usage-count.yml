@@ -11,12 +11,13 @@ jobs:
         id: api-search
         with:
           debug: true
+          result-encoding: string
           script: |
-            const result = await github.search.repos({
-              q: 'update-gradle-wrapper-action+in:file+language:yaml+path:.github/workflows'
+            const result = await github.search.code({
+              q: 'gradle-update+update-gradle-wrapper-action+in:file+language:yaml+path:.github/workflows'
             })
-            console.log(result)
-            console.log(result.total_count)
-            return result.total_count || -1
+            console.log(JSON.stringify(result, null, 2))
+            console.log(result.data.total_count)
+            return result.data.total_count || -1
       - name: Get result
         run: echo "${{steps.api-search.outputs.result}}"
