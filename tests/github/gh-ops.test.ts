@@ -30,6 +30,7 @@ const defaultMockInputs: Inputs = {
   reviewers: [],
   teamReviewers: [],
   labels: [],
+  baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true
 };

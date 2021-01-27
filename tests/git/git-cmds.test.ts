@@ -49,11 +49,47 @@ describe('gitDiffNameOnly', () => {
   });
 });
 
-describe('checkout', () => {
-  it('execs "git checkout" with the given branch and start point', async () => {
+describe('parseHead', () => {
+  it('execs "git rev-parse" for current HEAD', async () => {
+    const exec = jest
+      .spyOn(cmd, 'execWithOutput')
+      .mockResolvedValue({exitCode: 0, stdout: 'abc123', stderr: ''});
+
+    const headSha = await git.parseHead();
+
+    expect(exec).toHaveBeenCalledWith('git', ['rev-parse', 'HEAD']);
+    expect(headSha).toEqual('abc123');
+  });
+});
+
+describe('fetch', () => {
+  it('execs "git fetch" with with depth option', async () => {
     const exec = jest.spyOn(cmd, 'execWithOutput').mockImplementation();
 
-    await git.checkout('main-branch', 'head-ref');
+    await git.fetch();
+
+    expect(exec).toHaveBeenCalledWith('git', ['fetch', '--depth=1']);
+  });
+});
+
+describe('checkout', () => {
+  it('execs "git checkout" with the given branch name and returns exit code', async () => {
+    const exec = jest
+      .spyOn(cmd, 'execWithOutput')
+      .mockResolvedValue({exitCode: 0, stdout: '', stderr: ''});
+
+    const exitCode = await git.checkout('main-branch');
+
+    expect(exec).toHaveBeenCalledWith('git', ['checkout', 'main-branch']);
+    expect(exitCode).toEqual(0);
+  });
+});
+
+describe('checkoutCreateBranch', () => {
+  it('execs "git checkout -b" with the given branch name and start point', async () => {
+    const exec = jest.spyOn(cmd, 'execWithOutput').mockImplementation();
+
+    await git.checkoutCreateBranch('main-branch', 'head-ref');
 
     expect(exec).toHaveBeenCalledWith('git', [
       'checkout',
