@@ -1255,7 +1255,7 @@ class WrapperInfo {
             .split('\n')
             .filter(line => line.startsWith('distributionUrl='))[0];
         core.debug(`distributionUrl: ${distributionUrl}`);
-        const parsed = /^distributionUrl=.*\/gradle-([^-]+)-([^.]+)\.zip$/.exec(distributionUrl);
+        const parsed = /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(distributionUrl);
         if (parsed) {
             const [, version, distType] = parsed;
             core.debug(`  version: ${version}`);
