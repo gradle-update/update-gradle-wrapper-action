@@ -694,6 +694,7 @@ function getInputs() {
     return new ActionInputs();
 }
 exports.getInputs = getInputs;
+const acceptedReleaseChannels = ['stable', 'release-candidate'];
 class ActionInputs {
     constructor() {
         this.repoToken = core.getInput('repo-token', { required: false }).trim();
@@ -727,6 +728,16 @@ class ActionInputs {
                 .getInput('set-distribution-checksum', { required: false })
                 .trim()
                 .toLowerCase() !== 'false';
+        this.releaseChannel = core
+            .getInput('release-channel', { required: false })
+            .trim()
+            .toLowerCase();
+        if (!this.releaseChannel) {
+            this.releaseChannel = 'stable';
+        }
+        if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
+            throw new Error('release-channel has unexpected value');
+        }
     }
 }
 
@@ -819,10 +830,18 @@ class Releases {
     constructor() {
         this.client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
     }
-    current() {
+    loadRelease(releaseChannel) {
         return __awaiter(this, void 0, void 0, function* () {
-            const response = yield this.client.getJson('https://services.gradle.org/versions/current');
+            const requestUrl = releaseChannel === 'release-candidate'
+                ? 'https://services.gradle.org/versions/release-candidate'
+                : 'https://services.gradle.org/versions/current';
+            const response = yield this.client.getJson(requestUrl);
             core.debug(`statusCode: ${response.statusCode}`);
+            return yield this.mapResponse(response);
+        });
+    }
+    mapResponse(response) {
+        return __awaiter(this, void 0, void 0, function* () {
             const data = response.result;
             if (data) {
                 core.debug(`current?: ${data.current}`);
@@ -989,8 +1008,9 @@ class MainAction {
                 store.setMainActionExecuted();
                 core.debug(JSON.stringify(process.env, null, 2));
                 yield gitAuth.setup(this.inputs);
-                const targetRelease = yield this.releases.current();
-                core.info(`Latest release: ${targetRelease.version}`);
+                const releaseChannel = this.inputs.releaseChannel;
+                const targetRelease = yield this.releases.loadRelease(releaseChannel);
+                core.info(`Latest release: ${targetRelease.version} (channel ${releaseChannel})`);
                 const ref = yield this.githubOps.findMatchingRef(targetRelease.version);
                 if (ref) {
                     core.info('Found an existing ref, stopping here.');
