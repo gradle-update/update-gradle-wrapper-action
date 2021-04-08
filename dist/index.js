@@ -1332,7 +1332,7 @@ class WrapperUpdater {
                     : this.targetRelease.allChecksum;
                 args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
             }
-            const { exitCode, stderr } = yield cmd.execWithOutput('gradle', args, this.wrapper.basePath);
+            const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', args, this.wrapper.basePath);
             if (exitCode !== 0) {
                 throw new Error(stderr);
             }
