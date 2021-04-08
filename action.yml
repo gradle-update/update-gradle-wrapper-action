@@ -33,6 +33,10 @@ inputs:
     description: 'Whether to set the `distributionSha256Sum` property in `gradle-wrapper.properties`.'
     required: false
     default: true
+  release-channel:
+    description: 'Gradle release channel to be used. `stable` or `release-candidate`'
+    required: false
+    default: stable
 
 runs:
   using: 'node12'
