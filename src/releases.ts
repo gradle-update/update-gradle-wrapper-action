@@ -47,10 +47,15 @@ export class Releases {
     this.client = new HttpClient('Update Gradle Wrapper Action');
   }
 
-  async current(): Promise<Release> {
+  async loadRelease(releaseChannel: string) {
+    const requestUrl =
+      releaseChannel === 'release-candidate'
+        ? 'https://services.gradle.org/versions/release-candidate'
+        : 'https://services.gradle.org/versions/current';
+
     const response = await this.client.getJson<ReleaseData>(
       // TODO: with 404 result is null, 500 throws
-      'https://services.gradle.org/versions/current'
+      requestUrl
     );
     core.debug(`statusCode: ${response.statusCode}`);
 
