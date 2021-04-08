@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 
 import {HttpClient} from '@actions/http-client';
+import {ITypedResponse} from '@actions/http-client/interfaces';
 
 export interface Release {
   version: string;
@@ -53,6 +54,10 @@ export class Releases {
     );
     core.debug(`statusCode: ${response.statusCode}`);
 
+    return await this.mapResponse(response);
+  }
+
+  private async mapResponse(response: ITypedResponse<ReleaseData>) {
     const data = response.result;
 
     if (data) {
