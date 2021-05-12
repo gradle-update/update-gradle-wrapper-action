@@ -29,4 +29,4 @@ jobs:
             git diff
             exit 1
           fi
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v1.5.0
