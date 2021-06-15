@@ -140,6 +140,13 @@ export class MainAction {
         core.endGroup();
 
         if (modifiedFiles.length) {
+          // Running the `wrapper` task a second time ensures that the wrapper jar itself
+          // and the wrapper scripts get updated if a new version is available (happens infrequently).
+          // https://docs.gradle.org/current/userguide/gradle_wrapper.html#sec:upgrading_wrapper
+          core.startGroup('Updating Wrapper (2nd update)');
+          await updater.update();
+          core.endGroup();
+
           core.startGroup('Verifying Wrapper');
           await updater.verify();
           core.endGroup();

@@ -1040,6 +1040,9 @@ class MainAction {
                     core.debug(`Modified files list: ${modifiedFiles}`);
                     core.endGroup();
                     if (modifiedFiles.length) {
+                        core.startGroup('Updating Wrapper (2nd update)');
+                        yield updater.update();
+                        core.endGroup();
                         core.startGroup('Verifying Wrapper');
                         yield updater.verify();
                         core.endGroup();
@@ -1311,7 +1314,7 @@ class WrapperUpdater {
                     : this.targetRelease.allChecksum;
                 args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
             }
-            const { exitCode, stderr } = yield cmd.execWithOutput('gradle', args, this.wrapper.basePath);
+            const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', args, this.wrapper.basePath);
             if (exitCode !== 0) {
                 throw new Error(stderr);
             }

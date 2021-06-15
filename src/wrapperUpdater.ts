@@ -67,7 +67,7 @@ class WrapperUpdater implements IWrapperUpdater {
     }
 
     const {exitCode, stderr} = await cmd.execWithOutput(
-      'gradle',
+      './gradlew',
       args,
       this.wrapper.basePath
     );
