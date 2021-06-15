@@ -134,7 +134,7 @@ export class MainAction {
         core.endGroup();
 
         core.startGroup('Checking whether any file has been updated');
-        const modifiedFiles = await git.gitDiffNameOnly();
+        let modifiedFiles = await git.gitDiffNameOnly();
         core.debug(`Modified files count: ${modifiedFiles.length}`);
         core.debug(`Modified files list: ${modifiedFiles}`);
         core.endGroup();
@@ -145,6 +145,9 @@ export class MainAction {
           // https://docs.gradle.org/current/userguide/gradle_wrapper.html#sec:upgrading_wrapper
           core.startGroup('Updating Wrapper (2nd update)');
           await updater.update();
+          modifiedFiles = await git.gitDiffNameOnly();
+          core.debug(`Modified files count: ${modifiedFiles.length}`);
+          core.debug(`Modified files list: ${modifiedFiles}`);
           core.endGroup();
 
           core.startGroup('Verifying Wrapper');
