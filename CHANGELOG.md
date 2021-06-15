@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.14
+
+- Fixed #233: correctly update `gradle-wrapper.jar` file by re-running
+  the `wrapper` task.
+
 ## v1.0.13
 
 - Added `base-branch` input parameter.
