@@ -1035,13 +1035,16 @@ class MainAction {
                     yield updater.update();
                     core.endGroup();
                     core.startGroup('Checking whether any file has been updated');
-                    const modifiedFiles = yield git.gitDiffNameOnly();
+                    let modifiedFiles = yield git.gitDiffNameOnly();
                     core.debug(`Modified files count: ${modifiedFiles.length}`);
                     core.debug(`Modified files list: ${modifiedFiles}`);
                     core.endGroup();
                     if (modifiedFiles.length) {
                         core.startGroup('Updating Wrapper (2nd update)');
                         yield updater.update();
+                        modifiedFiles = yield git.gitDiffNameOnly();
+                        core.debug(`Modified files count: ${modifiedFiles.length}`);
+                        core.debug(`Modified files list: ${modifiedFiles}`);
                         core.endGroup();
                         core.startGroup('Verifying Wrapper');
                         yield updater.verify();
