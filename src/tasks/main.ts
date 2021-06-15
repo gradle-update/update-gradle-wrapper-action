@@ -52,8 +52,11 @@ export class MainAction {
 
       await gitAuth.setup(this.inputs);
 
-      const targetRelease = await this.releases.current();
-      core.info(`Latest release: ${targetRelease.version}`);
+      const releaseChannel = this.inputs.releaseChannel;
+      const targetRelease = await this.releases.loadRelease(releaseChannel);
+      core.info(
+        `Latest release: ${targetRelease.version} (channel ${releaseChannel})`
+      );
 
       const ref = await this.githubOps.findMatchingRef(targetRelease.version);
 

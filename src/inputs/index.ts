@@ -22,11 +22,14 @@ export interface Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  releaseChannel: string;
 }
 
 export function getInputs(): Inputs {
   return new ActionInputs();
 }
+
+const acceptedReleaseChannels = ['stable', 'release-candidate'];
 
 class ActionInputs implements Inputs {
   repoToken: string;
@@ -36,6 +39,7 @@ class ActionInputs implements Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  releaseChannel: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false}).trim();
@@ -75,5 +79,16 @@ class ActionInputs implements Inputs {
         .getInput('set-distribution-checksum', {required: false})
         .trim()
         .toLowerCase() !== 'false';
+
+    this.releaseChannel = core
+      .getInput('release-channel', {required: false})
+      .trim()
+      .toLowerCase();
+    if (!this.releaseChannel) {
+      this.releaseChannel = 'stable';
+    }
+    if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
+      throw new Error('release-channel has unexpected value');
+    }
   }
 }

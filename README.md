@@ -321,6 +321,24 @@ with:
   set-distribution-checksum: false
 ```
 
+---
+
+### `release-channel`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `release-channel` | Which release channel to use: `stable` or `release-candidate`. | No | `stable` |
+
+Gradle's release channel used to update. By default `stable` is used which corresponds to the latest stable release.
+Alternatively, `release-canddiate` can be used to update to the most recent release candidate.
+
+For example:
+
+```yaml
+with:
+  release-channel: release-candidate
+```
+
 ## Examples
 
 ### Scheduling action execution

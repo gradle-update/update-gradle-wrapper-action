@@ -39,7 +39,8 @@ const defaultMockInputs: Inputs = {
   labels: [],
   baseBranch: '',
   targetBranch: '',
-  setDistributionChecksum: true
+  setDistributionChecksum: true,
+  releaseChannel: ''
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -78,7 +79,7 @@ describe('run', () => {
 
     jest.spyOn(gitAuth, 'setup').mockImplementation();
 
-    mockReleases.current = jest.fn().mockReturnValue({
+    mockReleases.loadRelease = jest.fn().mockReturnValue({
       version: '1.0.1',
       allChecksum: 'dist-all-checksum-value',
       binChecksum: 'dist-bin-checksum-value',
