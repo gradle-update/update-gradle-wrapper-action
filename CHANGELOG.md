@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.15
+
+- Updated action dependencies and adapted to breaking changes.
+
 ## v1.0.14
 
 - Fixed #233: correctly update `gradle-wrapper.jar` file by re-running
