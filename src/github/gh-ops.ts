@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {components} from '@octokit/openapi-types';
 import {context, getOctokit} from '@actions/github';
-import {GitListMatchingRefsResponseData} from '@octokit/types';
 import * as core from '@actions/core';
 
 import {GitHubApi, IGitHubApi} from './gh-api';
@@ -24,7 +24,8 @@ import {Release} from '../releases';
 
 const DEFAULT_LABEL = 'gradle-wrapper';
 
-export type MatchingRefType = GitListMatchingRefsResponseData[0] | undefined;
+type GitListMatchingRefsResponseData = components['schemas']['git-ref'];
+export type MatchingRefType = GitListMatchingRefsResponseData | undefined;
 
 export class GitHubOps {
   private inputs: Inputs;
@@ -40,7 +41,7 @@ export class GitHubOps {
   async findMatchingRef(targetVersion: string): Promise<MatchingRefType> {
     const refName = `heads/gradlew-update-${targetVersion}`;
 
-    const {data: refs} = await this.octokit.git.listMatchingRefs({
+    const {data: refs} = await this.octokit.rest.git.listMatchingRefs({
       owner: context.repo.owner,
       repo: context.repo.repo,
       ref: refName

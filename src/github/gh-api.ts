@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {components} from '@octokit/openapi-types';
 import {context, getOctokit} from '@actions/github';
-import {PullsCreateResponseData} from '@octokit/types';
 import * as core from '@actions/core';
 
 import * as store from '../store';
+
+type PullsCreateResponseData = components['schemas']['pull-request'];
 
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;
@@ -60,7 +62,7 @@ export class GitHubApi implements IGitHubApi {
   }
 
   async repoDefaultBranch(): Promise<string> {
-    const {data: repo} = await this.octokit.repos.get({
+    const {data: repo} = await this.octokit.rest.repos.get({
       owner: context.repo.owner,
       repo: context.repo.repo
     });
@@ -79,7 +81,7 @@ export class GitHubApi implements IGitHubApi {
     title: string;
     body: string;
   }): Promise<PullsCreateResponseData> {
-    const {data: pullRequest} = await this.octokit.pulls.create({
+    const {data: pullRequest} = await this.octokit.rest.pulls.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
       head: branchName,
@@ -123,15 +125,20 @@ export class GitHubApi implements IGitHubApi {
     reviewer: string
   ): Promise<boolean> {
     try {
-      const result = await this.octokit.pulls.requestReviewers({
+      const result = await this.octokit.rest.pulls.requestReviewers({
         owner: context.repo.owner,
         repo: context.repo.repo,
         pull_number: pullRequestNumber,
         reviewers: [reviewer]
       });
 
+      if (!result.data.requested_reviewers) {
+        core.warning(`requested_reviewers is empty`);
+        return false;
+      }
+
       const requested_reviewers = result.data.requested_reviewers.map(
-        user => user.login
+        user => user?.login
       );
 
       if (!requested_reviewers.includes(reviewer)) {
@@ -183,12 +190,17 @@ export class GitHubApi implements IGitHubApi {
     team: string
   ): Promise<boolean> {
     try {
-      const result = await this.octokit.pulls.requestReviewers({
+      const result = await this.octokit.rest.pulls.requestReviewers({
         owner: context.repo.owner,
         repo: context.repo.repo,
         pull_number: pullRequestNumber,
         team_reviewers: [team]
       });
+
+      if (!result.data.requested_teams) {
+        core.warning(`requested_teams is empty`);
+        return false;
+      }
 
       const requested_teams = result.data.requested_teams.map(t => t.slug);
 
@@ -215,7 +227,7 @@ export class GitHubApi implements IGitHubApi {
     core.info(`Adding labels: ${labels.join(',')}`);
 
     try {
-      await this.octokit.issues.addLabels({
+      await this.octokit.rest.issues.addLabels({
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: pullRequestNumber,
@@ -230,7 +242,7 @@ export class GitHubApi implements IGitHubApi {
 
   async createLabelIfMissing(labelName: string): Promise<boolean> {
     try {
-      const label = await this.octokit.issues.getLabel({
+      const label = await this.octokit.rest.issues.getLabel({
         owner: context.repo.owner,
         repo: context.repo.repo,
         name: labelName
@@ -252,7 +264,7 @@ export class GitHubApi implements IGitHubApi {
 
   async createLabel(labelName: string): Promise<boolean> {
     try {
-      const label = await this.octokit.issues.createLabel({
+      const label = await this.octokit.rest.issues.createLabel({
         owner: context.repo.owner,
         repo: context.repo.repo,
         name: labelName,
@@ -276,7 +288,7 @@ export class GitHubApi implements IGitHubApi {
     body: string
   ): Promise<boolean> {
     try {
-      const result = await this.octokit.issues.createComment({
+      const result = await this.octokit.rest.issues.createComment({
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: pullRequestNumber,
