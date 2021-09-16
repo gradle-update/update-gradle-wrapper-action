@@ -32,7 +32,10 @@ export class PostAction {
       await gitAuth.cleanup();
       await this.reportErroredReviewers();
     } catch (error) {
-      core.debug(`post action task failed with: ${error.message}`);
+      core.debug('Post action task failed');
+      if (error instanceof Error) {
+        core.debug(`error: ${error.message}`);
+      }
     }
   }
 

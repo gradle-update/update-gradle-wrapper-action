@@ -310,12 +310,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubApi = void 0;
+const request_error_1 = __nccwpck_require__(537);
 const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
 const store = __importStar(__nccwpck_require__(5826));
 class GitHubApi {
     constructor(repoToken) {
-        this.octokit = github_1.getOctokit(repoToken);
+        this.octokit = (0, github_1.getOctokit)(repoToken);
     }
     repoDefaultBranch() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -380,7 +381,10 @@ class GitHubApi {
                 }
             }
             catch (error) {
-                core.warning(`Unable to set PR reviewer ${reviewer}, got error: ${error.message}`);
+                core.warning(`Unable to set PR reviewer ${reviewer}`);
+                if (error instanceof Error) {
+                    core.warning(`error: ${error.message}`);
+                }
                 return false;
             }
             return true;
@@ -427,7 +431,10 @@ class GitHubApi {
                 }
             }
             catch (error) {
-                core.warning(`Unable to set PR team reviewer ${team}, got error: ${error.message}`);
+                core.warning(`Unable to set PR team reviewer ${team}`);
+                if (error instanceof Error) {
+                    core.warning(`Got error: ${error.message}`);
+                }
                 return false;
             }
             return true;
@@ -449,7 +456,10 @@ class GitHubApi {
                 });
             }
             catch (error) {
-                core.warning(`Unable to add all labels to PR, got error: ${error.message}`);
+                core.warning(`Unable to add all labels to PR`);
+                if (error instanceof Error) {
+                    core.warning(`error: ${error.message}`);
+                }
             }
         });
     }
@@ -465,9 +475,11 @@ class GitHubApi {
                 return true;
             }
             catch (error) {
-                if (error.status === 404) {
-                    core.debug('Label not found');
-                    return yield this.createLabel(labelName);
+                if (error instanceof request_error_1.RequestError) {
+                    if (error.status === 404) {
+                        core.debug('Label not found');
+                        return yield this.createLabel(labelName);
+                    }
                 }
                 return false;
             }
@@ -487,7 +499,10 @@ class GitHubApi {
                 return true;
             }
             catch (error) {
-                core.warning(`Unable to create label "${labelName}", got error: ${error.message}`);
+                core.warning(`Unable to create label "${labelName}"`);
+                if (error instanceof Error) {
+                    core.warning(`error: ${error.message}`);
+                }
                 return false;
             }
         });
@@ -505,7 +520,10 @@ class GitHubApi {
                 return true;
             }
             catch (error) {
-                core.warning(`Unable to create comment for PR ${pullRequestNumber}, got error: ${error.message}`);
+                core.warning(`Unable to create comment for PR ${pullRequestNumber}`);
+                if (error instanceof Error) {
+                    core.warning(`error: ${error.message}`);
+                }
                 return false;
             }
         });
@@ -560,7 +578,7 @@ class GitHubOps {
     constructor(inputs, api) {
         this.inputs = inputs;
         this.api = api !== null && api !== void 0 ? api : new gh_api_1.GitHubApi(inputs.repoToken);
-        this.octokit = github_1.getOctokit(inputs.repoToken);
+        this.octokit = (0, github_1.getOctokit)(inputs.repoToken);
     }
     findMatchingRef(targetVersion) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -585,7 +603,7 @@ class GitHubOps {
                 ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
-            const { title, body } = messages_1.pullRequestText(distTypes, targetRelease, sourceVersion);
+            const { title, body } = (0, messages_1.pullRequestText)(distTypes, targetRelease, sourceVersion);
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
                 target: targetBranch,
@@ -645,7 +663,7 @@ const gh_ops_1 = __nccwpck_require__(1288);
 const main_1 = __nccwpck_require__(8888);
 const post_1 = __nccwpck_require__(1645);
 const store = __importStar(__nccwpck_require__(5826));
-const inputs = inputs_1.getInputs();
+const inputs = (0, inputs_1.getInputs)();
 const githubApi = new gh_api_1.GitHubApi(inputs.repoToken);
 if (!store.mainActionExecuted()) {
     new main_1.MainAction(inputs, githubApi, new gh_ops_1.GitHubOps(inputs), new releases_1.Releases()).run();
@@ -998,7 +1016,7 @@ class MainAction {
                     return;
                 }
                 core.debug(`Wrappers count: ${wrappers.length}`);
-                const wrapperInfos = wrappers.map(path => wrapperInfo_1.createWrapperInfo(path));
+                const wrapperInfos = wrappers.map(path => (0, wrapperInfo_1.createWrapperInfo)(path));
                 const commitDataList = [];
                 yield git.config('user.name', 'gradle-update-robot');
                 yield git.config('user.email', 'gradle-update-robot@regolo.cc');
@@ -1022,7 +1040,7 @@ class MainAction {
                         continue;
                     }
                     distTypes.add(wrapper.distType);
-                    const updater = wrapperUpdater_1.createWrapperUpdater(wrapper, targetRelease, this.inputs.setDistributionChecksum);
+                    const updater = (0, wrapperUpdater_1.createWrapperUpdater)(wrapper, targetRelease, this.inputs.setDistributionChecksum);
                     core.startGroup('Updating Wrapper');
                     yield updater.update();
                     core.endGroup();
@@ -1042,7 +1060,7 @@ class MainAction {
                         yield updater.verify();
                         core.endGroup();
                         core.startGroup('Committing');
-                        yield git_commit_1.commit(modifiedFiles, targetRelease.version, wrapper.version);
+                        yield (0, git_commit_1.commit)(modifiedFiles, targetRelease.version, wrapper.version);
                         core.endGroup();
                         commitDataList.push({
                             files: modifiedFiles,
@@ -1073,7 +1091,7 @@ class MainAction {
                 store.setPullRequestData(pullRequestData);
             }
             catch (error) {
-                core.setFailed(`❌ ${error.message}`);
+                core.setFailed(`❌ ${error instanceof Error && error.message}`);
             }
         });
     }
@@ -1142,7 +1160,10 @@ class PostAction {
                 yield this.reportErroredReviewers();
             }
             catch (error) {
-                core.debug(`post action task failed with: ${error.message}`);
+                core.debug('Post action task failed');
+                if (error instanceof Error) {
+                    core.debug(`error: ${error.message}`);
+                }
             }
         });
     }
@@ -1217,7 +1238,7 @@ function createWrapperInfo(path) {
 exports.createWrapperInfo = createWrapperInfo;
 class WrapperInfo {
     constructor(path) {
-        if (!path_1.isAbsolute(path)) {
+        if (!(0, path_1.isAbsolute)(path)) {
             throw new Error(`${path} is not an absolute path`);
         }
         this.path = path;
@@ -1225,7 +1246,7 @@ class WrapperInfo {
         core.debug('WrapperInfo');
         core.debug(`  path: ${this.path}`);
         core.debug(`  basePath: ${this.basePath}`);
-        const props = fs_1.readFileSync(path).toString();
+        const props = (0, fs_1.readFileSync)(path).toString();
         core.debug(`  props: ${props.replace('\n', ' ')}`);
         const distributionUrl = props
             .trim()
