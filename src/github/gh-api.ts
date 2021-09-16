@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import {components} from '@octokit/openapi-types';
+import {RequestError} from '@octokit/request-error';
 import {context, getOctokit} from '@actions/github';
 import * as core from '@actions/core';
 
@@ -146,9 +147,10 @@ export class GitHubApi implements IGitHubApi {
         return false;
       }
     } catch (error) {
-      core.warning(
-        `Unable to set PR reviewer ${reviewer}, got error: ${error.message}`
-      );
+      core.warning(`Unable to set PR reviewer ${reviewer}`);
+      if (error instanceof Error) {
+        core.warning(`error: ${error.message}`);
+      }
       return false;
     }
 
@@ -209,9 +211,10 @@ export class GitHubApi implements IGitHubApi {
         return false;
       }
     } catch (error) {
-      core.warning(
-        `Unable to set PR team reviewer ${team}, got error: ${error.message}`
-      );
+      core.warning(`Unable to set PR team reviewer ${team}`);
+      if (error instanceof Error) {
+        core.warning(`Got error: ${error.message}`);
+      }
       return false;
     }
 
@@ -234,9 +237,10 @@ export class GitHubApi implements IGitHubApi {
         labels
       });
     } catch (error) {
-      core.warning(
-        `Unable to add all labels to PR, got error: ${error.message}`
-      );
+      core.warning(`Unable to add all labels to PR`);
+      if (error instanceof Error) {
+        core.warning(`error: ${error.message}`);
+      }
     }
   }
 
@@ -252,10 +256,12 @@ export class GitHubApi implements IGitHubApi {
 
       return true;
     } catch (error) {
-      if (error.status === 404) {
-        core.debug('Label not found');
+      if (error instanceof RequestError) {
+        if (error.status === 404) {
+          core.debug('Label not found');
 
-        return await this.createLabel(labelName);
+          return await this.createLabel(labelName);
+        }
       }
 
       return false;
@@ -276,9 +282,10 @@ export class GitHubApi implements IGitHubApi {
 
       return true;
     } catch (error) {
-      core.warning(
-        `Unable to create label "${labelName}", got error: ${error.message}`
-      );
+      core.warning(`Unable to create label "${labelName}"`);
+      if (error instanceof Error) {
+        core.warning(`error: ${error.message}`);
+      }
       return false;
     }
   }
@@ -301,9 +308,10 @@ export class GitHubApi implements IGitHubApi {
 
       return true;
     } catch (error) {
-      core.warning(
-        `Unable to create comment for PR ${pullRequestNumber}, got error: ${error.message}`
-      );
+      core.warning(`Unable to create comment for PR ${pullRequestNumber}`);
+      if (error instanceof Error) {
+        core.warning(`error: ${error.message}`);
+      }
       return false;
     }
   }

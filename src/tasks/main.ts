@@ -203,7 +203,7 @@ export class MainAction {
     } catch (error) {
       // setFailed is fatal (terminates action), core.error
       // creates a failure annotation instead
-      core.setFailed(`❌ ${error.message}`);
+      core.setFailed(`❌ ${error instanceof Error && error.message}`);
     }
   }
 
