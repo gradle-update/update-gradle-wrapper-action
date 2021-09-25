@@ -15,6 +15,10 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
+import * as git from '../git/git-cmds';
+import * as gitAuth from '../git/git-auth';
+import * as store from '../store';
+
 import {commit} from '../git/git-commit';
 import {createWrapperInfo} from '../wrapperInfo';
 import {createWrapperUpdater} from '../wrapperUpdater';
@@ -22,9 +26,6 @@ import {GitHubOps} from '../github/gh-ops';
 import {IGitHubApi} from '../github/gh-api';
 import {Inputs} from '../inputs';
 import {Releases} from '../releases';
-import * as git from '../git/git-cmds';
-import * as gitAuth from '../git/git-auth';
-import * as store from '../store';
 
 export class MainAction {
   private inputs: Inputs;

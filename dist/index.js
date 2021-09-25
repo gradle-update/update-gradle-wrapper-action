@@ -36,8 +36,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.execWithOutput = void 0;
-const exec = __importStar(__nccwpck_require__(1514));
 const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
 function execWithOutput(commandLine, args, cwd) {
     return __awaiter(this, void 0, void 0, function* () {
         const opts = {
@@ -310,10 +310,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubApi = void 0;
-const request_error_1 = __nccwpck_require__(537);
-const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
 const store = __importStar(__nccwpck_require__(5826));
+const request_error_1 = __nccwpck_require__(537);
+const github_1 = __nccwpck_require__(5438);
 class GitHubApi {
     constructor(repoToken) {
         this.octokit = (0, github_1.getOctokit)(repoToken);
@@ -569,10 +569,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubOps = void 0;
-const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
-const gh_api_1 = __nccwpck_require__(3422);
+const github_1 = __nccwpck_require__(5438);
 const messages_1 = __nccwpck_require__(9112);
+const gh_api_1 = __nccwpck_require__(3422);
 const DEFAULT_LABEL = 'gradle-wrapper';
 class GitHubOps {
     constructor(inputs, api) {
@@ -656,13 +656,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const releases_1 = __nccwpck_require__(5715);
+const store = __importStar(__nccwpck_require__(5826));
 const inputs_1 = __nccwpck_require__(4629);
 const gh_api_1 = __nccwpck_require__(3422);
 const gh_ops_1 = __nccwpck_require__(1288);
 const main_1 = __nccwpck_require__(8888);
 const post_1 = __nccwpck_require__(1645);
-const store = __importStar(__nccwpck_require__(5826));
+const releases_1 = __nccwpck_require__(5715);
 const inputs = (0, inputs_1.getInputs)();
 const githubApi = new gh_api_1.GitHubApi(inputs.repoToken);
 if (!store.mainActionExecuted()) {
@@ -979,12 +979,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MainAction = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
-const git_commit_1 = __nccwpck_require__(4779);
-const wrapperInfo_1 = __nccwpck_require__(6832);
-const wrapperUpdater_1 = __nccwpck_require__(7412);
 const git = __importStar(__nccwpck_require__(8940));
 const gitAuth = __importStar(__nccwpck_require__(1304));
 const store = __importStar(__nccwpck_require__(5826));
+const git_commit_1 = __nccwpck_require__(4779);
+const wrapperInfo_1 = __nccwpck_require__(6832);
+const wrapperUpdater_1 = __nccwpck_require__(7412);
 class MainAction {
     constructor(inputs, githubApi, githubOps, releases) {
         this.inputs = inputs;
@@ -1230,8 +1230,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createWrapperInfo = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const fs_1 = __nccwpck_require__(5747);
 const path_1 = __nccwpck_require__(5622);
+const fs_1 = __nccwpck_require__(5747);
 function createWrapperInfo(path) {
     return new WrapperInfo(path);
 }

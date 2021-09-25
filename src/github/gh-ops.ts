@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {components} from '@octokit/openapi-types';
-import {context, getOctokit} from '@actions/github';
 import * as core from '@actions/core';
 
-import {GitHubApi, IGitHubApi} from './gh-api';
+import {components} from '@octokit/openapi-types';
+import {context, getOctokit} from '@actions/github';
+
 import {Inputs} from '../inputs';
 import {PullRequestData} from '../store';
 import {pullRequestText} from '../messages';
 import {Release} from '../releases';
+import {GitHubApi, IGitHubApi} from './gh-api';
 
 const DEFAULT_LABEL = 'gradle-wrapper';
 

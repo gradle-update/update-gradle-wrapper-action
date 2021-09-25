@@ -14,10 +14,11 @@
 
 import * as github from '@actions/github';
 
+import * as store from '../../src/store';
+
 import nock from 'nock';
 
 import {GitHubApi} from '../../src/github/gh-api';
-import * as store from '../../src/store';
 
 nock.disableNetConnect();
 
