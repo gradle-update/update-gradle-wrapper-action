@@ -14,8 +14,8 @@
 
 import * as core from '@actions/core';
 
-import {readFileSync} from 'fs';
 import {isAbsolute} from 'path';
+import {readFileSync} from 'fs';
 
 export interface IWrapperInfo {
   readonly version: string;

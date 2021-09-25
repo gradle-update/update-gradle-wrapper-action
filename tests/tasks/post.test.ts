@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {PostAction} from '../../src/tasks/post';
-import {IGitHubApi} from '../../src/github/gh-api';
 import * as store from '../../src/store';
+
+import {IGitHubApi} from '../../src/github/gh-api';
+import {PostAction} from '../../src/tasks/post';
 
 let mockGitHubApi: IGitHubApi;
 let postAction: PostAction;

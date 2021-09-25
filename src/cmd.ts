@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as exec from '@actions/exec';
 import * as core from '@actions/core';
+import * as exec from '@actions/exec';
 
 export interface CmdExec {
   exitCode: number;
@@ -26,25 +26,18 @@ export async function execWithOutput(
   args?: string[],
   cwd?: string
 ): Promise<CmdExec> {
-  let outBuf = '';
-  let errBuf = '';
-
   const opts = {
     ignoreReturnCode: true,
-    listeners: {
-      stdout: (data: Buffer) => {
-        outBuf += data.toString();
-      },
-      stderr: (data: Buffer) => {
-        errBuf += data.toString();
-      }
-    },
     cwd: cwd || process.cwd()
   };
 
   core.debug(`cmd opts: ${JSON.stringify(opts, null, 2)}`);
 
-  const exitCode = await exec.exec(commandLine, args, opts);
+  const {
+    exitCode,
+    stdout = '',
+    stderr = ''
+  } = await exec.getExecOutput(commandLine, args, opts);
 
-  return {exitCode, stdout: outBuf.trim(), stderr: errBuf.trim()};
+  return {exitCode, stdout: stdout.trim(), stderr: stderr.trim()};
 }

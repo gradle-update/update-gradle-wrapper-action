@@ -14,17 +14,18 @@
 
 import * as glob from '@actions/glob';
 
-import {GitHubOps} from '../../src/github/gh-ops';
-import {IGitHubApi} from '../../src/github/gh-api';
-import {Inputs} from '../../src/inputs/';
-import {MainAction} from '../../src/tasks/main';
-import {Release, Releases} from '../../src/releases';
 import * as commit from '../../src/git/git-commit';
 import * as git from '../../src/git/git-cmds';
 import * as gitAuth from '../../src/git/git-auth';
 import * as store from '../../src/store';
 import * as wrapper from '../../src/wrapperInfo';
 import * as wrapperUpdater from '../../src/wrapperUpdater';
+
+import {GitHubOps} from '../../src/github/gh-ops';
+import {IGitHubApi} from '../../src/github/gh-api';
+import {Inputs} from '../../src/inputs/';
+import {MainAction} from '../../src/tasks/main';
+import {Release, Releases} from '../../src/releases';
 
 let mainAction: MainAction;
 let mockInputs: Inputs;

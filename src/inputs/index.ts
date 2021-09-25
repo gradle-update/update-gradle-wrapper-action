@@ -42,42 +42,36 @@ class ActionInputs implements Inputs {
   releaseChannel: string;
 
   constructor() {
-    this.repoToken = core.getInput('repo-token', {required: false}).trim();
+    this.repoToken = core.getInput('repo-token', {required: false});
     if (this.repoToken === '') {
       throw new Error(`repo-token cannot be empty`);
     }
 
     this.reviewers = core
       .getInput('reviewers', {required: false})
-      .trim()
       .split(/[\n,]/)
       .map(r => r.trim())
       .filter(r => r.length);
 
     this.teamReviewers = core
       .getInput('team-reviewers', {required: false})
-      .trim()
       .split(/[\n,]/)
       .map(r => r.trim())
       .filter(r => r.length);
 
     this.labels = core
       .getInput('labels', {required: false})
-      .trim()
       .split(/[\n,]/)
       .map(l => l.trim())
       .filter(l => l.length);
 
-    this.baseBranch = core.getInput('base-branch', {required: false}).trim();
+    this.baseBranch = core.getInput('base-branch', {required: false});
 
-    this.targetBranch = core
-      .getInput('target-branch', {required: false})
-      .trim();
+    this.targetBranch = core.getInput('target-branch', {required: false});
 
     this.setDistributionChecksum =
       core
         .getInput('set-distribution-checksum', {required: false})
-        .trim()
         .toLowerCase() !== 'false';
 
     this.releaseChannel = core
