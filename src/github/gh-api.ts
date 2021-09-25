@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {components} from '@octokit/openapi-types';
-import {RequestError} from '@octokit/request-error';
-import {context, getOctokit} from '@actions/github';
 import * as core from '@actions/core';
 
 import * as store from '../store';
+
+import {components} from '@octokit/openapi-types';
+import {RequestError} from '@octokit/request-error';
+import {context, getOctokit} from '@actions/github';
 
 type PullsCreateResponseData = components['schemas']['pull-request'];
 

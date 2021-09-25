@@ -14,7 +14,30 @@
   },
   "rules": {
     "eslint-comments/no-use": "off",
+    "filenames/match-regex": "off",
+    "i18n-text/no-en": "off",
     "import/no-namespace": "off",
+    "sort-imports": [
+      "error",
+      {
+        "ignoreCase": true,
+        "allowSeparatedGroups": true,
+        "memberSyntaxSortOrder": [
+          "all",
+          "single",
+          "multiple",
+          "none"
+        ]
+      }
+    ],
+    "import/no-unresolved": [
+      "error",
+      {
+        "ignore": [
+          "@octokit"
+        ]
+      }
+    ],
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": "error",
     "@typescript-eslint/explicit-member-accessibility": [

@@ -14,8 +14,9 @@
 
 import * as core from '@actions/core';
 
-import {Inputs} from '../inputs';
 import * as git from './git-cmds';
+
+import {Inputs} from '../inputs';
 
 export async function setup(inputs: Inputs) {
   const credentials = Buffer.from(

@@ -14,9 +14,10 @@
 
 import * as core from '@actions/core';
 
-import {IGitHubApi} from '../github/gh-api';
 import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
+
+import {IGitHubApi} from '../github/gh-api';
 
 export class PostAction {
   private githubApi: IGitHubApi;
