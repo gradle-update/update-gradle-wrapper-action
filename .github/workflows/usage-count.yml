@@ -13,7 +13,7 @@ jobs:
           debug: true
           result-encoding: string
           script: |
-            const result = await github.search.code({
+            const result = await github.rest.search.code({
               q: 'gradle-update+update-gradle-wrapper-action+in:file+language:yaml+path:.github/workflows'
             })
             console.log(JSON.stringify(result, null, 2))
