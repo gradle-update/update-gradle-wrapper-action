@@ -15,7 +15,6 @@
 import * as core from '@actions/core';
 
 import * as cmd from './cmd';
-import fs from 'fs';
 import type {IWrapperInfo} from './wrapperInfo';
 import type {Release} from './releases';
 
@@ -68,7 +67,7 @@ class WrapperUpdater implements IWrapperUpdater {
     }
 
     // Update verification data, if used
-    if (fs.existsSync('gradle/verification-metadata.xml')) {
+    if (this.wrapper.withVerificationMetadataFile) {
       args = args.concat(['--write-verification-metadata', 'sha256']);
     }
 

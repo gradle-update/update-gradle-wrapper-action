@@ -1246,6 +1246,9 @@ class WrapperInfo {
         core.debug('WrapperInfo');
         core.debug(`  path: ${this.path}`);
         core.debug(`  basePath: ${this.basePath}`);
+        const verificationMetadataFilePath = path.replace('gradle/wrapper/gradle-wrapper.properties', 'gradle/verification-metadata.xml');
+        this.withVerificationMetadataFile = (0, fs_1.existsSync)(verificationMetadataFilePath);
+        core.debug(`  withVerificationMetadataFile: ${this.withVerificationMetadataFile}`);
         const props = (0, fs_1.readFileSync)(path).toString();
         core.debug(`  props: ${props.replace('\n', ' ')}`);
         const distributionUrl = props
@@ -1301,14 +1304,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createWrapperUpdater = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
-const fs_1 = __importDefault(__nccwpck_require__(5747));
 function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum) {
     return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum);
 }
@@ -1334,7 +1333,7 @@ class WrapperUpdater {
                     : this.targetRelease.allChecksum;
                 args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
             }
-            if (fs_1.default.existsSync('gradle/verification-metadata.xml')) {
+            if (this.wrapper.withVerificationMetadataFile) {
                 args = args.concat(['--write-verification-metadata', 'sha256']);
             }
             const { exitCode, stderr } = yield cmd.execWithOutput('./gradlew', args, this.wrapper.basePath);
