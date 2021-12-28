@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 
 import * as cmd from './cmd';
+import fs from 'fs';
 import type {IWrapperInfo} from './wrapperInfo';
 import type {Release} from './releases';
 
@@ -64,6 +65,11 @@ class WrapperUpdater implements IWrapperUpdater {
       // Writes checksum of the distribution binary in gradle-wrapper.properties
       // so that it will be verified on first execution
       args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
+    }
+
+    // Update verification data, if used
+    if (fs.existsSync('gradle/verification-metadata.xml')) {
+      args = args.concat(['--write-verification-metadata', 'sha256']);
     }
 
     const {exitCode, stderr} = await cmd.execWithOutput(
