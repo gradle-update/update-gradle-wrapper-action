@@ -45,6 +45,8 @@ describe('getInputs', () => {
       ActionInputs {
         "baseBranch": "",
         "labels": Array [],
+        "paths": Array [],
+        "pathsIgnore": Array [],
         "repoToken": "s3cr3t",
         "reviewers": Array [],
         "setDistributionChecksum": true,
