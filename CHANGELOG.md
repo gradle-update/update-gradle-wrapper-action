@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.16
+
+- Added support for updating `verification-metadata.xml` file, thanks to @dbast (https://github.com/gradle-update/update-gradle-wrapper-action/pull/365)
+- Updated action dependencies.
+
 ## v1.0.15
 
 - Updated action dependencies and adapted to breaking changes.
