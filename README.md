@@ -8,7 +8,7 @@ your projects up-to-date to the latest release.
 
 Schedule an automatic daily or weekly workflow: as soon
 as a new Gradle release is available, the action will open a PR ready to be
-merged. It's like [Dependabot](https://dependabot.com) for Gradle Wrapper. 🤖✨
+merged. It's like [Dependabot](https://github.com/dependabot) for Gradle Wrapper. 🤖✨
 
 ![Pull
 Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9-11ea-8ec7-85c2704270eb.png
@@ -25,10 +25,14 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`labels`](#labels)
   - [`base-branch`](#base-branch)
   - [`target-branch`](#target-branch)
+  - [`paths`](#paths)
+  - [`paths-ignore`](#paths-ignore)
   - [`set-distribution-checksum`](#set-distribution-checksum)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
+  - [Ignoring subprojects folders](#ignoring-subproject-folders)
+  - [Using `paths` and `paths-ignore` together](#using-paths-and-paths-ignore-together)
 - [FAQ](#faq)
   - [Running CI workflows in Pull Requests created by the action](#running-ci-workflows-in-pull-requests-created-by-the-action)
   - [Android Studio warning about `distributionSha256Sum`](#android-studio-warning-about-distributionsha256sum)
@@ -128,9 +132,11 @@ This is the list of supported inputs:
 | [`repo-token`](#repo-token) | `GITHUB_TOKEN` or a Personal Access Token (PAT) with `repo` scope. | No | `GITHUB_TOKEN` |
 | [`reviewers`](#reviewers) | List of users to request a review from (comma or newline-separated). | No | (empty) |
 | [`team-reviewers`](#team-reviewers) | List of teams to request a review from (comma or newline-separated). | No | (empty) |
-| [`labels`](#labels) | 'List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
+| [`labels`](#labels) | List of labels to set on the Pull Request (comma or newline-separated). | No | (empty) |
 | [`base-branch`](#base-branch) | Base branch where the action will run and update the Gradle Wrapper. | No | The default branch name of your repository. |
 | [`target-branch`](#target-branch) | Branch to create the Pull Request against. | No | The default branch name of your repository. |
+| [`paths`](#paths) | List of paths where to search for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
+| [`paths-ignore`](#paths-ignore) | List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
 
 ---
@@ -293,6 +299,66 @@ with:
 
 ---
 
+### `paths`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `paths` | List of paths where to search for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
+
+By default all Gradle Wrapper files in the source tree will be autodiscovered and considered for update. Use `paths` to provide a specific list of paths where to look for `gradle-wrapper.jar`.
+
+For example, use a comma-separated list:
+
+```yaml
+with:
+  paths: project-web/**, project-backend/**
+```
+
+or add each path on a different line (no comma needed):
+
+```yaml
+with:
+  paths: |
+    project-web/**
+    project-backend/**
+```
+
+This input accepts glob patterns that use characters like `*` and `**`, for more information see [GitHub's cheat sheet](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet).
+
+`paths` and `paths-ignore` can be used together. `paths` is always evaluated before `paths-ignore`, look at [this example](#using-paths-and-paths-ignore-together).
+
+---
+
+### `paths-ignore`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `paths-ignore` | List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
+
+By default all Gradle Wrapper files in the source tree will be autodiscovered and considered for update. Use `paths-ignore` to specify paths that should be ignored during scan.
+
+For example, use a comma-separated list:
+
+```yaml
+with:
+  paths-ignore: project-docs/**, project-examples/**
+```
+
+or add each path on a different line (no comma needed):
+
+```yaml
+with:
+  paths-ignore: |
+    project-docs/**
+    project-examples/**
+```
+
+This input accepts glob patterns that use characters like `*` and `**`, for more information see [GitHub's cheat sheet](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet).
+
+`paths` and `paths-ignore` can be used together. `paths-ignore` is always evaluated after `paths`, look at [this example](#using-paths-and-paths-ignore-together).
+
+---
+
 ### `set-distribution-checksum`
 
 | Name | Description | Required | Default |
@@ -360,6 +426,33 @@ If you want Pull Requests to be created against a non-default branch use the `ta
 ```yaml
 with:
   target-branch: v2-dev
+```
+
+### Ignoring subprojects folders
+
+There are cases where your repository contains folders for projects or subprojects that need to be kept at an older Gradle version.
+
+If you want to ignore such files when the action runs, use `paths-ignore` to configure project paths that contains Gradle Wrapper files that should not be updated.
+
+```yaml
+with:
+  paths-ignore: examples/**
+```
+
+### Using `paths` and `paths-ignore` together
+
+`paths` and `paths-ignore` works as allowlist and blocklist systems. The evaluation rule is as follows:
+
+- the source tree is searched for all `gradle-wrapper.jar` files and the list is passed to the next step
+- if `paths` is not empty, the paths that match the specified patterns are passed to the next step
+- if `paths-ignore` is not empty, the paths that match the specified patterns are removed from the list
+
+For example, the following configuration will srarch for Gradle Wrapper files in the `sub-project` directory and its subdirectories, but not in the `sub-project/examples` directory.
+
+```yaml
+with:
+  paths: sub-project/**
+  paths-ignore: sub-project/examples/**
 ```
 
 ## FAQ

@@ -32,7 +32,9 @@ const defaultMockInputs: Inputs = {
   labels: [],
   baseBranch: '',
   targetBranch: '',
-  setDistributionChecksum: true
+  setDistributionChecksum: true,
+  paths: [],
+  pathsIgnore: []
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
