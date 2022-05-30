@@ -179,7 +179,7 @@ with:
   repo-token: ${{ secrets.GRADLE_UPDATE_PAT }}
 ```
 
-Read this [paragraph]((#running-ci-workflows-in-pull-requests-created-by-the-action)) for more details on the topic.
+Read this [paragraph](#running-ci-workflows-in-pull-requests-created-by-the-action) for more details on the topic.
 
 ---
 
