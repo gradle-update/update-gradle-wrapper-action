@@ -28,6 +28,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`paths`](#paths)
   - [`paths-ignore`](#paths-ignore)
   - [`set-distribution-checksum`](#set-distribution-checksum)
+  - [`release-channel`](#release-channel)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
@@ -138,6 +139,7 @@ This is the list of supported inputs:
 | [`paths`](#paths) | List of paths where to search for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`paths-ignore`](#paths-ignore) | List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
+| [`release-channel`](#release-channel) | Which Gradle release channel to use: either `stable` or `release-candidate`. | No | `stable` |
 
 ---
 

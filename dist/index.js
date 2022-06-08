@@ -769,7 +769,6 @@ class ActionInputs {
             core
                 .getInput('set-distribution-checksum', { required: false })
                 .toLowerCase() !== 'false';
-
         this.paths = core
             .getInput('paths', { required: false })
             .split(/[\n,]/)
@@ -780,12 +779,10 @@ class ActionInputs {
             .split(/[\n,]/)
             .map(r => r.trim())
             .filter(r => r.length);
-
         this.releaseChannel = core
             .getInput('release-channel', { required: false })
             .trim()
             .toLowerCase();
-
         if (!this.releaseChannel) {
             this.releaseChannel = 'stable';
         }
