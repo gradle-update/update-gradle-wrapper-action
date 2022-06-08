@@ -42,7 +42,7 @@ inputs:
     required: false
     default: ''
   release-channel:
-    description: 'Gradle release channel to be used. `stable` or `release-candidate`'
+    description: 'Gradle release channel to be used (either `stable` or `release-candidate`).'
     required: false
     default: stable
 
