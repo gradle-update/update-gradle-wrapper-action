@@ -33,6 +33,8 @@ const defaultMockInputs: Inputs = {
   baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true,
+  paths: [],
+  pathsIgnore: [],
   releaseChannel: ''
 };
 

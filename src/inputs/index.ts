@@ -22,6 +22,8 @@ export interface Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  paths: string[];
+  pathsIgnore: string[];
   releaseChannel: string;
 }
 
@@ -39,6 +41,8 @@ class ActionInputs implements Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  paths: string[];
+  pathsIgnore: string[];
   releaseChannel: string;
 
   constructor() {
@@ -73,6 +77,18 @@ class ActionInputs implements Inputs {
       core
         .getInput('set-distribution-checksum', {required: false})
         .toLowerCase() !== 'false';
+
+    this.paths = core
+      .getInput('paths', {required: false})
+      .split(/[\n,]/)
+      .map(r => r.trim())
+      .filter(r => r.length);
+
+    this.pathsIgnore = core
+      .getInput('paths-ignore', {required: false})
+      .split(/[\n,]/)
+      .map(r => r.trim())
+      .filter(r => r.length);
 
     this.releaseChannel = core
       .getInput('release-channel', {required: false})

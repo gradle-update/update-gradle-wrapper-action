@@ -15,13 +15,14 @@
 import * as core from '@actions/core';
 
 import {isAbsolute} from 'path';
-import {readFileSync} from 'fs';
+import {existsSync, readFileSync} from 'fs';
 
 export interface IWrapperInfo {
   readonly version: string;
   readonly path: string;
   readonly distType: string;
   readonly basePath: string;
+  readonly withVerificationMetadataFile: boolean;
 }
 
 export function createWrapperInfo(path: string): IWrapperInfo {
@@ -33,6 +34,7 @@ class WrapperInfo implements IWrapperInfo {
   readonly path: string;
   readonly distType: string;
   readonly basePath: string;
+  readonly withVerificationMetadataFile: boolean;
 
   constructor(path: string) {
     if (!isAbsolute(path)) {
@@ -48,6 +50,17 @@ class WrapperInfo implements IWrapperInfo {
     core.debug('WrapperInfo');
     core.debug(`  path: ${this.path}`);
     core.debug(`  basePath: ${this.basePath}`);
+
+    const verificationMetadataFilePath = path.replace(
+      'gradle/wrapper/gradle-wrapper.properties',
+      'gradle/verification-metadata.xml'
+    );
+    this.withVerificationMetadataFile = existsSync(
+      verificationMetadataFilePath
+    );
+    core.debug(
+      `  withVerificationMetadataFile: ${this.withVerificationMetadataFile}`
+    );
 
     const props = readFileSync(path).toString();
     core.debug(`  props: ${props.replace('\n', ' ')}`);

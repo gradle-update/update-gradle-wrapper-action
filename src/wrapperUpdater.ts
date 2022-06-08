@@ -66,6 +66,11 @@ class WrapperUpdater implements IWrapperUpdater {
       args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
     }
 
+    // Update verification data, if used
+    if (this.wrapper.withVerificationMetadataFile) {
+      args = args.concat(['--write-verification-metadata', 'sha256']);
+    }
+
     const {exitCode, stderr} = await cmd.execWithOutput(
       './gradlew',
       args,

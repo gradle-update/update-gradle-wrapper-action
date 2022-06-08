@@ -13,7 +13,6 @@
 // limitations under the License.
 
 import * as core from '@actions/core';
-import * as glob from '@actions/glob';
 
 import * as git from '../git/git-cmds';
 import * as gitAuth from '../git/git-auth';
@@ -22,6 +21,7 @@ import * as store from '../store';
 import {commit} from '../git/git-commit';
 import {createWrapperInfo} from '../wrapperInfo';
 import {createWrapperUpdater} from '../wrapperUpdater';
+import {findWrapperPropertiesFiles} from '../wrapper/find';
 import {GitHubOps} from '../github/gh-ops';
 import {IGitHubApi} from '../github/gh-api';
 import {Inputs} from '../inputs';
@@ -71,11 +71,10 @@ export class MainAction {
         return;
       }
 
-      const globber = await glob.create(
-        '**/gradle/wrapper/gradle-wrapper.properties',
-        {followSymbolicLinks: false}
+      const wrappers = await findWrapperPropertiesFiles(
+        this.inputs.paths,
+        this.inputs.pathsIgnore
       );
-      const wrappers = await globber.glob();
       core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
 
       if (!wrappers.length) {

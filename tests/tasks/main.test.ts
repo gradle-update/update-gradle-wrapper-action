@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as glob from '@actions/glob';
-
 import * as commit from '../../src/git/git-commit';
 import * as git from '../../src/git/git-cmds';
 import * as gitAuth from '../../src/git/git-auth';
 import * as store from '../../src/store';
 import * as wrapper from '../../src/wrapperInfo';
+import * as wrapperFind from '../../src/wrapper/find';
 import * as wrapperUpdater from '../../src/wrapperUpdater';
 
 import {GitHubOps} from '../../src/github/gh-ops';
@@ -41,6 +40,8 @@ const defaultMockInputs: Inputs = {
   baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true,
+  paths: [],
+  pathsIgnore: [],
   releaseChannel: ''
 };
 
@@ -89,13 +90,9 @@ describe('run', () => {
 
     mockGitHubOps.findMatchingRef = jest.fn().mockReturnValue(undefined);
 
-    jest.spyOn(glob, 'create').mockResolvedValue({
-      getSearchPaths: jest.fn(),
-      glob: jest
-        .fn()
-        .mockReturnValue(['/path/to/gradle/wrapper/gradle-wrapper.properties']),
-      globGenerator: jest.fn()
-    });
+    jest
+      .spyOn(wrapperFind, 'findWrapperPropertiesFiles')
+      .mockResolvedValue(['/path/to/gradle/wrapper/gradle-wrapper.properties']);
 
     jest.spyOn(wrapper, 'createWrapperInfo').mockReturnValue({
       version: '1.0.0',
