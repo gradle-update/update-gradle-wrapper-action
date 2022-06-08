@@ -41,6 +41,10 @@ inputs:
     description: 'List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated).'
     required: false
     default: ''
+  release-channel:
+    description: 'Gradle release channel to be used (either `stable` or `release-candidate`).'
+    required: false
+    default: stable
 
 runs:
   using: 'node16'

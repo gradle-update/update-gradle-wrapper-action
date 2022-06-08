@@ -23,3 +23,13 @@ test('parses a valid properties file', () => {
   expect(wrapperInfo.version).toBe('6.6.1');
   expect(wrapperInfo.distType).toBe('all');
 });
+
+test('parses a properties file with release candidate version', () => {
+  const propsPath = path.resolve(
+    'tests/data/gradle-wrapper.release-candidate.properties'
+  );
+
+  const wrapperInfo = createWrapperInfo(propsPath);
+  expect(wrapperInfo.version).toBe('7.0-rc-1');
+  expect(wrapperInfo.distType).toBe('all');
+});

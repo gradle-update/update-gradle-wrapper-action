@@ -72,7 +72,7 @@ class WrapperInfo implements IWrapperInfo {
 
     core.debug(`distributionUrl: ${distributionUrl}`);
 
-    const parsed = /^distributionUrl=.*\/gradle-([^-]+)-([^.]+)\.zip$/.exec(
+    const parsed = /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(
       distributionUrl
     );
 

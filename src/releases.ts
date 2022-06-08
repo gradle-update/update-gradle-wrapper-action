@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 
 import {HttpClient} from '@actions/http-client';
+import {ITypedResponse} from '@actions/http-client/interfaces';
 
 export interface Release {
   version: string;
@@ -46,13 +47,22 @@ export class Releases {
     this.client = new HttpClient('Update Gradle Wrapper Action');
   }
 
-  async current(): Promise<Release> {
+  async loadRelease(releaseChannel: string) {
+    const requestUrl =
+      releaseChannel === 'release-candidate'
+        ? 'https://services.gradle.org/versions/release-candidate'
+        : 'https://services.gradle.org/versions/current';
+
     const response = await this.client.getJson<ReleaseData>(
       // TODO: with 404 result is null, 500 throws
-      'https://services.gradle.org/versions/current'
+      requestUrl
     );
     core.debug(`statusCode: ${response.statusCode}`);
 
+    return await this.mapResponse(response);
+  }
+
+  private async mapResponse(response: ITypedResponse<ReleaseData>) {
     const data = response.result;
 
     if (data) {

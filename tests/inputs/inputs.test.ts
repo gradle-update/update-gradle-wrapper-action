@@ -47,6 +47,7 @@ describe('getInputs', () => {
         "labels": Array [],
         "paths": Array [],
         "pathsIgnore": Array [],
+        "releaseChannel": "stable",
         "repoToken": "s3cr3t",
         "reviewers": Array [],
         "setDistributionChecksum": true,
@@ -185,6 +186,34 @@ describe('getInputs', () => {
 
         expect(getInputs().setDistributionChecksum).toEqual(expected);
       }
+    });
+  });
+
+  describe('releaseChannel', () => {
+    it('defaults to stable channel', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().releaseChannel).toStrictEqual('stable');
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'release-channel': 'release-candidate'
+      };
+
+      expect(getInputs().releaseChannel).toStrictEqual('release-candidate');
+    });
+
+    it('throws for unexpected channel', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'release-channel': 'unexpected-channel'
+      };
+
+      expect(() => getInputs()).toThrowError();
     });
   });
 });
