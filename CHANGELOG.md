@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.18
+
+- Addedd support for release-candidate releases of Gradle (@bountin).
+- Updated action dependencies.
+- Renamed `master` branch to `main`.
+
 ## v1.0.17
 
 - Added `paths` and `paths-ignore` input parameters.
