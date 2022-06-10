@@ -81,7 +81,7 @@ describe('run', () => {
 
     jest.spyOn(gitAuth, 'setup').mockImplementation();
 
-    mockReleases.loadRelease = jest.fn().mockReturnValue({
+    mockReleases.fetchReleaseInformation = jest.fn().mockReturnValue({
       version: '1.0.1',
       allChecksum: 'dist-all-checksum-value',
       binChecksum: 'dist-bin-checksum-value',

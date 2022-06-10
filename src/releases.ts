@@ -47,7 +47,7 @@ export class Releases {
     this.client = new HttpClient('Update Gradle Wrapper Action');
   }
 
-  async loadRelease(releaseChannel: string) {
+  async fetchReleaseInformation(releaseChannel: string) {
     const requestUrl =
       releaseChannel === 'release-candidate'
         ? 'https://services.gradle.org/versions/release-candidate'

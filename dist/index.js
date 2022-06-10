@@ -885,7 +885,7 @@ class Releases {
     constructor() {
         this.client = new http_client_1.HttpClient('Update Gradle Wrapper Action');
     }
-    loadRelease(releaseChannel) {
+    fetchReleaseInformation(releaseChannel) {
         return __awaiter(this, void 0, void 0, function* () {
             const requestUrl = releaseChannel === 'release-candidate'
                 ? 'https://services.gradle.org/versions/release-candidate'
@@ -1072,7 +1072,7 @@ class MainAction {
                 core.debug(JSON.stringify(process.env, null, 2));
                 yield gitAuth.setup(this.inputs);
                 const releaseChannel = this.inputs.releaseChannel;
-                const targetRelease = yield this.releases.loadRelease(releaseChannel);
+                const targetRelease = yield this.releases.fetchReleaseInformation(releaseChannel);
                 core.info(`Latest release: ${targetRelease.version} (channel ${releaseChannel})`);
                 const ref = yield this.githubOps.findMatchingRef(targetRelease.version);
                 if (ref) {
