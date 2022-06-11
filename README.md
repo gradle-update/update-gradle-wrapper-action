@@ -32,7 +32,8 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
-  - [Ignoring subprojects folders](#ignoring-subproject-folders)
+  - [Updating to the latest Release Candidate version](#updating-to-the-latest-release-candidate-version)
+  - [Ignoring subprojects folders with `paths-ignore`](#ignoring-subprojects-folders-with-paths-ignore)
   - [Using `paths` and `paths-ignore` together](#using-paths-and-paths-ignore-together)
 - [FAQ](#faq)
   - [Running CI workflows in Pull Requests created by the action](#running-ci-workflows-in-pull-requests-created-by-the-action)
@@ -448,11 +449,20 @@ with:
   target-branch: v2-dev
 ```
 
-### Ignoring subprojects folders
+### Updating to the latest Release Candidate version
+
+The action supports more Gradle release channels. By default, when the action runs it will check for the latest `stable` release. If your project depends on the release candidate version of Gradle, use `release-channel` to configure which release information to download:
+
+```yaml
+with:
+  release-channel: release-candidate
+```
+
+### Ignoring subprojects folders with `paths-ignore`
 
 There are cases where your repository contains folders for projects or subprojects that need to be kept at an older Gradle version.
 
-If you want to ignore such files when the action runs, use `paths-ignore` to configure project paths that contains Gradle Wrapper files that should not be updated.
+If you want to ignore such files when the action runs, use `paths-ignore` to configure project paths that contain Gradle Wrapper files that should not be updated.
 
 ```yaml
 with:
