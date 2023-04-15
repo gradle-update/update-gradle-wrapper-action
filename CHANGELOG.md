@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.19
+
+- Updated action dependencies.
+
 ## v1.0.18
 
 - Addedd support for release-candidate releases of Gradle (@bountin).
