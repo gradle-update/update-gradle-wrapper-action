@@ -1,12 +1,16 @@
 # Changelog
 
+## v1.0.20
+
+- Added `auto-merge` input parameter, by @ChrisCarini
+
 ## v1.0.19
 
 - Updated action dependencies.
 
 ## v1.0.18
 
-- Addedd support for release-candidate releases of Gradle (@bountin).
+- Added support for release-candidate releases of Gradle (@bountin).
 - Updated action dependencies.
 - Renamed `master` branch to `main`.
 
