@@ -101,6 +101,13 @@ export class GitHubOps {
       this.inputs.teamReviewers
     );
 
+    if (this.inputs.mergeMethod !== undefined) {
+      await this.api.enableAutoMerge(
+        pullRequest.number,
+        this.inputs.mergeMethod
+      );
+    }
+
     return {
       url: pullRequest.html_url,
       number: pullRequest.number

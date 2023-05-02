@@ -42,7 +42,8 @@ const defaultMockInputs: Inputs = {
   setDistributionChecksum: true,
   paths: [],
   pathsIgnore: [],
-  releaseChannel: ''
+  releaseChannel: '',
+  mergeMethod: undefined
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -53,7 +54,8 @@ const defaultMockGitHubApi: IGitHubApi = {
   addLabels: jest.fn(),
   createLabelIfMissing: jest.fn(),
   createLabel: jest.fn(),
-  createComment: jest.fn()
+  createComment: jest.fn(),
+  enableAutoMerge: jest.fn()
 };
 
 beforeEach(() => {
