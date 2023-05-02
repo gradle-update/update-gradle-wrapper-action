@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Update Gradle Wrapper
         uses: gradle-update/update-gradle-wrapper-action@v1
@@ -141,6 +141,7 @@ This is the list of supported inputs:
 | [`paths-ignore`](#paths-ignore) | List of paths to be excluded when searching for Gradle Wrapper files (comma or newline-separated). | No | (empty) |
 | [`set-distribution-checksum`](#set-distribution-checksum) | Whether to set the `distributionSha256Sum` property. | No | `true` |
 | [`release-channel`](#release-channel) | Which Gradle release channel to use: either `stable` or `release-candidate`. | No | `stable` |
+| [`merge-method`](#merge-method) | Which merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). Valid values include `MERGE`, `REBASE`, or `SQUASH`.  If unset, automerge will not be enabled on opened PRs. | No | (unset) No auto-merge |
 
 ---
 
@@ -406,6 +407,20 @@ For example:
 ```yaml
 with:
   release-channel: release-candidate
+```
+### `merge-method`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| [`merge-method`](#merge-method) | Which merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). Valid values include `MERGE`, `REBASE`, or `SQUASH`.  If unset, automerge will not be enabled on opened PRs. | No | (unset) No auto-merge |
+
+The merge method to use for [auto-merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request). By default auto-merge will not be enabled; set this to one of the valid merge methods to enable auto-merge.
+
+For example:
+
+```yaml
+with:
+  merge-method: SQUASH
 ```
 
 ## Examples

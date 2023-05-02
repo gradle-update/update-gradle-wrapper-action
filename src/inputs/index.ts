@@ -25,6 +25,7 @@ export interface Inputs {
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
+  mergeMethod: string | undefined;
 }
 
 export function getInputs(): Inputs {
@@ -44,6 +45,7 @@ class ActionInputs implements Inputs {
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
+  mergeMethod: string | undefined;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -99,6 +101,11 @@ class ActionInputs implements Inputs {
     }
     if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
       throw new Error('release-channel has unexpected value');
+    }
+
+    this.mergeMethod = core.getInput('merge-method', {required: false});
+    if (!this.mergeMethod) {
+      this.mergeMethod = undefined;
     }
   }
 }
