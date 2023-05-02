@@ -29,6 +29,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`paths-ignore`](#paths-ignore)
   - [`set-distribution-checksum`](#set-distribution-checksum)
   - [`release-channel`](#release-channel)
+  - [`merge-method`](#merge-method)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
