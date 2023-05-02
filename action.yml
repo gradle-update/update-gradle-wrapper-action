@@ -45,6 +45,9 @@ inputs:
     description: 'Gradle release channel to be used (either `stable` or `release-candidate`).'
     required: false
     default: stable
+  merge-method:
+    description: 'Which merge method to use for auto-merge (either `MERGE`, `REBASE`, or `SQUASH`).  If unset, auto-merge will not be enabled on opened PRs.'
+    required: false
 
 runs:
   using: 'node16'

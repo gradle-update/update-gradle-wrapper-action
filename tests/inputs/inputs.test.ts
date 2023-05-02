@@ -45,6 +45,7 @@ describe('getInputs', () => {
       ActionInputs {
         "baseBranch": "",
         "labels": Array [],
+        "mergeMethod": undefined,
         "paths": Array [],
         "pathsIgnore": Array [],
         "releaseChannel": "stable",

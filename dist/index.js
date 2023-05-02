@@ -548,6 +548,56 @@ class GitHubApi {
             }
         });
     }
+    enableAutoMerge(pullRequestNumber, mergeMethod) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (!['MERGE', 'REBASE', 'SQUASH'].includes(mergeMethod.toUpperCase())) {
+                    core.error(`merge-method must be one of the following (or not defined): 'MERGE', 'REBASE', or 'SQUASH'.`);
+                }
+                core.info(`Enabling Auto-Merge on ${github_1.context.repo.owner}/${github_1.context.repo.repo} PR# ${pullRequestNumber}`);
+                const { repository: { pullRequest: { id: prId } } } = yield this.octokit.graphql(`query GetPullRequestId($owner: String!, $repo: String!, $pullRequestNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pullRequestNumber) {
+                    id
+                  }
+                }
+              }`, {
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    pullRequestNumber
+                });
+                core.debug(`${github_1.context.repo.owner}/${github_1.context.repo.repo} PR# ${pullRequestNumber} -> PR ID: ${prId}`);
+                const enablePullRequestAutoMergeResult = yield this.octokit.graphql(`mutation ($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+                  enablePullRequestAutoMerge(
+                    input: {
+                      pullRequestId: $pullRequestId,
+                      mergeMethod: $mergeMethod
+                    }
+                  ) {
+                    pullRequest {
+                      autoMergeRequest {
+                        enabledAt
+                        enabledBy {
+                          login
+                        }
+                      }
+                    }
+                  }
+                }`, {
+                    pullRequestId: prId,
+                    mergeMethod: mergeMethod.toUpperCase()
+                });
+                core.debug(`enablePullRequestAutoMerge on PR ID: ${prId}:`);
+                core.debug(JSON.stringify(enablePullRequestAutoMergeResult, null, 2));
+            }
+            catch (error) {
+                core.warning(`Unable to enable automerge [${mergeMethod}] for PR ${pullRequestNumber}`);
+                if (error instanceof Error) {
+                    core.warning(`error: ${error.message}`);
+                }
+            }
+        });
+    }
 }
 exports.GitHubApi = GitHubApi;
 
@@ -643,6 +693,9 @@ class GitHubOps {
             ]);
             yield this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
             yield this.api.addTeamReviewers(pullRequest.number, this.inputs.teamReviewers);
+            if (this.inputs.mergeMethod !== undefined) {
+                yield this.api.enableAutoMerge(pullRequest.number, this.inputs.mergeMethod);
+            }
             return {
                 url: pullRequest.html_url,
                 number: pullRequest.number
@@ -788,6 +841,10 @@ class ActionInputs {
         }
         if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
             throw new Error('release-channel has unexpected value');
+        }
+        this.mergeMethod = core.getInput('merge-method', { required: false });
+        if (!this.mergeMethod) {
+            this.mergeMethod = undefined;
         }
     }
 }
