@@ -43,7 +43,8 @@ const defaultMockInputs: Inputs = {
   paths: [],
   pathsIgnore: [],
   releaseChannel: '',
-  mergeMethod: undefined
+  mergeMethod: undefined,
+  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -160,6 +161,7 @@ describe('run', () => {
 
     expect(mockGitHubOps.createPullRequest).toHaveBeenCalledWith(
       'gradlew-update-1.0.1',
+      'Bump wrapper from %sourceVersion% to %targetVersion%',
       new Set(['bin']),
       expect.objectContaining({
         version: '1.0.1'

@@ -48,6 +48,10 @@ inputs:
   merge-method:
     description: 'Which merge method to use for auto-merge (either `MERGE`, `REBASE`, or `SQUASH`).  If unset, auto-merge will not be enabled on opened PRs.'
     required: false
+  pr-title-template:
+    description: 'Template used for PR title'
+    required: false
+    default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 
 runs:
   using: 'node16'

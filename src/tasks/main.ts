@@ -195,6 +195,7 @@ export class MainAction {
       core.info('Creating Pull Request');
       const pullRequestData = await this.githubOps.createPullRequest(
         branchName,
+        this.inputs.prTitleTemplate,
         distTypes,
         targetRelease,
         commitDataList.length === 1

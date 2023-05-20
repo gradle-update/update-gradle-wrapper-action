@@ -30,6 +30,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`set-distribution-checksum`](#set-distribution-checksum)
   - [`release-channel`](#release-channel)
   - [`merge-method`](#merge-method)
+  - [`pr-title-template`](#pr-title-template)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
@@ -422,6 +423,24 @@ For example:
 ```yaml
 with:
   merge-method: SQUASH
+```
+### `pr-title-template`
+
+| Name | Description                                                   | Required | Default |
+| --- | --- | --- | --- |
+| `pr-title-template` | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
+
+This input is used for the title of the pull request created by this action. This allows for better integration into
+repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
+
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper
+respectively.
+
+For example:
+
+```yaml
+with:
+  pr-title-template: 'chore(deps): Bump Gradle Wrapper from %sourceVersion% to %targetVersion%'
 ```
 
 ## Examples

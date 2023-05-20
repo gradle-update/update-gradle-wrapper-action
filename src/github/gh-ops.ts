@@ -61,6 +61,7 @@ export class GitHubOps {
 
   async createPullRequest(
     branchName: string,
+    prTitleTemplate: string,
     distTypes: Set<string>,
     targetRelease: Release,
     sourceVersion?: string
@@ -73,6 +74,7 @@ export class GitHubOps {
     core.debug(`Target branch: ${targetBranch}`);
 
     const {title, body} = pullRequestText(
+      prTitleTemplate,
       distTypes,
       targetRelease,
       sourceVersion

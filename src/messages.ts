@@ -17,16 +17,27 @@ import {Release} from './releases';
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 
+const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
+const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
+
+export function pullRequestTitle(
+  template: string,
+  sourceVersion: string | undefined,
+  targetVersion: string
+) {
+  return template
+    .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
+    .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion ?? 'undefined');
+}
+
 export function pullRequestText(
+  prTitleTemplate: string,
   distTypes: Set<string>,
   targetRelease: Release,
   sourceVersion?: string
 ): {title: string; body: string} {
   const targetVersion = targetRelease.version;
-
-  const title = sourceVersion
-    ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
-    : `Update Gradle Wrapper to ${targetVersion}`;
+  const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
 
   const bodyHeader = `${title}.
 
