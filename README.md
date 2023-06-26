@@ -493,7 +493,7 @@ with:
 - if `paths` is not empty, the paths that match the specified patterns are passed to the next step
 - if `paths-ignore` is not empty, the paths that match the specified patterns are removed from the list
 
-For example, the following configuration will srarch for Gradle Wrapper files in the `sub-project` directory and its subdirectories, but not in the `sub-project/examples` directory.
+For example, the following configuration will search for Gradle Wrapper files in the `sub-project` directory and its subdirectories, but not in the `sub-project/examples` directory.
 
 ```yaml
 with:
