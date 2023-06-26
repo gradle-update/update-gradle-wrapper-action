@@ -426,7 +426,7 @@ with:
 ```
 ### `pr-title-template`
 
-| Name | Description                                                   | Required | Default |
+| Name | Description | Required | Default |
 | --- | --- | --- | --- |
 | `pr-title-template` | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
 
