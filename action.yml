@@ -49,7 +49,11 @@ inputs:
     description: 'Which merge method to use for auto-merge (either `MERGE`, `REBASE`, or `SQUASH`).  If unset, auto-merge will not be enabled on opened PRs.'
     required: false
   pr-title-template:
-    description: 'Template used for PR title'
+    description: |
+      Template used for PR title.
+      There are cases in which the source version of the Gradle Wrapper can not
+      be determined successfully. In such cases, the string 'undefined' will be
+      used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 

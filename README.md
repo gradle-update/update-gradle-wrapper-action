@@ -436,6 +436,8 @@ repositories which make use of commit message patterns like [Conventional Commit
 `%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper
 respectively.
 
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string 'undefined' will be used to replace the source version placeholder.
+
 For example:
 
 ```yaml
