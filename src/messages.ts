@@ -32,12 +32,12 @@ export function pullRequestTitle(
 
 export function commitMessageText(
   template: string,
-  source: string,
+  source: string | undefined,
   target: string
 ): string {
   return template
     .replace(TARGET_VERSION_PLACEHOLDER, target)
-    .replace(SOURCE_VERSION_PLACEHOLDER, source);
+    .replace(SOURCE_VERSION_PLACEHOLDER, source ? source : 'undefined');
 }
 
 export function pullRequestText(
@@ -48,7 +48,6 @@ export function pullRequestText(
 ): {title: string; body: string} {
   const targetVersion = targetRelease.version;
   const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
-
   const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
