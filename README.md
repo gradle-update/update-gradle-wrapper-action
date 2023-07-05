@@ -430,8 +430,7 @@ with:
 | --- | --- | --- | --- |
 | `pr-title-template` | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
 
-This input is used for the title of the pull request created by this action. This allows for better integration into
-repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
+This input is used for the title of the pull request created by this action. This allows, for example, for better integration into repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
 
 `%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper
 respectively.
