@@ -12,8 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {pullRequestText} from '../src/messages';
 import {Release} from '../src/releases';
+import {pullRequestText, pullRequestTitle} from '../src/messages';
+
+describe('pullRequestTitle', () => {
+  it('replaces %sourceVersion% with sourceVersion parameter', () => {
+    const title = pullRequestTitle(
+      `chore: Update wrapper %sourceVersion% to newer version`,
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(title).toBe('chore: Update wrapper 1.0.0 to newer version');
+  });
+
+  it('replaces %targetVersion% with the source version parameter', () => {
+    const title = pullRequestTitle(
+      `chore: Update wrapper to %targetVersion%`,
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(title).toBe('chore: Update wrapper to 1.0.1');
+  });
+
+  it('replaces both placeholders', () => {
+    const title = pullRequestTitle(
+      `chore: Update wrapper from %sourceVersion% to %targetVersion%`,
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(title).toBe('chore: Update wrapper from 1.0.0 to 1.0.1');
+  });
+
+  it('uses "undefined" if the sourceVersion is undefined', () => {
+    const title = pullRequestTitle(
+      `chore: Update wrapper from %sourceVersion% to %targetVersion%`,
+      undefined,
+      '1.0.1'
+    );
+    expect(title).toBe('chore: Update wrapper from undefined to 1.0.1');
+  });
+});
 
 describe('pullRequestText', () => {
   const distributionTypes = new Set(['all', 'bin']);
@@ -29,6 +67,7 @@ describe('pullRequestText', () => {
 
   it('returns title and body text of Pull Request', () => {
     const {title, body} = pullRequestText(
+      'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
       distributionTypes,
       targetRelease,
       sourceVersion
@@ -65,7 +104,11 @@ If something doesn't look right with this PR please file an issue [here](https:/
 
   describe('when source version is unspecified', () => {
     it('returns title and body text with only the target version', () => {
-      const {title, body} = pullRequestText(distributionTypes, targetRelease);
+      const {title, body} = pullRequestText(
+        'Update Gradle Wrapper to %targetVersion%',
+        distributionTypes,
+        targetRelease
+      );
 
       expect(title).toEqual('Update Gradle Wrapper to 1.0.1');
 
@@ -102,6 +145,7 @@ If something doesn't look right with this PR please file an issue [here](https:/
 
     it('the body text contains only the "bin" checksum value', () => {
       const {title, body} = pullRequestText(
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
         binDistributionType,
         targetRelease,
         sourceVersion
@@ -141,6 +185,7 @@ If something doesn't look right with this PR please file an issue [here](https:/
 
     it('the body text contains only the "all" checksum value', () => {
       const {title, body} = pullRequestText(
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
         allDistributionType,
         targetRelease,
         sourceVersion

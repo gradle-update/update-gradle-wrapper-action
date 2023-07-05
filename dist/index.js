@@ -671,13 +671,13 @@ class GitHubOps {
             return;
         });
     }
-    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
+    createPullRequest(branchName, prTitleTemplate, distTypes, targetRelease, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
             const targetBranch = this.inputs.targetBranch !== ''
                 ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
-            const { title, body } = (0, messages_1.pullRequestText)(distTypes, targetRelease, sourceVersion);
+            const { title, body } = (0, messages_1.pullRequestText)(prTitleTemplate, distTypes, targetRelease, sourceVersion);
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
                 target: targetBranch,
@@ -846,6 +846,13 @@ class ActionInputs {
         if (!this.mergeMethod) {
             this.mergeMethod = undefined;
         }
+        this.prTitleTemplate = core
+            .getInput('pr-title-template', { required: false })
+            .trim();
+        if (!this.prTitleTemplate) {
+            this.prTitleTemplate =
+                'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+        }
     }
 }
 
@@ -858,13 +865,19 @@ class ActionInputs {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pullRequestText = void 0;
+exports.pullRequestText = exports.pullRequestTitle = void 0;
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
-function pullRequestText(distTypes, targetRelease, sourceVersion) {
+const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
+const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
+function pullRequestTitle(template, sourceVersion, targetVersion) {
+    return template
+        .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
+        .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion !== null && sourceVersion !== void 0 ? sourceVersion : 'undefined');
+}
+exports.pullRequestTitle = pullRequestTitle;
+function pullRequestText(prTitleTemplate, distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
-    const title = sourceVersion
-        ? `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}`
-        : `Update Gradle Wrapper to ${targetVersion}`;
+    const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
     const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
@@ -1214,7 +1227,7 @@ class MainAction {
                 core.info('Pushing branch');
                 yield git.push(branchName);
                 core.info('Creating Pull Request');
-                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
+                const pullRequestData = yield this.githubOps.createPullRequest(branchName, this.inputs.prTitleTemplate, distTypes, targetRelease, commitDataList.length === 1
                     ? commitDataList[0].sourceVersion
                     : undefined);
                 core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);

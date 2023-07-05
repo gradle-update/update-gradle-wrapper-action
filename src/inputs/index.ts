@@ -26,6 +26,7 @@ export interface Inputs {
   pathsIgnore: string[];
   releaseChannel: string;
   mergeMethod: string | undefined;
+  prTitleTemplate: string;
 }
 
 export function getInputs(): Inputs {
@@ -46,6 +47,7 @@ class ActionInputs implements Inputs {
   pathsIgnore: string[];
   releaseChannel: string;
   mergeMethod: string | undefined;
+  prTitleTemplate: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -106,6 +108,14 @@ class ActionInputs implements Inputs {
     this.mergeMethod = core.getInput('merge-method', {required: false});
     if (!this.mergeMethod) {
       this.mergeMethod = undefined;
+    }
+
+    this.prTitleTemplate = core
+      .getInput('pr-title-template', {required: false})
+      .trim();
+    if (!this.prTitleTemplate) {
+      this.prTitleTemplate =
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
     }
   }
 }

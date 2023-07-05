@@ -36,7 +36,9 @@ const defaultMockInputs: Inputs = {
   paths: [],
   pathsIgnore: [],
   releaseChannel: '',
-  mergeMethod: undefined
+  mergeMethod: undefined,
+  prTitleTemplate:
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -99,9 +101,31 @@ describe('createPullRequest', () => {
       });
     });
 
+    it('creates a Pull Request with custom title', async () => {
+      await githubOps.createPullRequest(
+        branchName,
+        'chore: Bump wrapper from %sourceVersion% to %targetVersion%',
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'chore: Bump wrapper from 1.0.0 to 1.0.1',
+        body: expect.stringContaining(
+          'chore: Bump wrapper from 1.0.0 to 1.0.1.'
+        )
+      });
+    });
+
     it('creates a Pull Request and returns its data', async () => {
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
+        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -142,6 +166,7 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
+        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -182,6 +207,7 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
+        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -225,6 +251,7 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
+        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -268,6 +295,7 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
+        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -315,6 +343,7 @@ describe('createPullRequest', () => {
       await expect(
         githubOps.createPullRequest(
           branchName,
+          mockInputs.prTitleTemplate,
           distributionTypes,
           targetRelease,
           sourceVersion
@@ -332,6 +361,7 @@ describe('createPullRequest', () => {
       await expect(
         githubOps.createPullRequest(
           branchName,
+          mockInputs.prTitleTemplate,
           distributionTypes,
           targetRelease,
           sourceVersion
