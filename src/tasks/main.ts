@@ -19,6 +19,7 @@ import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
 
 import {commit} from '../git/git-commit';
+import {commitMessageText} from '../messages';
 import {createWrapperInfo} from '../wrapperInfo';
 import {createWrapperUpdater} from '../wrapperUpdater';
 import {findWrapperPropertiesFiles} from '../wrapper/find';
@@ -160,7 +161,13 @@ export class MainAction {
           core.endGroup();
 
           core.startGroup('Committing');
-          await commit(modifiedFiles, targetRelease.version, wrapper.version);
+
+          const commitMessage = commitMessageText(
+            this.inputs.commitMessageTemplate,
+            wrapper.version,
+            targetRelease.version
+          );
+          await commit(modifiedFiles, commitMessage);
           core.endGroup();
 
           commitDataList.push({

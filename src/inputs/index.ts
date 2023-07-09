@@ -27,6 +27,7 @@ export interface Inputs {
   releaseChannel: string;
   mergeMethod: string | undefined;
   prTitleTemplate: string;
+  commitMessageTemplate: string;
 }
 
 export function getInputs(): Inputs {
@@ -48,6 +49,7 @@ class ActionInputs implements Inputs {
   releaseChannel: string;
   mergeMethod: string | undefined;
   prTitleTemplate: string;
+  commitMessageTemplate: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -115,6 +117,14 @@ class ActionInputs implements Inputs {
       .trim();
     if (!this.prTitleTemplate) {
       this.prTitleTemplate =
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+    }
+
+    this.commitMessageTemplate = core
+      .getInput('commit-message-template', {required: false})
+      .trim();
+    if (!this.commitMessageTemplate) {
+      this.commitMessageTemplate =
         'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
     }
   }

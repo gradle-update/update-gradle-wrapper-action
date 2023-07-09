@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import {Release} from '../src/releases';
-import {pullRequestText, pullRequestTitle} from '../src/messages';
+import {
+  commitMessageText,
+  pullRequestText,
+  pullRequestTitle
+} from '../src/messages';
 
 describe('pullRequestTitle', () => {
   it('replaces %sourceVersion% with sourceVersion parameter', () => {
@@ -50,6 +54,35 @@ describe('pullRequestTitle', () => {
       '1.0.1'
     );
     expect(title).toBe('chore: Update wrapper from undefined to 1.0.1');
+  });
+});
+
+describe('commitMessageText', () => {
+  it('replaces %sourceVersion% with the source version parameter', () => {
+    const message = commitMessageText(
+      'Update from %sourceVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update from 1.0.0');
+  });
+
+  it('replaces %targetVersion% with the source version parameter', () => {
+    const message = commitMessageText(
+      'Update to %targetVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update to 1.0.1');
+  });
+
+  it('replaces both placeholders', () => {
+    const message = commitMessageText(
+      'Update from %sourceVersion% to %targetVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update from 1.0.0 to 1.0.1');
   });
 });
 
