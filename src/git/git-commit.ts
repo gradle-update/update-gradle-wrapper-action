@@ -14,13 +14,7 @@
 
 import * as git from './git-cmds';
 
-export async function commit(
-  files: string[],
-  targetVersion: string,
-  sourceVersion: string
-) {
+export async function commit(files: string[], commitMessage: string) {
   await git.add(files);
-  await git.commit(
-    `Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`
-  );
+  await git.commit(commitMessage);
 }
