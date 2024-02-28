@@ -44,6 +44,7 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
+        "distributionsBaseUrl": "",
         "labels": Array [],
         "mergeMethod": undefined,
         "paths": Array [],

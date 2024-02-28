@@ -38,7 +38,8 @@ const defaultMockInputs: Inputs = {
   releaseChannel: '',
   mergeMethod: undefined,
   prTitleTemplate:
-    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
+  distributionsBaseUrl: ''
 };
 
 const defaultMockGitHubApi: IGitHubApi = {

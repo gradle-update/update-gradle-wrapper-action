@@ -44,7 +44,8 @@ const defaultMockInputs: Inputs = {
   pathsIgnore: [],
   releaseChannel: '',
   mergeMethod: undefined,
-  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%'
+  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%',
+  distributionsBaseUrl: ''
 };
 
 const defaultMockGitHubApi: IGitHubApi = {

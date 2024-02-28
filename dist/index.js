@@ -818,6 +818,9 @@ class ActionInputs {
             .filter(l => l.length);
         this.baseBranch = core.getInput('base-branch', { required: false });
         this.targetBranch = core.getInput('target-branch', { required: false });
+        this.distributionsBaseUrl = core.getInput('distributions-base-url', {
+            required: false
+        });
         this.setDistributionChecksum =
             core
                 .getInput('set-distribution-checksum', { required: false })
@@ -1183,7 +1186,7 @@ class MainAction {
                         continue;
                     }
                     distTypes.add(wrapper.distType);
-                    const updater = (0, wrapperUpdater_1.createWrapperUpdater)(wrapper, targetRelease, this.inputs.setDistributionChecksum);
+                    const updater = (0, wrapperUpdater_1.createWrapperUpdater)(wrapper, targetRelease, this.inputs.setDistributionChecksum, this.inputs.distributionsBaseUrl);
                     core.startGroup('Updating Wrapper');
                     yield updater.update();
                     core.endGroup();
@@ -1350,97 +1353,6 @@ exports.PostAction = PostAction;
 
 /***/ }),
 
-/***/ 2758:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.findWrapperPropertiesFiles = void 0;
-const core = __importStar(__nccwpck_require__(2186));
-const glob = __importStar(__nccwpck_require__(8090));
-const internal_match_kind_1 = __nccwpck_require__(1063);
-const internal_pattern_1 = __nccwpck_require__(4536);
-function findWrapperPropertiesFiles(pathsInclude, pathsIgnore) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
-        let propertiesFiles = yield globber.glob();
-        core.debug(`wrapper.properties found: ${JSON.stringify(propertiesFiles, null, 2)}`);
-        if (!propertiesFiles.length) {
-            return propertiesFiles;
-        }
-        if (pathsInclude.length) {
-            const toInclude = [];
-            for (const wrapperPath of propertiesFiles) {
-                let shouldInclude = false;
-                for (const searchPath of pathsInclude) {
-                    const pattern = new internal_pattern_1.Pattern(searchPath);
-                    const match = pattern.match(wrapperPath);
-                    shouldInclude || (shouldInclude = match === internal_match_kind_1.MatchKind.All);
-                }
-                if (shouldInclude) {
-                    toInclude.push(wrapperPath);
-                }
-            }
-            propertiesFiles = toInclude;
-        }
-        core.debug(`wrapper.properties after pathsInclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
-        if (pathsIgnore.length) {
-            const toExclude = [];
-            for (const wrapperPath of propertiesFiles) {
-                let shouldExclude = false;
-                for (const searchPath of pathsIgnore) {
-                    const pattern = new internal_pattern_1.Pattern(searchPath);
-                    const match = pattern.match(wrapperPath);
-                    shouldExclude || (shouldExclude = match === internal_match_kind_1.MatchKind.All);
-                }
-                if (shouldExclude) {
-                    toExclude.push(wrapperPath);
-                }
-            }
-            propertiesFiles = propertiesFiles.filter(f => !toExclude.includes(f));
-        }
-        core.debug(`wrapper.properties after pathsExclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
-        return propertiesFiles;
-    });
-}
-exports.findWrapperPropertiesFiles = findWrapperPropertiesFiles;
-
-
-/***/ }),
-
 /***/ 6832:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -1554,15 +1466,16 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createWrapperUpdater = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
-function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum) {
-    return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum);
+function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
+    return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl);
 }
 exports.createWrapperUpdater = createWrapperUpdater;
 class WrapperUpdater {
-    constructor(wrapper, targetRelease, setDistributionChecksum) {
+    constructor(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
         this.wrapper = wrapper;
         this.targetRelease = targetRelease;
         this.setDistributionChecksum = setDistributionChecksum;
+        this.distributionsBaseUrl = distributionsBaseUrl;
     }
     update() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1573,6 +1486,10 @@ class WrapperUpdater {
                 '--distribution-type',
                 this.wrapper.distType
             ];
+            if (this.distributionsBaseUrl) {
+                const url = `${this.distributionsBaseUrl}/gradle-${this.targetRelease.version}-${this.wrapper.distType}.zip`;
+                args = ['wrapper', '--gradle-distribution-url', url];
+            }
             if (this.setDistributionChecksum) {
                 const sha256sum = this.wrapper.distType === 'bin'
                     ? this.targetRelease.binChecksum
@@ -1618,6 +1535,97 @@ class WrapperUpdater {
         });
     }
 }
+
+
+/***/ }),
+
+/***/ 2758:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.findWrapperPropertiesFiles = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const glob = __importStar(__nccwpck_require__(8090));
+const internal_match_kind_1 = __nccwpck_require__(1063);
+const internal_pattern_1 = __nccwpck_require__(4536);
+function findWrapperPropertiesFiles(pathsInclude, pathsIgnore) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
+        let propertiesFiles = yield globber.glob();
+        core.debug(`wrapper.properties found: ${JSON.stringify(propertiesFiles, null, 2)}`);
+        if (!propertiesFiles.length) {
+            return propertiesFiles;
+        }
+        if (pathsInclude.length) {
+            const toInclude = [];
+            for (const wrapperPath of propertiesFiles) {
+                let shouldInclude = false;
+                for (const searchPath of pathsInclude) {
+                    const pattern = new internal_pattern_1.Pattern(searchPath);
+                    const match = pattern.match(wrapperPath);
+                    shouldInclude || (shouldInclude = match === internal_match_kind_1.MatchKind.All);
+                }
+                if (shouldInclude) {
+                    toInclude.push(wrapperPath);
+                }
+            }
+            propertiesFiles = toInclude;
+        }
+        core.debug(`wrapper.properties after pathsInclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
+        if (pathsIgnore.length) {
+            const toExclude = [];
+            for (const wrapperPath of propertiesFiles) {
+                let shouldExclude = false;
+                for (const searchPath of pathsIgnore) {
+                    const pattern = new internal_pattern_1.Pattern(searchPath);
+                    const match = pattern.match(wrapperPath);
+                    shouldExclude || (shouldExclude = match === internal_match_kind_1.MatchKind.All);
+                }
+                if (shouldExclude) {
+                    toExclude.push(wrapperPath);
+                }
+            }
+            propertiesFiles = propertiesFiles.filter(f => !toExclude.includes(f));
+        }
+        core.debug(`wrapper.properties after pathsExclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
+        return propertiesFiles;
+    });
+}
+exports.findWrapperPropertiesFiles = findWrapperPropertiesFiles;
 
 
 /***/ }),
