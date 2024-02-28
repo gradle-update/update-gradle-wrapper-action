@@ -56,7 +56,10 @@ inputs:
       used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
-
+  distributions-base-url:
+    description: 'Sets a custom base url to download the distributions'
+    required: false
+    default: ''
 runs:
   using: 'node16'
   main: 'dist/index.js'

@@ -131,7 +131,8 @@ export class MainAction {
         const updater = createWrapperUpdater(
           wrapper,
           targetRelease,
-          this.inputs.setDistributionChecksum
+          this.inputs.setDistributionChecksum,
+          this.inputs.distributionsBaseUrl
         );
 
         core.startGroup('Updating Wrapper');

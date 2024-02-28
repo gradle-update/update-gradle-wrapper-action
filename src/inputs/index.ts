@@ -22,6 +22,7 @@ export interface Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  distributionsBaseUrl: string;
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
@@ -48,6 +49,7 @@ class ActionInputs implements Inputs {
   releaseChannel: string;
   mergeMethod: string | undefined;
   prTitleTemplate: string;
+  distributionsBaseUrl: string;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -77,6 +79,10 @@ class ActionInputs implements Inputs {
 
     this.targetBranch = core.getInput('target-branch', {required: false});
 
+    this.distributionsBaseUrl = core.getInput('distributions-base-url', {
+      required: false
+    });
+
     this.setDistributionChecksum =
       core
         .getInput('set-distribution-checksum', {required: false})
@@ -101,6 +107,7 @@ class ActionInputs implements Inputs {
     if (!this.releaseChannel) {
       this.releaseChannel = 'stable';
     }
+
     if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
       throw new Error('release-channel has unexpected value');
     }
