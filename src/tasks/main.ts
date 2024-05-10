@@ -25,6 +25,7 @@ import {findWrapperPropertiesFiles} from '../wrapper/find';
 import {GitHubOps} from '../github/gh-ops';
 import {IGitHubApi} from '../github/gh-api';
 import {Inputs} from '../inputs';
+import {pullRequestTitle} from '../messages';
 import {Releases} from '../releases';
 
 export class MainAction {
@@ -160,7 +161,12 @@ export class MainAction {
           core.endGroup();
 
           core.startGroup('Committing');
-          await commit(modifiedFiles, targetRelease.version, wrapper.version);
+          const title = pullRequestTitle(
+            this.inputs.commitTitleTemplate,
+            wrapper.version,
+            targetRelease.version
+          );
+          await commit(title, modifiedFiles);
           core.endGroup();
 
           commitDataList.push({

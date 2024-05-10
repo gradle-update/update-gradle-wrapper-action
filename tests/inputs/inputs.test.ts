@@ -44,6 +44,7 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
+        "commitTitleTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "labels": Array [],
         "mergeMethod": undefined,
         "paths": Array [],

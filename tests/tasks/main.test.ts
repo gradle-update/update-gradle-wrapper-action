@@ -44,7 +44,8 @@ const defaultMockInputs: Inputs = {
   pathsIgnore: [],
   releaseChannel: '',
   mergeMethod: undefined,
-  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%'
+  prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%',
+  commitTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%'
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -149,12 +150,11 @@ describe('run', () => {
     );
 
     expect(commit.commit).toHaveBeenCalledWith(
+      'Bump wrapper from 1.0.0 to 1.0.1',
       [
         '/path/to/gradle/wrapper/gradle-wrapper.properties',
         '/path/to/gradle/wrapper/gradle-wrapper.jar'
-      ],
-      '1.0.1',
-      '1.0.0'
+      ]
     );
 
     expect(git.push).toHaveBeenCalledWith('gradlew-update-1.0.1');

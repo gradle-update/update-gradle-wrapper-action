@@ -56,6 +56,11 @@ inputs:
       used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+  commit-title-template:
+    description: |
+      Template used for each commit title.
+    required: false
+    default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 
 runs:
   using: 'node16'

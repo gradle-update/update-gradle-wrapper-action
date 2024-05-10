@@ -280,10 +280,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.commit = void 0;
 const git = __importStar(__nccwpck_require__(8940));
-function commit(files, targetVersion, sourceVersion) {
+function commit(title, files) {
     return __awaiter(this, void 0, void 0, function* () {
         yield git.add(files);
-        yield git.commit(`Update Gradle Wrapper from ${sourceVersion} to ${targetVersion}.`);
+        yield git.commit(title);
     });
 }
 exports.commit = commit;
@@ -853,6 +853,12 @@ class ActionInputs {
             this.prTitleTemplate =
                 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
         }
+        this.commitTitleTemplate = core
+            .getInput('commit-title-template', { required: false })
+            .trim();
+        if (!this.commitTitleTemplate) {
+            this.commitTitleTemplate = this.prTitleTemplate;
+        }
     }
 }
 
@@ -1128,6 +1134,7 @@ const git_commit_1 = __nccwpck_require__(4779);
 const wrapperInfo_1 = __nccwpck_require__(6832);
 const wrapperUpdater_1 = __nccwpck_require__(7412);
 const find_1 = __nccwpck_require__(2758);
+const messages_1 = __nccwpck_require__(9112);
 class MainAction {
     constructor(inputs, githubApi, githubOps, releases) {
         this.inputs = inputs;
@@ -1203,7 +1210,8 @@ class MainAction {
                         yield updater.verify();
                         core.endGroup();
                         core.startGroup('Committing');
-                        yield (0, git_commit_1.commit)(modifiedFiles, targetRelease.version, wrapper.version);
+                        const title = (0, messages_1.pullRequestTitle)(this.inputs.commitTitleTemplate, wrapper.version, targetRelease.version);
+                        yield (0, git_commit_1.commit)(title, modifiedFiles);
                         core.endGroup();
                         commitDataList.push({
                             files: modifiedFiles,
