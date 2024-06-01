@@ -44,17 +44,17 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
-        "labels": Array [],
+        "labels": [],
         "mergeMethod": undefined,
-        "paths": Array [],
-        "pathsIgnore": Array [],
+        "paths": [],
+        "pathsIgnore": [],
         "prTitleTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "releaseChannel": "stable",
         "repoToken": "s3cr3t",
-        "reviewers": Array [],
+        "reviewers": [],
         "setDistributionChecksum": true,
         "targetBranch": "",
-        "teamReviewers": Array [],
+        "teamReviewers": [],
       }
     `);
   });
