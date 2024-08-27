@@ -54,9 +54,8 @@ export class MainAction {
       await gitAuth.setup(this.inputs);
 
       const releaseChannel = this.inputs.releaseChannel;
-      const targetRelease = await this.releases.fetchReleaseInformation(
-        releaseChannel
-      );
+      const targetRelease =
+        await this.releases.fetchReleaseInformation(releaseChannel);
       core.info(
         `Latest release: ${targetRelease.version} (channel ${releaseChannel})`
       );
