@@ -46,6 +46,7 @@ describe('getInputs', () => {
       ActionInputs {
         "baseBranch": "",
         "commitMessageTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
+        "distributionsBaseUrl": "",
         "labels": [],
         "mergeMethod": undefined,
         "paths": [],
