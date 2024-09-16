@@ -2,8 +2,11 @@
 
 ## v2.0.0
 
-- Updated action to run with Node 20
-- Updated action dependencies
+- Added input parameter `pr-title-template`, by @paulschuberth
+- Added input parameter `commit-message-template`, by @paulschuberth
+- Added input parameter `distributions-base-url`, by @yeikel
+- Updated action to run with Node 20, by @chadlwilson
+- Updated action dependencies.
 
 ## v1.0.20
 
