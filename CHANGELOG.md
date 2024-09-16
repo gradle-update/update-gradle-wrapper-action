@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.0
+
+- Updated action to run with Node 20
+- Updated action dependencies
+
 ## v1.0.20
 
 - Added `auto-merge` input parameter, by @ChrisCarini
