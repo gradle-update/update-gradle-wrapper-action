@@ -22,6 +22,7 @@ export interface Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  distributionsBaseUrl: string;
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
@@ -44,6 +45,7 @@ class ActionInputs implements Inputs {
   baseBranch: string;
   targetBranch: string;
   setDistributionChecksum: boolean;
+  distributionsBaseUrl: string;
   paths: string[];
   pathsIgnore: string[];
   releaseChannel: string;
@@ -84,6 +86,10 @@ class ActionInputs implements Inputs {
         .getInput('set-distribution-checksum', {required: false})
         .toLowerCase() !== 'false';
 
+    this.distributionsBaseUrl = core.getInput('distributions-base-url', {
+      required: false
+    });
+
     this.paths = core
       .getInput('paths', {required: false})
       .split(/[\n,]/)
@@ -103,6 +109,7 @@ class ActionInputs implements Inputs {
     if (!this.releaseChannel) {
       this.releaseChannel = 'stable';
     }
+
     if (!acceptedReleaseChannels.includes(this.releaseChannel)) {
       throw new Error('release-channel has unexpected value');
     }
