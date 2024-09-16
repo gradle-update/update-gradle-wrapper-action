@@ -58,7 +58,7 @@ inputs:
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
   commit-message-template:
     description: |
-      Template used for commit message
+      Template used for commit message.
       There are cases in which the source version of the Gradle Wrapper can not
       be determined successfully. In such cases, the string 'undefined' will be
       used to replace the source version placeholder.
