@@ -817,6 +817,9 @@ class ActionInputs {
             core
                 .getInput('set-distribution-checksum', { required: false })
                 .toLowerCase() !== 'false';
+        this.distributionsBaseUrl = core.getInput('distributions-base-url', {
+            required: false
+        });
         this.paths = core
             .getInput('paths', { required: false })
             .split(/[\n,]/)
@@ -1190,7 +1193,7 @@ class MainAction {
                         continue;
                     }
                     distTypes.add(wrapper.distType);
-                    const updater = (0, wrapperUpdater_1.createWrapperUpdater)(wrapper, targetRelease, this.inputs.setDistributionChecksum);
+                    const updater = (0, wrapperUpdater_1.createWrapperUpdater)(wrapper, targetRelease, this.inputs.setDistributionChecksum, this.inputs.distributionsBaseUrl);
                     core.startGroup('Updating Wrapper');
                     yield updater.update();
                     core.endGroup();
@@ -1560,14 +1563,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createWrapperUpdater = createWrapperUpdater;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
-function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum) {
-    return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum);
+function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
+    return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl);
 }
 class WrapperUpdater {
-    constructor(wrapper, targetRelease, setDistributionChecksum) {
+    constructor(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
         this.wrapper = wrapper;
         this.targetRelease = targetRelease;
         this.setDistributionChecksum = setDistributionChecksum;
+        this.distributionsBaseUrl = distributionsBaseUrl;
     }
     update() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1578,6 +1582,10 @@ class WrapperUpdater {
                 '--distribution-type',
                 this.wrapper.distType
             ];
+            if (this.distributionsBaseUrl) {
+                const url = `${this.distributionsBaseUrl}/gradle-${this.targetRelease.version}-${this.wrapper.distType}.zip`;
+                args = ['wrapper', '--gradle-distribution-url', url];
+            }
             if (this.setDistributionChecksum) {
                 const sha256sum = this.wrapper.distType === 'bin'
                     ? this.targetRelease.binChecksum

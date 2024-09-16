@@ -33,6 +33,7 @@ const defaultMockInputs: Inputs = {
   baseBranch: '',
   targetBranch: '',
   setDistributionChecksum: true,
+  distributionsBaseUrl: '',
   paths: [],
   pathsIgnore: [],
   releaseChannel: '',

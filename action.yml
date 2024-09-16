@@ -33,6 +33,10 @@ inputs:
     description: 'Whether to set the `distributionSha256Sum` property in `gradle-wrapper.properties`.'
     required: false
     default: true
+  distributions-base-url:
+    description: 'Use a custom base url to download the distributions file.'
+    required: false
+    default: ''
   paths:
     description: 'List of paths where to search for Gradle Wrapper files (comma or newline-separated).'
     required: false
