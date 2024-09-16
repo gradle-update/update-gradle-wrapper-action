@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import {Release} from '../src/releases';
-import {pullRequestText, pullRequestTitle} from '../src/messages';
+import {
+  commitMessageText,
+  pullRequestText,
+  pullRequestTitle
+} from '../src/messages';
 
 describe('pullRequestTitle', () => {
   it('replaces %sourceVersion% with sourceVersion parameter', () => {
@@ -50,6 +54,44 @@ describe('pullRequestTitle', () => {
       '1.0.1'
     );
     expect(title).toBe('chore: Update wrapper from undefined to 1.0.1');
+  });
+});
+
+describe('commitMessageText', () => {
+  it('replaces %sourceVersion% with the source version parameter', () => {
+    const message = commitMessageText(
+      'Update from %sourceVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update from 1.0.0');
+  });
+
+  it('replaces %sourceVersion% with "undefined" if the parameters is `undefined`', () => {
+    const message = commitMessageText(
+      'Update from %sourceVersion%',
+      undefined,
+      '1.0.1'
+    );
+    expect(message).toEqual('Update from undefined');
+  });
+
+  it('replaces %targetVersion% with the source version parameter', () => {
+    const message = commitMessageText(
+      'Update to %targetVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update to 1.0.1');
+  });
+
+  it('replaces both placeholders', () => {
+    const message = commitMessageText(
+      'Update from %sourceVersion% to %targetVersion%',
+      '1.0.0',
+      '1.0.1'
+    );
+    expect(message).toEqual('Update from 1.0.0 to 1.0.1');
   });
 });
 
@@ -105,14 +147,14 @@ If something doesn't look right with this PR please file an issue [here](https:/
   describe('when source version is unspecified', () => {
     it('returns title and body text with only the target version', () => {
       const {title, body} = pullRequestText(
-        'Update Gradle Wrapper to %targetVersion%',
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
         distributionTypes,
         targetRelease
       );
 
-      expect(title).toEqual('Update Gradle Wrapper to 1.0.1');
+      expect(title).toEqual('Update Gradle Wrapper from undefined to 1.0.1');
 
-      expect(body).toEqual(`Update Gradle Wrapper to 1.0.1.
+      expect(body).toEqual(`Update Gradle Wrapper from undefined to 1.0.1.
 
 Read the release notes: https://docs.gradle.org/1.0.1/release-notes.html
 
