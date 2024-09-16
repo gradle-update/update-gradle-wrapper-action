@@ -38,6 +38,8 @@ const defaultMockInputs: Inputs = {
   releaseChannel: '',
   mergeMethod: undefined,
   prTitleTemplate:
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
+  commitMessageTemplate:
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
 

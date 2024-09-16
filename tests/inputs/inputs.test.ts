@@ -15,6 +15,7 @@
 import * as core from '@actions/core';
 
 import {getInputs} from '../../src/inputs';
+
 jest.mock('@actions/core');
 
 describe('getInputs', () => {
@@ -44,6 +45,7 @@ describe('getInputs', () => {
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
         "baseBranch": "",
+        "commitMessageTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "labels": [],
         "mergeMethod": undefined,
         "paths": [],
@@ -188,6 +190,30 @@ describe('getInputs', () => {
 
         expect(getInputs().setDistributionChecksum).toEqual(expected);
       }
+    });
+  });
+
+  describe('commitMessageTemplate', () => {
+    it('defaults to "Update Gradle Wrapper from %sourceVersion% to %targetVersion%"', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().commitMessageTemplate).toStrictEqual(
+        'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'commit-message-template':
+          'Change wrapper from %sourceVersion% to %targetVersion%'
+      };
+
+      expect(getInputs().commitMessageTemplate).toStrictEqual(
+        'Change wrapper from %sourceVersion% to %targetVersion%'
+      );
     });
   });
 
