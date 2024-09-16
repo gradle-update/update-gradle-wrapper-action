@@ -28,6 +28,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`paths`](#paths)
   - [`paths-ignore`](#paths-ignore)
   - [`set-distribution-checksum`](#set-distribution-checksum)
+  - [`distributions-base-url`](#distributions-base-url)
   - [`release-channel`](#release-channel)
   - [`merge-method`](#merge-method)
   - [`pr-title-template`](#pr-title-template)
@@ -396,6 +397,23 @@ with:
 
 ---
 
+### `distributions-base-url`
+
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `distributions-base-url` | Set a custom url to download the Gradle Wrapper zip file from. | No | (empty) |
+
+The base url to download the Gradle Wrapper zip file from. By default, the Gradle Wrapper update mechanism will download any newer version from the official repository.
+
+For example:
+
+```yaml
+with:
+  distributions-base-url: 'https://your-domain.com/gradle-release'
+```
+
+---
+
 ### `release-channel`
 
 | Name | Description | Required | Default |
@@ -433,10 +451,9 @@ with:
 
 This input is used for the title of the pull request created by this action. This allows, for example, for better integration into repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
 
-`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper
-respectively.
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper respectively.
 
-There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string 'undefined' will be used to replace the source version placeholder.
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string `undefined` will be used to replace the source version placeholder.
 
 For example:
 
@@ -454,10 +471,9 @@ with:
 This input is used for the message of the commit created by this action. This allows for better integration into
 repositories which make use of commit message patterns like [Conventional Commits](https://www.conventionalcommits.org/).
 
-`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper
-respectively.
+`%sourceVersion%` and `%targetVersion%` will be replaced by the current/old and the new version of the Gradle Wrapper respectively.
 
-There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string 'undefined' will be used to replace the source version placeholder.
+There are cases in which the source version of the Gradle Wrapper can not be determined successfully. In such cases, the string `undefined` will be used to replace the source version placeholder.
 
 For example:
 
