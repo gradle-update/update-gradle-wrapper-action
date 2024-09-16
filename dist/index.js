@@ -39,7 +39,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.execWithOutput = void 0;
+exports.execWithOutput = execWithOutput;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 function execWithOutput(commandLine, args, cwd) {
@@ -53,7 +53,6 @@ function execWithOutput(commandLine, args, cwd) {
         return { exitCode, stdout: stdout.trim(), stderr: stderr.trim() };
     });
 }
-exports.execWithOutput = execWithOutput;
 
 
 /***/ }),
@@ -96,7 +95,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.cleanup = exports.setup = void 0;
+exports.setup = setup;
+exports.cleanup = cleanup;
 const core = __importStar(__nccwpck_require__(2186));
 const git = __importStar(__nccwpck_require__(8940));
 function setup(inputs) {
@@ -106,13 +106,11 @@ function setup(inputs) {
         yield git.config(extraheaderAuthConfigKey(), `Authorization: basic ${credentials}`);
     });
 }
-exports.setup = setup;
 function cleanup() {
     return __awaiter(this, void 0, void 0, function* () {
         yield git.unsetConfig(extraheaderAuthConfigKey());
     });
 }
-exports.cleanup = cleanup;
 function extraheaderAuthConfigKey() {
     const serverUrl = new URL(process.env['GITHUB_SERVER_URL'] || 'https://github.com');
     core.debug(`server=${serverUrl} origin=${serverUrl.origin}`);
@@ -160,7 +158,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.push = exports.unsetConfig = exports.config = exports.commit = exports.add = exports.checkoutCreateBranch = exports.checkout = exports.fetch = exports.parseHead = exports.gitDiffNameOnly = void 0;
+exports.gitDiffNameOnly = gitDiffNameOnly;
+exports.parseHead = parseHead;
+exports.fetch = fetch;
+exports.checkout = checkout;
+exports.checkoutCreateBranch = checkoutCreateBranch;
+exports.add = add;
+exports.commit = commit;
+exports.config = config;
+exports.unsetConfig = unsetConfig;
+exports.push = push;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
 function gitDiffNameOnly() {
@@ -171,7 +178,6 @@ function gitDiffNameOnly() {
         return files;
     });
 }
-exports.gitDiffNameOnly = gitDiffNameOnly;
 function parseHead() {
     return __awaiter(this, void 0, void 0, function* () {
         const { stdout: currentCommitSha } = yield cmd.execWithOutput('git', [
@@ -181,50 +187,42 @@ function parseHead() {
         return currentCommitSha;
     });
 }
-exports.parseHead = parseHead;
 function fetch() {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['fetch', '--depth=1']);
     });
 }
-exports.fetch = fetch;
 function checkout(branchName) {
     return __awaiter(this, void 0, void 0, function* () {
         const exec = yield cmd.execWithOutput('git', ['checkout', branchName]);
         return exec.exitCode;
     });
 }
-exports.checkout = checkout;
 function checkoutCreateBranch(branchName, startPoint) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
     });
 }
-exports.checkoutCreateBranch = checkoutCreateBranch;
 function add(paths) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['add', ...paths]);
     });
 }
-exports.add = add;
 function commit(message) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['commit', '-m', message, '--signoff']);
     });
 }
-exports.commit = commit;
 function config(key, value) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['config', '--local', key, value]);
     });
 }
-exports.config = config;
 function unsetConfig(key) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', ['config', '--local', '--unset-all', key]);
     });
 }
-exports.unsetConfig = unsetConfig;
 function push(branchName) {
     return __awaiter(this, void 0, void 0, function* () {
         yield cmd.execWithOutput('git', [
@@ -235,7 +233,6 @@ function push(branchName) {
         ]);
     });
 }
-exports.push = push;
 
 
 /***/ }),
@@ -278,7 +275,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.commit = void 0;
+exports.commit = commit;
 const git = __importStar(__nccwpck_require__(8940));
 function commit(files, commitMessage) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -286,7 +283,6 @@ function commit(files, commitMessage) {
         yield git.commit(commitMessage);
     });
 }
-exports.commit = commit;
 
 
 /***/ }),
@@ -788,12 +784,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getInputs = void 0;
+exports.getInputs = getInputs;
 const core = __importStar(__nccwpck_require__(2186));
 function getInputs() {
     return new ActionInputs();
 }
-exports.getInputs = getInputs;
 const acceptedReleaseChannels = ['stable', 'release-candidate'];
 class ActionInputs {
     constructor() {
@@ -872,7 +867,9 @@ class ActionInputs {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pullRequestText = exports.commitMessageText = exports.pullRequestTitle = void 0;
+exports.pullRequestTitle = pullRequestTitle;
+exports.commitMessageText = commitMessageText;
+exports.pullRequestText = pullRequestText;
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
 const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
@@ -881,13 +878,11 @@ function pullRequestTitle(template, sourceVersion, targetVersion) {
         .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
         .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion !== null && sourceVersion !== void 0 ? sourceVersion : 'undefined');
 }
-exports.pullRequestTitle = pullRequestTitle;
 function commitMessageText(template, source, target) {
     return template
         .replace(TARGET_VERSION_PLACEHOLDER, target)
         .replace(SOURCE_VERSION_PLACEHOLDER, source ? source : 'undefined');
 }
-exports.commitMessageText = commitMessageText;
 function pullRequestText(prTitleTemplate, distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
     const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
@@ -918,7 +913,6 @@ If something doesn't look right with this PR please file an issue [here](${ISSUE
     const body = `${bodyHeader}\n\n---\n\n${bodyChecksum}\n\n---\n\n${bodyFooter}`;
     return { title, body };
 }
-exports.pullRequestText = pullRequestText;
 
 
 /***/ }),
@@ -1049,7 +1043,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getErroredTeamReviewers = exports.setErroredTeamReviewers = exports.getErroredReviewers = exports.setErroredReviewers = exports.getPullRequestData = exports.setPullRequestData = exports.mainActionExecuted = exports.setMainActionExecuted = void 0;
+exports.setMainActionExecuted = setMainActionExecuted;
+exports.mainActionExecuted = mainActionExecuted;
+exports.setPullRequestData = setPullRequestData;
+exports.getPullRequestData = getPullRequestData;
+exports.setErroredReviewers = setErroredReviewers;
+exports.getErroredReviewers = getErroredReviewers;
+exports.setErroredTeamReviewers = setErroredTeamReviewers;
+exports.getErroredTeamReviewers = getErroredTeamReviewers;
 const core = __importStar(__nccwpck_require__(2186));
 const MAIN_ACTION_EXECUTED = 'main_action_executed';
 const PULL_REQUEST_DATA = 'pull_request_data';
@@ -1058,38 +1059,30 @@ const ERRORED_TEAM_REVIEWERS = 'errored_team_reviewers';
 function setMainActionExecuted() {
     core.saveState(MAIN_ACTION_EXECUTED, 'true');
 }
-exports.setMainActionExecuted = setMainActionExecuted;
 function mainActionExecuted() {
     return core.getState(MAIN_ACTION_EXECUTED) === 'true';
 }
-exports.mainActionExecuted = mainActionExecuted;
 function setPullRequestData(pullRequestData) {
     core.saveState(PULL_REQUEST_DATA, JSON.stringify(pullRequestData));
 }
-exports.setPullRequestData = setPullRequestData;
 function getPullRequestData() {
     const state = core.getState(PULL_REQUEST_DATA);
     return state.length ? JSON.parse(state) : undefined;
 }
-exports.getPullRequestData = getPullRequestData;
 function setErroredReviewers(reviewers) {
     core.saveState(ERRORED_REVIEWERS, JSON.stringify(reviewers));
 }
-exports.setErroredReviewers = setErroredReviewers;
 function getErroredReviewers() {
     const reviewers = core.getState(ERRORED_REVIEWERS);
     return reviewers.length ? JSON.parse(reviewers) : undefined;
 }
-exports.getErroredReviewers = getErroredReviewers;
 function setErroredTeamReviewers(reviewers) {
     core.saveState(ERRORED_TEAM_REVIEWERS, JSON.stringify(reviewers));
 }
-exports.setErroredTeamReviewers = setErroredTeamReviewers;
 function getErroredTeamReviewers() {
     const teams = core.getState(ERRORED_TEAM_REVIEWERS);
     return teams.length ? JSON.parse(teams) : undefined;
 }
-exports.getErroredTeamReviewers = getErroredTeamReviewers;
 
 
 /***/ }),
@@ -1403,7 +1396,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.findWrapperPropertiesFiles = void 0;
+exports.findWrapperPropertiesFiles = findWrapperPropertiesFiles;
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
 const internal_match_kind_1 = __nccwpck_require__(1063);
@@ -1451,7 +1444,6 @@ function findWrapperPropertiesFiles(pathsInclude, pathsIgnore) {
         return propertiesFiles;
     });
 }
-exports.findWrapperPropertiesFiles = findWrapperPropertiesFiles;
 
 
 /***/ }),
@@ -1485,14 +1477,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createWrapperInfo = void 0;
+exports.createWrapperInfo = createWrapperInfo;
 const core = __importStar(__nccwpck_require__(2186));
 const path_1 = __nccwpck_require__(1017);
 const fs_1 = __nccwpck_require__(7147);
 function createWrapperInfo(path) {
     return new WrapperInfo(path);
 }
-exports.createWrapperInfo = createWrapperInfo;
 class WrapperInfo {
     constructor(path) {
         if (!(0, path_1.isAbsolute)(path)) {
@@ -1566,13 +1557,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createWrapperUpdater = void 0;
+exports.createWrapperUpdater = createWrapperUpdater;
 const core = __importStar(__nccwpck_require__(2186));
 const cmd = __importStar(__nccwpck_require__(816));
 function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum) {
     return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum);
 }
-exports.createWrapperUpdater = createWrapperUpdater;
 class WrapperUpdater {
     constructor(wrapper, targetRelease, setDistributionChecksum) {
         this.wrapper = wrapper;
