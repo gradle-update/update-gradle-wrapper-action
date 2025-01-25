@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.1
+
+- Updated action dependencies.
+
 ## v2.0.0
 
 - Added input parameter `pr-title-template`, by @paulschuberth
