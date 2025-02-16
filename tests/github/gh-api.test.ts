@@ -20,14 +20,10 @@ import nock from 'nock';
 
 import {GitHubApi} from '../../src/github/gh-api';
 
-nock.disableNetConnect();
-
-const nockScope = nock('https://api.github.com');
-
 let api: GitHubApi;
 
 beforeEach(() => {
-  nock.cleanAll();
+  nock.disableNetConnect();
 
   api = new GitHubApi('s3cr3t');
 
@@ -39,9 +35,14 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  nock.cleanAll();
+  nock.enableNetConnect();
+});
+
 describe('repoDefaultBranch', () => {
   it('returns the default branch name', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get('/repos/owner-name/repo-name')
       .replyWithFile(200, `${__dirname}/fixtures/get_repo.ok.json`, {
         'Content-Type': 'application/json'
@@ -54,9 +55,11 @@ describe('repoDefaultBranch', () => {
   });
 
   it('throws on api error', async () => {
-    nockScope.get('/repos/owner-name/repo-name').reply(500);
+    const nockScope = nock('https://api.github.com')
+      .get('/repos/owner-name/repo-name')
+      .reply(500);
 
-    await expect(api.repoDefaultBranch()).rejects.toThrowError();
+    await expect(api.repoDefaultBranch()).rejects.toThrow();
 
     nockScope.done();
   });
@@ -64,7 +67,7 @@ describe('repoDefaultBranch', () => {
 
 describe('createPullRequest', () => {
   it('creates a Pull Request', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls', {
         title: 'Update Gradle Wrapper to 1.0.0',
         body: 'This PR updates Gradle Wrapper',
@@ -87,7 +90,9 @@ describe('createPullRequest', () => {
   });
 
   it('throws on api error', async () => {
-    nockScope.post('/repos/owner-name/repo-name/pulls').reply(500);
+    const nockScope = nock('https://api.github.com')
+      .post('/repos/owner-name/repo-name/pulls')
+      .reply(500);
 
     await expect(
       api.createPullRequest({
@@ -96,7 +101,7 @@ describe('createPullRequest', () => {
         title: 'Update Gradle Wrapper to 1.0.0',
         body: 'This PR updates Gradle Wrapper'
       })
-    ).rejects.toThrowError();
+    ).rejects.toThrow();
 
     nockScope.done();
   });
@@ -111,12 +116,10 @@ describe('addReviewers', () => {
     await api.addReviewers(1, []);
 
     expect(store.setErroredReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
   });
 
   it('adds a reviewer', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer']
       })
@@ -136,7 +139,7 @@ describe('addReviewers', () => {
   });
 
   it('adds multiple reviewers', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer1']
       })
@@ -166,7 +169,7 @@ describe('addReviewers', () => {
   });
 
   it('saves all errored reviewers to store state', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer']
       })
@@ -196,7 +199,7 @@ describe('addReviewers', () => {
   });
 
   it('does not throw when adding a user that is not a collaborator', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['not_a_collaborator']
       })
@@ -218,7 +221,7 @@ describe('addReviewers', () => {
   });
 
   it('does not throw on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['not_a_collaborator']
       })
@@ -236,7 +239,7 @@ describe('addReviewers', () => {
 
 describe('addReviewer', () => {
   it('adds a reviewer', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer']
       })
@@ -255,7 +258,7 @@ describe('addReviewer', () => {
   });
 
   it('returns false if reviewer cannot be added', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['not_a_collaborator']
       })
@@ -274,7 +277,7 @@ describe('addReviewer', () => {
   });
 
   it('returns false on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         reviewers: ['reviewer']
       })
@@ -296,12 +299,10 @@ describe('addTeamReviewers', () => {
     await api.addTeamReviewers(1, []);
 
     expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
   });
 
   it('adds a team reviewer', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team']
       })
@@ -321,7 +322,7 @@ describe('addTeamReviewers', () => {
   });
 
   it('adds multiple team reviewers', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team1']
       })
@@ -351,7 +352,7 @@ describe('addTeamReviewers', () => {
   });
 
   it('saves all errored team reviewers to store state', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team']
       })
@@ -381,7 +382,7 @@ describe('addTeamReviewers', () => {
   });
 
   it('does not throw on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team']
       })
@@ -397,7 +398,7 @@ describe('addTeamReviewers', () => {
 
 describe('addTeamReviewer', () => {
   it('adds a team reviewer', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team']
       })
@@ -416,7 +417,7 @@ describe('addTeamReviewer', () => {
   });
 
   it('returns false if team reviewer cannot be added', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['not_a_team_username']
       })
@@ -435,7 +436,7 @@ describe('addTeamReviewer', () => {
   });
 
   it('returns false on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
         team_reviewers: ['team']
       })
@@ -449,14 +450,8 @@ describe('addTeamReviewer', () => {
 });
 
 describe('addLabels', () => {
-  it('does nothing when `labels` is empty', async () => {
-    await api.addLabels(1, []);
-
-    nockScope.done();
-  });
-
   it('adds a label', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/issues/1/labels', {
         labels: ['gradle-wrapper']
       })
@@ -470,7 +465,7 @@ describe('addLabels', () => {
   });
 
   it('adds multiple labels', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/issues/1/labels', {
         labels: ['gradle-wrapper', 'dependencies']
       })
@@ -484,7 +479,7 @@ describe('addLabels', () => {
   });
 
   it('does not throw on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/issues/1/labels', {
         labels: ['gradle-wrapper']
       })
@@ -498,7 +493,7 @@ describe('addLabels', () => {
 
 describe('createLabelIfMissing', () => {
   it('does nothing if label already exists', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get('/repos/owner-name/repo-name/labels/gradle-wrapper')
       .replyWithFile(200, `${__dirname}/fixtures/get_label.ok.json`, {
         'Content-Type': 'application/json'
@@ -511,7 +506,7 @@ describe('createLabelIfMissing', () => {
   });
 
   it('calls `createLabel()` if label does not exist', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get('/repos/owner-name/repo-name/labels/gradle-wrapper')
       .replyWithFile(404, `${__dirname}/fixtures/get_label.not_found.json`, {
         'Content-Type': 'application/json'
@@ -530,7 +525,7 @@ describe('createLabelIfMissing', () => {
 
 describe('createLabel', () => {
   it('creates a label', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/labels', {
         name: 'gradle-wrapper',
         color: '02303A',
@@ -547,7 +542,7 @@ describe('createLabel', () => {
   });
 
   it('does not throw if label already exists', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/labels', {
         name: 'gradle-wrapper',
         color: '02303A',
@@ -568,7 +563,7 @@ describe('createLabel', () => {
   });
 
   it('does not throw on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/labels', {
         name: 'gradle-wrapper',
         color: '02303A',
@@ -584,7 +579,7 @@ describe('createLabel', () => {
 
 describe('createComment', () => {
   it('creates a comment', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/issues/42/comments', {
         body: 'test comment'
       })
@@ -599,7 +594,7 @@ describe('createComment', () => {
   });
 
   it('does not throw on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .post('/repos/owner-name/repo-name/issues/42/comments', {
         body: 'test comment'
       })

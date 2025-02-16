@@ -34,7 +34,7 @@ describe('getInputs', () => {
   it('throws if repo-token is empty', () => {
     ymlInputs = {};
 
-    expect(() => getInputs()).toThrowError();
+    expect(() => getInputs()).toThrow();
   });
 
   it('sets default values for all inputs', () => {
@@ -242,7 +242,7 @@ describe('getInputs', () => {
         'release-channel': 'unexpected-channel'
       };
 
-      expect(() => getInputs()).toThrowError();
+      expect(() => getInputs()).toThrow();
     });
   });
 

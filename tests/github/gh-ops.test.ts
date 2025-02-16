@@ -21,10 +21,6 @@ import {IGitHubApi} from '../../src/github/gh-api';
 import {Inputs} from '../../src/inputs/';
 import {Release} from '../../src/releases';
 
-nock.disableNetConnect();
-
-const nockScope = nock('https://api.github.com');
-
 const defaultMockInputs: Inputs = {
   repoToken: 's3cr3t',
   reviewers: [],
@@ -61,7 +57,7 @@ let mockGitHubApi: IGitHubApi;
 let githubOps: GitHubOps;
 
 beforeEach(() => {
-  nock.cleanAll();
+  nock.disableNetConnect();
 
   mockInputs = Object.create(defaultMockInputs);
   mockGitHubApi = Object.create(defaultMockGitHubApi);
@@ -74,6 +70,11 @@ beforeEach(() => {
       repo: 'repo-name'
     };
   });
+});
+
+afterEach(() => {
+  nock.cleanAll();
+  nock.enableNetConnect();
 });
 
 describe('createPullRequest', () => {
@@ -351,7 +352,7 @@ describe('createPullRequest', () => {
           targetRelease,
           sourceVersion
         )
-      ).rejects.toThrowError('fetch repo error');
+      ).rejects.toThrow('fetch repo error');
     });
 
     it('throws if createPullRequest() throws', async () => {
@@ -369,14 +370,14 @@ describe('createPullRequest', () => {
           targetRelease,
           sourceVersion
         )
-      ).rejects.toThrowError('create pull request error');
+      ).rejects.toThrow('create pull request error');
     });
   });
 });
 
 describe('findMatchingRef', () => {
   it('some refs match', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get(
         '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
       )
@@ -392,7 +393,7 @@ describe('findMatchingRef', () => {
   });
 
   it('no ref matches', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get(
         '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
       )
@@ -405,13 +406,13 @@ describe('findMatchingRef', () => {
   });
 
   it('throws on api error', async () => {
-    nockScope
+    const nockScope = nock('https://api.github.com')
       .get(
         '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
       )
       .reply(500);
 
-    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrowError();
+    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrow();
     nockScope.done();
   });
 });
