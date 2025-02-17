@@ -16,21 +16,21 @@ import nock from 'nock';
 
 import {Releases} from '../src/releases';
 
-nock.disableNetConnect();
-
-const nockScope = nock('https://services.gradle.org');
-
 let releases: Releases;
 
 beforeEach(() => {
-  nock.cleanAll();
-
+  nock.disableNetConnect();
   releases = new Releases();
+});
+
+afterEach(() => {
+  nock.cleanAll();
+  nock.enableNetConnect();
 });
 
 describe('fetchReleaseInformation', () => {
   it('fetches current release information for stable channel', async () => {
-    nockScope
+    const nockScope = nock('https://services.gradle.org')
       .get('/versions/current')
       .replyWithFile(200, `${__dirname}/fixtures/current.ok.json`, {
         'Content-Type': 'application/json'
@@ -59,7 +59,7 @@ describe('fetchReleaseInformation', () => {
   });
 
   it('fetches release-candidate release information for release-candidate channel', async () => {
-    nockScope
+    const nockScope = nock('https://services.gradle.org')
       .get('/versions/release-candidate')
       .replyWithFile(200, `${__dirname}/fixtures/release-candidate.ok.json`, {
         'Content-Type': 'application/json'
@@ -88,27 +88,27 @@ describe('fetchReleaseInformation', () => {
   });
 
   it('throws error if remote server is unavailable', async () => {
-    nockScope.get('/versions/current').reply(500);
+    const nockScope = nock('https://services.gradle.org')
+      .get('/versions/current')
+      .reply(500);
 
-    await expect(
-      releases.fetchReleaseInformation('stable')
-    ).rejects.toThrowError();
+    await expect(releases.fetchReleaseInformation('stable')).rejects.toThrow();
 
     nockScope.done();
   });
 
   it('throws error if remote endpoint is not found', async () => {
-    nockScope.get('/versions/current').reply(404);
+    const nockScope = nock('https://services.gradle.org')
+      .get('/versions/current')
+      .reply(404);
 
-    await expect(
-      releases.fetchReleaseInformation('stable')
-    ).rejects.toThrowError();
+    await expect(releases.fetchReleaseInformation('stable')).rejects.toThrow();
 
     nockScope.done();
   });
 
   it('throws error if any of the checksum endpoints is not available', async () => {
-    nockScope
+    const nockScope = nock('https://services.gradle.org')
       .get('/versions/current')
       .replyWithFile(200, `${__dirname}/fixtures/current.ok.json`, {
         'Content-Type': 'application/json'
@@ -120,9 +120,7 @@ describe('fetchReleaseInformation', () => {
       .get('/distributions/gradle-6.6.1-all.zip.sha256')
       .reply(404);
 
-    await expect(
-      releases.fetchReleaseInformation('stable')
-    ).rejects.toThrowError();
+    await expect(releases.fetchReleaseInformation('stable')).rejects.toThrow();
 
     nockScope.done();
   });
