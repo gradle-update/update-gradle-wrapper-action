@@ -1,4 +1,0 @@
-{
-  "message": "Reviews may only be requested from collaborators. One or more of the users or teams you specified is not a collaborator of the owner-name/repo-name repository.",
-  "documentation_url": "https://docs.github.com/rest/reference/pulls#request-reviewers-for-a-pull-request"
-}

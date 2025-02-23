@@ -14,8 +14,6 @@
 
 import * as github from '@actions/github';
 
-import nock from 'nock';
-
 import {GitHubOps} from '../../src/github/gh-ops';
 import {IGitHubApi} from '../../src/github/gh-api';
 import {Inputs} from '../../src/inputs/';
@@ -55,12 +53,21 @@ const defaultMockGitHubApi: IGitHubApi = {
 let mockInputs: Inputs;
 let mockGitHubApi: IGitHubApi;
 let githubOps: GitHubOps;
+let mockOctokit: any;
 
 beforeEach(() => {
-  nock.disableNetConnect();
-
   mockInputs = Object.create(defaultMockInputs);
   mockGitHubApi = Object.create(defaultMockGitHubApi);
+
+  mockOctokit = {
+    rest: {
+      git: {
+        listMatchingRefs: jest.fn()
+      }
+    }
+  };
+
+  jest.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit);
 
   githubOps = new GitHubOps(mockInputs, mockGitHubApi);
 
@@ -70,11 +77,6 @@ beforeEach(() => {
       repo: 'repo-name'
     };
   });
-});
-
-afterEach(() => {
-  nock.cleanAll();
-  nock.enableNetConnect();
 });
 
 describe('createPullRequest', () => {
@@ -377,42 +379,83 @@ describe('createPullRequest', () => {
 
 describe('findMatchingRef', () => {
   it('some refs match', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .replyWithFile(200, `${__dirname}/fixtures/get_refs.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: [
+        {
+          ref: 'refs/heads/gradlew-update-1.0.0',
+          url: 'https://api.github.com/repos/owner-name/repo-name/git/refs/heads/gradlew-update-1.0.0',
+          object: {
+            sha: '123abc',
+            type: 'commit',
+            url: 'https://api.github.com/repos/owner-name/repo-name/git/commits/123abc'
+          }
+        }
+      ]
+    });
 
     const ref = await githubOps.findMatchingRef('1.0.0');
 
     expect(ref).toBeDefined();
     expect(ref?.ref).toEqual('refs/heads/gradlew-update-1.0.0');
-    nockScope.done();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 
-  it('no ref matches', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .reply(200, []);
+  it('refs exist but none match exactly', async () => {
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: [
+        {
+          ref: 'refs/heads/gradlew-update-1.0.0-something-else',
+          url: 'https://api.github.com/repos/owner-name/repo-name/git/refs/heads/gradlew-update-1.0.0-something-else',
+          object: {
+            sha: '123abc',
+            type: 'commit',
+            url: 'https://api.github.com/repos/owner-name/repo-name/git/commits/123abc'
+          }
+        }
+      ]
+    });
 
     const ref = await githubOps.findMatchingRef('1.0.0');
 
     expect(ref).not.toBeDefined();
-    nockScope.done();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
+  });
+
+  it('no ref matches', async () => {
+    mockOctokit.rest.git.listMatchingRefs.mockResolvedValue({
+      data: []
+    });
+
+    const ref = await githubOps.findMatchingRef('1.0.0');
+
+    expect(ref).not.toBeDefined();
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 
   it('throws on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get(
-        '/repos/owner-name/repo-name/git/matching-refs/heads%2Fgradlew-update-1.0.0'
-      )
-      .reply(500);
+    mockOctokit.rest.git.listMatchingRefs.mockRejectedValue(
+      new Error('API error')
+    );
 
-    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrow();
-    nockScope.done();
+    await expect(githubOps.findMatchingRef('1.0.0')).rejects.toThrow(
+      'API error'
+    );
+    expect(mockOctokit.rest.git.listMatchingRefs).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      ref: 'heads/gradlew-update-1.0.0'
+    });
   });
 });
