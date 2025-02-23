@@ -1,9 +1,0 @@
-{
-  "id": 123,
-  "node_id": "abc123",
-  "url": "https://api.github.com/repos/owner-name/repo-name/labels/gradle-wrapper2222",
-  "name": "gradle-wrapper",
-  "color": "02303A",
-  "default": false,
-  "description": "Pull requests that update Gradle wrapper"
-}

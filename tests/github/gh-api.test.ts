@@ -13,17 +13,36 @@
 // limitations under the License.
 
 import * as github from '@actions/github';
-
+import * as core from '@actions/core';
 import * as store from '../../src/store';
 
-import nock from 'nock';
-
 import {GitHubApi} from '../../src/github/gh-api';
+import {RequestError} from '@octokit/request-error';
 
 let api: GitHubApi;
+let mockOctokit: any;
 
 beforeEach(() => {
-  nock.disableNetConnect();
+  mockOctokit = {
+    rest: {
+      repos: {
+        get: jest.fn()
+      },
+      pulls: {
+        create: jest.fn(),
+        requestReviewers: jest.fn()
+      },
+      issues: {
+        addLabels: jest.fn(),
+        getLabel: jest.fn(),
+        createLabel: jest.fn(),
+        createComment: jest.fn()
+      }
+    },
+    graphql: jest.fn()
+  };
+
+  jest.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit);
 
   api = new GitHubApi('s3cr3t');
 
@@ -35,75 +54,84 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
-  nock.cleanAll();
-  nock.enableNetConnect();
-});
-
 describe('repoDefaultBranch', () => {
   it('returns the default branch name', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get('/repos/owner-name/repo-name')
-      .replyWithFile(200, `${__dirname}/fixtures/get_repo.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.repos.get.mockResolvedValue({
+      data: {
+        default_branch: 'main'
+      }
+    });
 
     const defaultBranch = await api.repoDefaultBranch();
 
-    expect(defaultBranch).toEqual('master');
-    nockScope.done();
+    expect(defaultBranch).toEqual('main');
+    expect(mockOctokit.rest.repos.get).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name'
+    });
   });
 
   it('throws on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get('/repos/owner-name/repo-name')
-      .reply(500);
+    mockOctokit.rest.repos.get.mockRejectedValue(new Error('API error'));
 
-    await expect(api.repoDefaultBranch()).rejects.toThrow();
+    await expect(api.repoDefaultBranch()).rejects.toThrow('API error');
 
-    nockScope.done();
+    expect(mockOctokit.rest.repos.get).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name'
+    });
   });
 });
 
 describe('createPullRequest', () => {
   it('creates a Pull Request', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls', {
-        title: 'Update Gradle Wrapper to 1.0.0',
-        body: 'This PR updates Gradle Wrapper',
-        head: 'make-it-up-to-date',
-        base: 'master'
-      })
-      .replyWithFile(200, `${__dirname}/fixtures/create_pull_request.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.pulls.create.mockResolvedValue({
+      data: {
+        number: 42,
+        html_url: 'https://github.com/owner-name/repo-name/pull/42'
+      }
+    });
 
     const pullRequest = await api.createPullRequest({
       branchName: 'make-it-up-to-date',
-      target: 'master',
+      target: 'main',
       title: 'Update Gradle Wrapper to 1.0.0',
       body: 'This PR updates Gradle Wrapper'
     });
 
     expect(pullRequest).toBeDefined();
-    nockScope.done();
+    expect(pullRequest.number).toEqual(42);
+
+    expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      head: 'make-it-up-to-date',
+      base: 'main',
+      title: 'Update Gradle Wrapper to 1.0.0',
+      body: 'This PR updates Gradle Wrapper'
+    });
   });
 
   it('throws on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls')
-      .reply(500);
+    mockOctokit.rest.pulls.create.mockRejectedValue(new Error('API error'));
 
     await expect(
       api.createPullRequest({
         branchName: 'make-it-up-to-date',
-        target: 'master',
+        target: 'main',
         title: 'Update Gradle Wrapper to 1.0.0',
         body: 'This PR updates Gradle Wrapper'
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow('API error');
 
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.create).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      head: 'make-it-up-to-date',
+      base: 'main',
+      title: 'Update Gradle Wrapper to 1.0.0',
+      body: 'This PR updates Gradle Wrapper'
+    });
   });
 });
 
@@ -119,174 +147,133 @@ describe('addReviewers', () => {
   });
 
   it('adds a reviewer', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_reviewers: [{login: 'reviewer'}]
+      }
+    });
 
     await api.addReviewers(1, ['reviewer']);
 
     expect(store.setErroredReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      reviewers: ['reviewer']
+    });
   });
 
   it('adds multiple reviewers', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer1']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.two_users.json`,
-        {
-          'Content-Type': 'application/json'
+    mockOctokit.rest.pulls.requestReviewers
+      .mockResolvedValueOnce({
+        data: {
+          requested_reviewers: [{login: 'reviewer1'}]
         }
-      )
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer2']
       })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.two_users.json`,
-        {
-          'Content-Type': 'application/json'
+      .mockResolvedValueOnce({
+        data: {
+          requested_reviewers: [{login: 'reviewer2'}]
         }
-      );
+      });
 
     await api.addReviewers(1, ['reviewer1', 'reviewer2']);
 
     expect(store.setErroredReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      reviewers: ['reviewer1']
+    });
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      reviewers: ['reviewer2']
+    });
   });
 
   it('saves all errored reviewers to store state', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
-        {
-          'Content-Type': 'application/json'
+    mockOctokit.rest.pulls.requestReviewers
+      .mockResolvedValueOnce({
+        data: {
+          requested_reviewers: [{login: 'reviewer1'}]
         }
-      )
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer2']
       })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
-        {
-          'Content-Type': 'application/json'
+      .mockResolvedValueOnce({
+        data: {
+          requested_reviewers: []
         }
-      );
+      });
 
-    await api.addReviewers(1, ['reviewer', 'reviewer2']);
+    await api.addReviewers(1, ['reviewer1', 'reviewer2']);
 
     expect(store.setErroredReviewers).toHaveBeenCalledWith(['reviewer2']);
-
-    nockScope.done();
   });
 
   it('does not throw when adding a user that is not a collaborator', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['not_a_collaborator']
-      })
-      .replyWithFile(
-        422,
-        `${__dirname}/fixtures/add_reviewer_to_pr.not_a_collaborator.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
+      new Error('Not a collaborator')
+    );
 
     await api.addReviewers(1, ['not_a_collaborator']);
 
     expect(store.setErroredReviewers).toHaveBeenCalledWith([
       'not_a_collaborator'
     ]);
-
-    nockScope.done();
   });
 
   it('does not throw on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['not_a_collaborator']
-      })
-      .reply(500);
+    mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
+      new Error('API error')
+    );
 
-    await api.addReviewers(1, ['not_a_collaborator']);
+    await api.addReviewers(1, ['reviewer']);
 
-    expect(store.setErroredReviewers).toHaveBeenCalledWith([
-      'not_a_collaborator'
-    ]);
-
-    nockScope.done();
+    expect(store.setErroredReviewers).toHaveBeenCalledWith(['reviewer']);
   });
 });
 
 describe('addReviewer', () => {
   it('adds a reviewer', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_reviewers: [{login: 'reviewer'}]
+      }
+    });
 
     const success = await api.addReviewer(1, 'reviewer');
 
     expect(success).toBeTruthy();
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      reviewers: ['reviewer']
+    });
   });
 
   it('returns false if reviewer cannot be added', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['not_a_collaborator']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_reviewer_to_pr.one_user.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_reviewers: []
+      }
+    });
 
     const success = await api.addReviewer(1, 'not_a_collaborator');
 
     expect(success).toBeFalsy();
-    nockScope.done();
   });
 
   it('returns false on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        reviewers: ['reviewer']
-      })
-      .reply(500);
+    mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
+      new Error('API error')
+    );
 
     const success = await api.addReviewer(1, 'reviewer');
 
     expect(success).toBeFalsy();
-    nockScope.done();
   });
 });
 
@@ -302,307 +289,369 @@ describe('addTeamReviewers', () => {
   });
 
   it('adds a team reviewer', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_teams: [{slug: 'team'}]
+      }
+    });
 
     await api.addTeamReviewers(1, ['team']);
 
     expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      team_reviewers: ['team']
+    });
   });
 
   it('adds multiple team reviewers', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team1']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.two_teams.json`,
-        {
-          'Content-Type': 'application/json'
+    mockOctokit.rest.pulls.requestReviewers
+      .mockResolvedValueOnce({
+        data: {
+          requested_teams: [{slug: 'team1'}]
         }
-      )
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team2']
       })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.two_teams.json`,
-        {
-          'Content-Type': 'application/json'
+      .mockResolvedValueOnce({
+        data: {
+          requested_teams: [{slug: 'team2'}]
         }
-      );
+      });
 
     await api.addTeamReviewers(1, ['team1', 'team2']);
 
     expect(store.setErroredTeamReviewers).not.toHaveBeenCalled();
-
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      team_reviewers: ['team1']
+    });
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      team_reviewers: ['team2']
+    });
   });
 
   it('saves all errored team reviewers to store state', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
-        {
-          'Content-Type': 'application/json'
+    mockOctokit.rest.pulls.requestReviewers
+      .mockResolvedValueOnce({
+        data: {
+          requested_teams: [{slug: 'team'}]
         }
-      )
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team2']
       })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
-        {
-          'Content-Type': 'application/json'
+      .mockResolvedValueOnce({
+        data: {
+          requested_teams: []
         }
-      );
+      });
 
     await api.addTeamReviewers(1, ['team', 'team2']);
 
     expect(store.setErroredTeamReviewers).toHaveBeenCalledWith(['team2']);
-
-    nockScope.done();
   });
 
   it('does not throw on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team']
-      })
-      .reply(500);
+    mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
+      new Error('API error')
+    );
 
     await api.addTeamReviewers(1, ['team']);
 
     expect(store.setErroredTeamReviewers).toHaveBeenCalledWith(['team']);
-
-    nockScope.done();
   });
 });
 
 describe('addTeamReviewer', () => {
   it('adds a team reviewer', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_teams: [{slug: 'team'}]
+      }
+    });
 
     const success = await api.addTeamReviewer(1, 'team');
 
     expect(success).toBeTruthy();
-    nockScope.done();
+    expect(mockOctokit.rest.pulls.requestReviewers).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      pull_number: 1,
+      team_reviewers: ['team']
+    });
   });
 
   it('returns false if team reviewer cannot be added', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['not_a_team_username']
-      })
-      .replyWithFile(
-        201,
-        `${__dirname}/fixtures/add_team_reviewer_to_pr.one_team.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.pulls.requestReviewers.mockResolvedValue({
+      data: {
+        requested_teams: []
+      }
+    });
 
-    const success = await api.addTeamReviewer(1, 'not_a_team_username');
+    const success = await api.addTeamReviewer(1, 'not_a_team');
 
     expect(success).toBeFalsy();
-    nockScope.done();
   });
 
   it('returns false on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/pulls/1/requested_reviewers', {
-        team_reviewers: ['team']
-      })
-      .reply(500);
+    mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
+      new Error('API error')
+    );
 
     const success = await api.addTeamReviewer(1, 'team');
 
     expect(success).toBeFalsy();
-    nockScope.done();
   });
 });
 
 describe('addLabels', () => {
   it('adds a label', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/issues/1/labels', {
-        labels: ['gradle-wrapper']
-      })
-      .replyWithFile(200, `${__dirname}/fixtures/add_label_to_issue.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.issues.addLabels.mockResolvedValue({
+      data: [{name: 'gradle-wrapper'}]
+    });
 
     await api.addLabels(1, ['gradle-wrapper']);
 
-    nockScope.done();
+    expect(mockOctokit.rest.issues.addLabels).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      issue_number: 1,
+      labels: ['gradle-wrapper']
+    });
   });
 
   it('adds multiple labels', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/issues/1/labels', {
-        labels: ['gradle-wrapper', 'dependencies']
-      })
-      .replyWithFile(200, `${__dirname}/fixtures/add_label_to_issue.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.issues.addLabels.mockResolvedValue({
+      data: [{name: 'gradle-wrapper'}, {name: 'dependencies'}]
+    });
 
     await api.addLabels(1, ['gradle-wrapper', 'dependencies']);
 
-    nockScope.done();
+    expect(mockOctokit.rest.issues.addLabels).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      issue_number: 1,
+      labels: ['gradle-wrapper', 'dependencies']
+    });
   });
 
   it('does not throw on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/issues/1/labels', {
-        labels: ['gradle-wrapper']
-      })
-      .reply(500);
+    mockOctokit.rest.issues.addLabels.mockRejectedValue(new Error('API error'));
 
     await api.addLabels(1, ['gradle-wrapper']);
 
-    nockScope.done();
+    expect(mockOctokit.rest.issues.addLabels).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      issue_number: 1,
+      labels: ['gradle-wrapper']
+    });
   });
 });
 
 describe('createLabelIfMissing', () => {
   it('does nothing if label already exists', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get('/repos/owner-name/repo-name/labels/gradle-wrapper')
-      .replyWithFile(200, `${__dirname}/fixtures/get_label.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.issues.getLabel.mockResolvedValue({
+      data: {
+        id: 123,
+        name: 'gradle-wrapper'
+      }
+    });
 
     const res = await api.createLabelIfMissing('gradle-wrapper');
 
     expect(res).toBeTruthy();
-    nockScope.done();
+    expect(mockOctokit.rest.issues.getLabel).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      name: 'gradle-wrapper'
+    });
   });
 
   it('calls `createLabel()` if label does not exist', async () => {
-    const nockScope = nock('https://api.github.com')
-      .get('/repos/owner-name/repo-name/labels/gradle-wrapper')
-      .replyWithFile(404, `${__dirname}/fixtures/get_label.not_found.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.issues.getLabel.mockRejectedValue(
+      new RequestError('Not Found', 404, {
+        request: {
+          method: 'GET',
+          url: 'https://api.github.com/repos/owner-name/repo-name/labels/gradle-wrapper',
+          headers: {}
+        },
+        response: {
+          status: 404,
+          url: 'https://api.github.com/repos/owner-name/repo-name/labels/gradle-wrapper',
+          headers: {},
+          data: {
+            message: 'Not Found'
+          }
+        }
+      })
+    );
 
-    api.createLabel = jest.fn().mockResolvedValue(true);
+    mockOctokit.rest.issues.createLabel.mockResolvedValue({
+      data: {
+        id: 123,
+        name: 'gradle-wrapper'
+      }
+    });
 
     const res = await api.createLabelIfMissing('gradle-wrapper');
 
-    expect(api.createLabel).toHaveBeenCalled();
     expect(res).toBeTruthy();
-
-    nockScope.done();
+    expect(mockOctokit.rest.issues.createLabel).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      name: 'gradle-wrapper',
+      color: '02303A',
+      description: 'Pull requests that update Gradle wrapper'
+    });
   });
 });
 
 describe('createLabel', () => {
   it('creates a label', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/labels', {
-        name: 'gradle-wrapper',
-        color: '02303A',
-        description: 'Pull requests that update Gradle wrapper'
-      })
-      .replyWithFile(201, `${__dirname}/fixtures/create_label.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+    mockOctokit.rest.issues.createLabel.mockResolvedValue({
+      data: {
+        id: 123,
+        name: 'gradle-wrapper'
+      }
+    });
 
     const created = await api.createLabel('gradle-wrapper');
 
     expect(created).toBeTruthy();
-    nockScope.done();
+    expect(mockOctokit.rest.issues.createLabel).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      name: 'gradle-wrapper',
+      color: '02303A',
+      description: 'Pull requests that update Gradle wrapper'
+    });
   });
 
   it('does not throw if label already exists', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/labels', {
-        name: 'gradle-wrapper',
-        color: '02303A',
-        description: 'Pull requests that update Gradle wrapper'
-      })
-      .replyWithFile(
-        422,
-        `${__dirname}/fixtures/create_label.already_exists.json`,
-        {
-          'Content-Type': 'application/json'
-        }
-      );
+    mockOctokit.rest.issues.createLabel.mockRejectedValue({
+      status: 422,
+      message: 'Label already exists'
+    });
 
     const created = await api.createLabel('gradle-wrapper');
 
     expect(created).toBeFalsy();
-    nockScope.done();
   });
 
   it('does not throw on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/labels', {
-        name: 'gradle-wrapper',
-        color: '02303A',
-        description: 'Pull requests that update Gradle wrapper'
-      })
-      .reply(500);
+    mockOctokit.rest.issues.createLabel.mockRejectedValue(
+      new Error('API error')
+    );
 
     await api.createLabel('gradle-wrapper');
 
-    nockScope.done();
+    expect(mockOctokit.rest.issues.createLabel).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      name: 'gradle-wrapper',
+      color: '02303A',
+      description: 'Pull requests that update Gradle wrapper'
+    });
   });
 });
 
 describe('createComment', () => {
   it('creates a comment', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/issues/42/comments', {
+    mockOctokit.rest.issues.createComment.mockResolvedValue({
+      data: {
+        id: 123,
         body: 'test comment'
-      })
-      .replyWithFile(201, `${__dirname}/fixtures/create_comment.ok.json`, {
-        'Content-Type': 'application/json'
-      });
+      }
+    });
 
     const created = await api.createComment(42, 'test comment');
 
     expect(created).toBeTruthy();
-    nockScope.done();
+    expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      issue_number: 42,
+      body: 'test comment'
+    });
   });
 
   it('does not throw on api error', async () => {
-    const nockScope = nock('https://api.github.com')
-      .post('/repos/owner-name/repo-name/issues/42/comments', {
-        body: 'test comment'
-      })
-      .reply(500);
+    mockOctokit.rest.issues.createComment.mockRejectedValue(
+      new Error('API error')
+    );
 
     const created = await api.createComment(42, 'test comment');
 
     expect(created).toBeFalsy();
-    nockScope.done();
+    expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith({
+      owner: 'owner-name',
+      repo: 'repo-name',
+      issue_number: 42,
+      body: 'test comment'
+    });
+  });
+});
+
+describe('enableAutoMerge', () => {
+  it('enables auto-merge with valid merge method', async () => {
+    mockOctokit.graphql
+      .mockResolvedValueOnce({
+        repository: {
+          pullRequest: {
+            id: 'PR_123'
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        pullRequest: {
+          autoMergeRequest: {
+            enabledAt: '2025-02-23T12:00:00Z',
+            enabledBy: {
+              login: 'user'
+            }
+          }
+        }
+      });
+
+    await api.enableAutoMerge(42, 'MERGE');
+
+    expect(mockOctokit.graphql).toHaveBeenCalledWith(
+      expect.stringContaining('query GetPullRequestId'),
+      {
+        owner: 'owner-name',
+        repo: 'repo-name',
+        pullRequestNumber: 42
+      }
+    );
+
+    expect(mockOctokit.graphql).toHaveBeenCalledWith(
+      expect.stringContaining('mutation'),
+      {
+        pullRequestId: 'PR_123',
+        mergeMethod: 'MERGE'
+      }
+    );
+  });
+
+  it('logs error for invalid merge method', async () => {
+    const coreSpy = jest.spyOn(core, 'error');
+
+    await api.enableAutoMerge(42, 'INVALID');
+
+    expect(coreSpy).toHaveBeenCalledWith(
+      expect.stringContaining('merge-method must be one of the following')
+    );
+  });
+
+  it('does not throw on api error', async () => {
+    mockOctokit.graphql.mockRejectedValue(new Error('API error'));
+
+    await api.enableAutoMerge(42, 'MERGE');
+
+    expect(mockOctokit.graphql).toHaveBeenCalled();
   });
 });
