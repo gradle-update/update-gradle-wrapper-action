@@ -16,11 +16,12 @@ import * as core from '@actions/core';
 
 import * as store from '../store';
 
-import {components} from '@octokit/openapi-types';
 import {RequestError} from '@octokit/request-error';
 import {context, getOctokit} from '@actions/github';
+import type {RestEndpointMethodTypes} from '@octokit/plugin-rest-endpoint-methods';
 
-type PullsCreateResponseData = components['schemas']['pull-request'];
+type PullsCreateResponseData =
+  RestEndpointMethodTypes['pulls']['create']['response']['data'];
 
 export interface IGitHubApi {
   repoDefaultBranch: () => Promise<string>;
