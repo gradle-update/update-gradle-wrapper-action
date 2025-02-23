@@ -203,7 +203,7 @@ describe('addReviewers', () => {
       })
       .mockResolvedValueOnce({
         data: {
-          requested_reviewers: []
+          requested_reviewers: [{login: 'reviewer1'}]
         }
       });
 
@@ -214,7 +214,24 @@ describe('addReviewers', () => {
 
   it('does not throw when adding a user that is not a collaborator', async () => {
     mockOctokit.rest.pulls.requestReviewers.mockRejectedValue(
-      new Error('Not a collaborator')
+      new RequestError('Not Found', 422, {
+        request: {
+          method: 'POST',
+          url: 'https://api.github.com/repos/owner-name/repo-name/pulls/1/requested_reviewers',
+          headers: {}
+        },
+        response: {
+          status: 422,
+          url: 'https://api.github.com/repos/owner-name/repo-name/pulls/1/requested_reviewers',
+          headers: {},
+          data: {
+            message:
+              'Reviews may only be requested from collaborators. One or more of the users or teams you specified is not a collaborator of the owner-name/repo-name repository.',
+            documentation_url:
+              'https://docs.github.com/rest/reference/pulls#request-reviewers-for-a-pull-request'
+          }
+        }
+      })
     );
 
     await api.addReviewers(1, ['not_a_collaborator']);
@@ -340,16 +357,16 @@ describe('addTeamReviewers', () => {
     mockOctokit.rest.pulls.requestReviewers
       .mockResolvedValueOnce({
         data: {
-          requested_teams: [{slug: 'team'}]
+          requested_teams: [{slug: 'team1'}]
         }
       })
       .mockResolvedValueOnce({
         data: {
-          requested_teams: []
+          requested_teams: [{slug: 'team1'}]
         }
       });
 
-    await api.addTeamReviewers(1, ['team', 'team2']);
+    await api.addTeamReviewers(1, ['team1', 'team2']);
 
     expect(store.setErroredTeamReviewers).toHaveBeenCalledWith(['team2']);
   });
@@ -484,7 +501,9 @@ describe('createLabelIfMissing', () => {
           url: 'https://api.github.com/repos/owner-name/repo-name/labels/gradle-wrapper',
           headers: {},
           data: {
-            message: 'Not Found'
+            message: 'Not Found',
+            documentation_url:
+              'https://docs.github.com/rest/reference/issues#get-a-label'
           }
         }
       })
@@ -532,10 +551,32 @@ describe('createLabel', () => {
   });
 
   it('does not throw if label already exists', async () => {
-    mockOctokit.rest.issues.createLabel.mockRejectedValue({
-      status: 422,
-      message: 'Label already exists'
-    });
+    mockOctokit.rest.issues.createLabel.mockRejectedValue(
+      new RequestError('Label already exists', 422, {
+        request: {
+          method: 'POST',
+          url: 'https://api.github.com/repos/owner-name/repo-name/labels',
+          headers: {}
+        },
+        response: {
+          status: 422,
+          url: 'https://api.github.com/repos/owner-name/repo-name/labels',
+          headers: {},
+          data: {
+            message: 'Validation Failed',
+            errors: [
+              {
+                resource: 'Label',
+                code: 'already_exists',
+                field: 'name'
+              }
+            ],
+            documentation_url:
+              'https://docs.github.com/rest/reference/issues#create-a-label'
+          }
+        }
+      })
+    );
 
     const created = await api.createLabel('gradle-wrapper');
 
