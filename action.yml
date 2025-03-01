@@ -60,6 +60,14 @@ inputs:
       used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+  pr-message-template:
+    description: |
+      Template used for PR description.
+      There are cases in which the source version of the Gradle Wrapper can not
+      be determined successfully. In such cases, the string 'undefined' will be
+      used to replace the source version placeholder.
+    required: false
+    default: ''
   commit-message-template:
     description: |
       Template used for commit message.

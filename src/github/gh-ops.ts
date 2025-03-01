@@ -19,7 +19,7 @@ import {context, getOctokit} from '@actions/github';
 
 import {Inputs} from '../inputs';
 import {PullRequestData} from '../store';
-import {pullRequestText} from '../messages';
+import {pullRequestTitle, pullRequestText} from '../messages';
 import {Release} from '../releases';
 import {GitHubApi, IGitHubApi} from './gh-api';
 
@@ -61,7 +61,6 @@ export class GitHubOps {
 
   async createPullRequest(
     branchName: string,
-    prTitleTemplate: string,
     distTypes: Set<string>,
     targetRelease: Release,
     sourceVersion?: string
@@ -73,12 +72,27 @@ export class GitHubOps {
 
     core.debug(`Target branch: ${targetBranch}`);
 
-    const {title, body} = pullRequestText(
-      prTitleTemplate,
-      distTypes,
-      targetRelease,
-      sourceVersion
-    );
+    let title, body;
+
+    if (this.inputs.prMessageTemplate) {
+      title = pullRequestTitle(
+        this.inputs.prTitleTemplate,
+        sourceVersion,
+        targetRelease.version
+      );
+      body = pullRequestTitle(
+        this.inputs.prMessageTemplate,
+        sourceVersion,
+        targetRelease.version
+      );
+    } else {
+      ({title, body} = pullRequestText(
+        this.inputs.prTitleTemplate,
+        distTypes,
+        targetRelease,
+        sourceVersion
+      ));
+    }
 
     const pullRequest = await this.api.createPullRequest({
       branchName: `refs/heads/${branchName}`,

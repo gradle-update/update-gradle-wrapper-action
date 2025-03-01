@@ -28,6 +28,7 @@ export interface Inputs {
   releaseChannel: string;
   mergeMethod: string | undefined;
   prTitleTemplate: string;
+  prMessageTemplate: string;
   commitMessageTemplate: string;
 }
 
@@ -51,6 +52,7 @@ class ActionInputs implements Inputs {
   releaseChannel: string;
   mergeMethod: string | undefined;
   prTitleTemplate: string;
+  prMessageTemplate: string;
   commitMessageTemplate: string;
 
   constructor() {
@@ -125,6 +127,13 @@ class ActionInputs implements Inputs {
     if (!this.prTitleTemplate) {
       this.prTitleTemplate =
         'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+    }
+
+    this.prMessageTemplate = core
+      .getInput('pr-message-template', {required: false})
+      .trim();
+    if (!this.prMessageTemplate) {
+      this.prMessageTemplate = '';
     }
 
     this.commitMessageTemplate = core

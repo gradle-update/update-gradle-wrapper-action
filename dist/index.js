@@ -727,13 +727,20 @@ class GitHubOps {
             return;
         });
     }
-    createPullRequest(branchName, prTitleTemplate, distTypes, targetRelease, sourceVersion) {
+    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
             const targetBranch = this.inputs.targetBranch !== ''
                 ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
-            const { title, body } = (0, messages_1.pullRequestText)(prTitleTemplate, distTypes, targetRelease, sourceVersion);
+            let title, body;
+            if (this.inputs.prMessageTemplate) {
+                title = (0, messages_1.pullRequestTitle)(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
+                body = (0, messages_1.pullRequestTitle)(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
+            }
+            else {
+                ({ title, body } = (0, messages_1.pullRequestText)(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
+            }
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
                 target: targetBranch,
@@ -930,6 +937,12 @@ class ActionInputs {
         if (!this.prTitleTemplate) {
             this.prTitleTemplate =
                 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
+        }
+        this.prMessageTemplate = core
+            .getInput('pr-message-template', { required: false })
+            .trim();
+        if (!this.prMessageTemplate) {
+            this.prMessageTemplate = '';
         }
         this.commitMessageTemplate = core
             .getInput('commit-message-template', { required: false })
@@ -1348,7 +1361,7 @@ class MainAction {
                 core.info('Pushing branch');
                 yield git.push(branchName);
                 core.info('Creating Pull Request');
-                const pullRequestData = yield this.githubOps.createPullRequest(branchName, this.inputs.prTitleTemplate, distTypes, targetRelease, commitDataList.length === 1
+                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
                     ? commitDataList[0].sourceVersion
                     : undefined);
                 core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);

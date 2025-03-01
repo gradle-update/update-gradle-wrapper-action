@@ -46,6 +46,7 @@ const defaultMockInputs: Inputs = {
   releaseChannel: '',
   mergeMethod: undefined,
   prTitleTemplate: 'Bump wrapper from %sourceVersion% to %targetVersion%',
+  prMessageTemplate: '',
   commitMessageTemplate:
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
@@ -163,7 +164,6 @@ describe('run', () => {
 
     expect(mockGitHubOps.createPullRequest).toHaveBeenCalledWith(
       'gradlew-update-1.0.1',
-      'Bump wrapper from %sourceVersion% to %targetVersion%',
       new Set(['bin']),
       expect.objectContaining({
         version: '1.0.1'

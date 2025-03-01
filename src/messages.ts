@@ -24,7 +24,7 @@ export function pullRequestTitle(
   template: string,
   sourceVersion: string | undefined,
   targetVersion: string
-) {
+): string {
   return template
     .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
     .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion ?? 'undefined');
