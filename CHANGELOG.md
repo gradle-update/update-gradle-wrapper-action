@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.0
+
+- Added input parameter `pr-message-template`.
+- Updated action dependencies.
+
+
 ## v2.0.1
 
 - Updated action dependencies.
