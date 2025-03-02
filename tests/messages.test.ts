@@ -13,15 +13,11 @@
 // limitations under the License.
 
 import {Release} from '../src/releases';
-import {
-  commitMessageText,
-  pullRequestText,
-  pullRequestTitle
-} from '../src/messages';
+import {replaceVersionPlaceholders, pullRequestText} from '../src/messages';
 
-describe('pullRequestTitle', () => {
+describe('replaceVersionPlaceholders', () => {
   it('replaces %sourceVersion% with sourceVersion parameter', () => {
-    const title = pullRequestTitle(
+    const title = replaceVersionPlaceholders(
       `chore: Update wrapper %sourceVersion% to newer version`,
       '1.0.0',
       '1.0.1'
@@ -30,7 +26,7 @@ describe('pullRequestTitle', () => {
   });
 
   it('replaces %targetVersion% with the source version parameter', () => {
-    const title = pullRequestTitle(
+    const title = replaceVersionPlaceholders(
       `chore: Update wrapper to %targetVersion%`,
       '1.0.0',
       '1.0.1'
@@ -39,7 +35,7 @@ describe('pullRequestTitle', () => {
   });
 
   it('replaces both placeholders', () => {
-    const title = pullRequestTitle(
+    const title = replaceVersionPlaceholders(
       `chore: Update wrapper from %sourceVersion% to %targetVersion%`,
       '1.0.0',
       '1.0.1'
@@ -48,50 +44,12 @@ describe('pullRequestTitle', () => {
   });
 
   it('uses "undefined" if the sourceVersion is undefined', () => {
-    const title = pullRequestTitle(
+    const title = replaceVersionPlaceholders(
       `chore: Update wrapper from %sourceVersion% to %targetVersion%`,
       undefined,
       '1.0.1'
     );
     expect(title).toBe('chore: Update wrapper from undefined to 1.0.1');
-  });
-});
-
-describe('commitMessageText', () => {
-  it('replaces %sourceVersion% with the source version parameter', () => {
-    const message = commitMessageText(
-      'Update from %sourceVersion%',
-      '1.0.0',
-      '1.0.1'
-    );
-    expect(message).toEqual('Update from 1.0.0');
-  });
-
-  it('replaces %sourceVersion% with "undefined" if the parameters is `undefined`', () => {
-    const message = commitMessageText(
-      'Update from %sourceVersion%',
-      undefined,
-      '1.0.1'
-    );
-    expect(message).toEqual('Update from undefined');
-  });
-
-  it('replaces %targetVersion% with the source version parameter', () => {
-    const message = commitMessageText(
-      'Update to %targetVersion%',
-      '1.0.0',
-      '1.0.1'
-    );
-    expect(message).toEqual('Update to 1.0.1');
-  });
-
-  it('replaces both placeholders', () => {
-    const message = commitMessageText(
-      'Update from %sourceVersion% to %targetVersion%',
-      '1.0.0',
-      '1.0.1'
-    );
-    expect(message).toEqual('Update from 1.0.0 to 1.0.1');
   });
 });
 

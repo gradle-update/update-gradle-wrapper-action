@@ -735,8 +735,8 @@ class GitHubOps {
             core.debug(`Target branch: ${targetBranch}`);
             let title, body;
             if (this.inputs.prMessageTemplate) {
-                title = (0, messages_1.pullRequestTitle)(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
-                body = (0, messages_1.pullRequestTitle)(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
+                title = (0, messages_1.replaceVersionPlaceholders)(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
+                body = (0, messages_1.replaceVersionPlaceholders)(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
             }
             else {
                 ({ title, body } = (0, messages_1.pullRequestText)(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
@@ -963,25 +963,19 @@ class ActionInputs {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pullRequestTitle = pullRequestTitle;
-exports.commitMessageText = commitMessageText;
+exports.replaceVersionPlaceholders = replaceVersionPlaceholders;
 exports.pullRequestText = pullRequestText;
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
 const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
-function pullRequestTitle(template, sourceVersion, targetVersion) {
+function replaceVersionPlaceholders(template, sourceVersion, targetVersion) {
     return template
         .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
         .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion !== null && sourceVersion !== void 0 ? sourceVersion : 'undefined');
 }
-function commitMessageText(template, source, target) {
-    return template
-        .replace(TARGET_VERSION_PLACEHOLDER, target)
-        .replace(SOURCE_VERSION_PLACEHOLDER, source ? source : 'undefined');
-}
 function pullRequestText(prTitleTemplate, distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
-    const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
+    const title = replaceVersionPlaceholders(prTitleTemplate, sourceVersion, targetVersion);
     const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
@@ -1336,7 +1330,7 @@ class MainAction {
                         yield updater.verify();
                         core.endGroup();
                         core.startGroup('Committing');
-                        const commitMessage = (0, messages_1.commitMessageText)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
+                        const commitMessage = (0, messages_1.replaceVersionPlaceholders)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
                         yield (0, git_commit_1.commit)(modifiedFiles, commitMessage);
                         core.endGroup();
                         commitDataList.push({

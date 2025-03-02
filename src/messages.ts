@@ -20,7 +20,7 @@ const ISSUES_URL =
 const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
 const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
 
-export function pullRequestTitle(
+export function replaceVersionPlaceholders(
   template: string,
   sourceVersion: string | undefined,
   targetVersion: string
@@ -30,16 +30,6 @@ export function pullRequestTitle(
     .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion ?? 'undefined');
 }
 
-export function commitMessageText(
-  template: string,
-  source: string | undefined,
-  target: string
-): string {
-  return template
-    .replace(TARGET_VERSION_PLACEHOLDER, target)
-    .replace(SOURCE_VERSION_PLACEHOLDER, source ? source : 'undefined');
-}
-
 export function pullRequestText(
   prTitleTemplate: string,
   distTypes: Set<string>,
@@ -47,7 +37,11 @@ export function pullRequestText(
   sourceVersion?: string
 ): {title: string; body: string} {
   const targetVersion = targetRelease.version;
-  const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
+  const title = replaceVersionPlaceholders(
+    prTitleTemplate,
+    sourceVersion,
+    targetVersion
+  );
   const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;

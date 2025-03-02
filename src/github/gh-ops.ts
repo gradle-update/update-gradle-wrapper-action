@@ -19,7 +19,7 @@ import {context, getOctokit} from '@actions/github';
 
 import {Inputs} from '../inputs';
 import {PullRequestData} from '../store';
-import {pullRequestTitle, pullRequestText} from '../messages';
+import {replaceVersionPlaceholders, pullRequestText} from '../messages';
 import {Release} from '../releases';
 import {GitHubApi, IGitHubApi} from './gh-api';
 
@@ -75,12 +75,12 @@ export class GitHubOps {
     let title, body;
 
     if (this.inputs.prMessageTemplate) {
-      title = pullRequestTitle(
+      title = replaceVersionPlaceholders(
         this.inputs.prTitleTemplate,
         sourceVersion,
         targetRelease.version
       );
-      body = pullRequestTitle(
+      body = replaceVersionPlaceholders(
         this.inputs.prMessageTemplate,
         sourceVersion,
         targetRelease.version
