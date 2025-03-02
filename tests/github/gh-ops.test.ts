@@ -34,6 +34,7 @@ const defaultMockInputs: Inputs = {
   mergeMethod: undefined,
   prTitleTemplate:
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
+  prMessageTemplate: '',
   commitMessageTemplate:
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
 };
@@ -108,9 +109,10 @@ describe('createPullRequest', () => {
     });
 
     it('creates a Pull Request with custom title', async () => {
+      mockInputs.prTitleTemplate = 'chore: Bump wrapper from 1.0.0 to 1.0.1';
+
       await githubOps.createPullRequest(
         branchName,
-        'chore: Bump wrapper from %sourceVersion% to %targetVersion%',
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -128,10 +130,50 @@ describe('createPullRequest', () => {
       });
     });
 
+    it('creates a Pull Request with custom message', async () => {
+      mockInputs.prMessageTemplate = 'Updated by gradle-wrapper-action';
+
+      await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'Update Gradle Wrapper from 1.0.0 to 1.0.1',
+        body: 'Updated by gradle-wrapper-action'
+      });
+    });
+
+    it('creates a Pull Request with custom title and custom message', async () => {
+      mockInputs.prTitleTemplate = 'chore: Bump wrapper from 1.0.0 to 1.0.1';
+      mockInputs.prMessageTemplate = 'Updated by gradle-wrapper-action';
+
+      await githubOps.createPullRequest(
+        branchName,
+        distributionTypes,
+        targetRelease,
+        sourceVersion
+      );
+
+      expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+
+      expect(mockGitHubApi.createPullRequest).toHaveBeenCalledWith({
+        branchName: 'refs/heads/a-branch-name',
+        target: 'master',
+        title: 'chore: Bump wrapper from 1.0.0 to 1.0.1',
+        body: 'Updated by gradle-wrapper-action'
+      });
+    });
+
     it('creates a Pull Request and returns its data', async () => {
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
-        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -172,7 +214,6 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
-        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -213,7 +254,6 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
-        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -257,7 +297,6 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
-        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -301,7 +340,6 @@ describe('createPullRequest', () => {
 
       const pullRequestData = await githubOps.createPullRequest(
         branchName,
-        mockInputs.prTitleTemplate,
         distributionTypes,
         targetRelease,
         sourceVersion
@@ -349,7 +387,6 @@ describe('createPullRequest', () => {
       await expect(
         githubOps.createPullRequest(
           branchName,
-          mockInputs.prTitleTemplate,
           distributionTypes,
           targetRelease,
           sourceVersion
@@ -367,7 +404,6 @@ describe('createPullRequest', () => {
       await expect(
         githubOps.createPullRequest(
           branchName,
-          mockInputs.prTitleTemplate,
           distributionTypes,
           targetRelease,
           sourceVersion

@@ -51,6 +51,7 @@ describe('getInputs', () => {
         "mergeMethod": undefined,
         "paths": [],
         "pathsIgnore": [],
+        "prMessageTemplate": "",
         "prTitleTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "releaseChannel": "stable",
         "repoToken": "s3cr3t",
@@ -266,6 +267,27 @@ describe('getInputs', () => {
 
       expect(getInputs().prTitleTemplate).toStrictEqual(
         'Change wrapper from %sourceVersion% to %targetVersion%'
+      );
+    });
+  });
+
+  describe('prMessageTemplate', () => {
+    it('defaults to empty string', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t'
+      };
+
+      expect(getInputs().prMessageTemplate).toStrictEqual('');
+    });
+
+    it('is set to the input string value', () => {
+      ymlInputs = {
+        'repo-token': 's3cr3t',
+        'pr-message-template': 'Updated by gradle-wrapper-action'
+      };
+
+      expect(getInputs().prMessageTemplate).toStrictEqual(
+        'Updated by gradle-wrapper-action'
       );
     });
   });

@@ -19,7 +19,7 @@ import * as gitAuth from '../git/git-auth';
 import * as store from '../store';
 
 import {commit} from '../git/git-commit';
-import {commitMessageText} from '../messages';
+import {replaceVersionPlaceholders} from '../messages';
 import {createWrapperInfo} from '../wrapperInfo';
 import {createWrapperUpdater} from '../wrapperUpdater';
 import {findWrapperPropertiesFiles} from '../wrapper/find';
@@ -162,7 +162,7 @@ export class MainAction {
 
           core.startGroup('Committing');
 
-          const commitMessage = commitMessageText(
+          const commitMessage = replaceVersionPlaceholders(
             this.inputs.commitMessageTemplate,
             wrapper.version,
             targetRelease.version
@@ -202,7 +202,6 @@ export class MainAction {
       core.info('Creating Pull Request');
       const pullRequestData = await this.githubOps.createPullRequest(
         branchName,
-        this.inputs.prTitleTemplate,
         distTypes,
         targetRelease,
         commitDataList.length === 1

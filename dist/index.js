@@ -727,13 +727,20 @@ class GitHubOps {
             return;
         });
     }
-    createPullRequest(branchName, prTitleTemplate, distTypes, targetRelease, sourceVersion) {
+    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
             const targetBranch = this.inputs.targetBranch !== ''
                 ? this.inputs.targetBranch
                 : yield this.api.repoDefaultBranch();
             core.debug(`Target branch: ${targetBranch}`);
-            const { title, body } = (0, messages_1.pullRequestText)(prTitleTemplate, distTypes, targetRelease, sourceVersion);
+            let title, body;
+            if (this.inputs.prMessageTemplate) {
+                title = (0, messages_1.replaceVersionPlaceholders)(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
+                body = (0, messages_1.replaceVersionPlaceholders)(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
+            }
+            else {
+                ({ title, body } = (0, messages_1.pullRequestText)(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
+            }
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
                 target: targetBranch,
@@ -931,6 +938,12 @@ class ActionInputs {
             this.prTitleTemplate =
                 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
         }
+        this.prMessageTemplate = core
+            .getInput('pr-message-template', { required: false })
+            .trim();
+        if (!this.prMessageTemplate) {
+            this.prMessageTemplate = '';
+        }
         this.commitMessageTemplate = core
             .getInput('commit-message-template', { required: false })
             .trim();
@@ -950,25 +963,19 @@ class ActionInputs {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pullRequestTitle = pullRequestTitle;
-exports.commitMessageText = commitMessageText;
+exports.replaceVersionPlaceholders = replaceVersionPlaceholders;
 exports.pullRequestText = pullRequestText;
 const ISSUES_URL = 'https://github.com/gradle-update/update-gradle-wrapper-action/issues';
 const TARGET_VERSION_PLACEHOLDER = '%targetVersion%';
 const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
-function pullRequestTitle(template, sourceVersion, targetVersion) {
+function replaceVersionPlaceholders(template, sourceVersion, targetVersion) {
     return template
         .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
         .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion !== null && sourceVersion !== void 0 ? sourceVersion : 'undefined');
 }
-function commitMessageText(template, source, target) {
-    return template
-        .replace(TARGET_VERSION_PLACEHOLDER, target)
-        .replace(SOURCE_VERSION_PLACEHOLDER, source ? source : 'undefined');
-}
 function pullRequestText(prTitleTemplate, distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
-    const title = pullRequestTitle(prTitleTemplate, sourceVersion, targetVersion);
+    const title = replaceVersionPlaceholders(prTitleTemplate, sourceVersion, targetVersion);
     const bodyHeader = `${title}.
 
 Read the release notes: https://docs.gradle.org/${targetVersion}/release-notes.html`;
@@ -1323,7 +1330,7 @@ class MainAction {
                         yield updater.verify();
                         core.endGroup();
                         core.startGroup('Committing');
-                        const commitMessage = (0, messages_1.commitMessageText)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
+                        const commitMessage = (0, messages_1.replaceVersionPlaceholders)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
                         yield (0, git_commit_1.commit)(modifiedFiles, commitMessage);
                         core.endGroup();
                         commitDataList.push({
@@ -1348,7 +1355,7 @@ class MainAction {
                 core.info('Pushing branch');
                 yield git.push(branchName);
                 core.info('Creating Pull Request');
-                const pullRequestData = yield this.githubOps.createPullRequest(branchName, this.inputs.prTitleTemplate, distTypes, targetRelease, commitDataList.length === 1
+                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
                     ? commitDataList[0].sourceVersion
                     : undefined);
                 core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
