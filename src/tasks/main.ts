@@ -114,6 +114,7 @@ export class MainAction {
       core.endGroup();
 
       const distTypes = new Set<string>();
+      let buildBrokenAfterBump = false;
 
       for (const wrapper of wrapperInfos) {
         core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
@@ -150,14 +151,32 @@ export class MainAction {
           // and the wrapper scripts get updated if a new version is available (happens infrequently).
           // https://docs.gradle.org/current/userguide/gradle_wrapper.html#sec:upgrading_wrapper
           core.startGroup('Updating Wrapper (2nd update)');
-          await updater.update();
+          try {
+            await updater.update();
+          } catch (ex) {
+            if (this.inputs.ignoreFailureAfterUpdate) {
+              buildBrokenAfterBump = true;
+              core.warning(ex instanceof Error ? ex : `${ex}`);
+              core.warning('Ignoring failure after 2nd update');
+            } else {
+              throw ex;
+            }
+          }
           modifiedFiles = await git.gitDiffNameOnly();
           core.debug(`Modified files count: ${modifiedFiles.length}`);
           core.debug(`Modified files list: ${modifiedFiles}`);
           core.endGroup();
 
           core.startGroup('Verifying Wrapper');
-          await updater.verify();
+          try {
+            await updater.verify();
+          } catch (ex) {
+            if (this.inputs.ignoreFailureAfterUpdate) {
+              core.warning(ex instanceof Error ? ex : `${ex}`);
+            } else {
+              throw ex;
+            }
+          }
           core.endGroup();
 
           core.startGroup('Committing');
@@ -204,6 +223,7 @@ export class MainAction {
         branchName,
         distTypes,
         targetRelease,
+        buildBrokenAfterBump,
         commitDataList.length === 1
           ? commitDataList[0].sourceVersion
           : undefined

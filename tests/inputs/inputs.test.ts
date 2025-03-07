@@ -25,6 +25,9 @@ describe('getInputs', () => {
     jest.spyOn(core, 'getInput').mockImplementation((name: string) => {
       return ymlInputs[name] || '';
     });
+    jest.spyOn(core, 'getBooleanInput').mockImplementation((name: string) => {
+      return name == 'ignore-failure-after-update';
+    });
   });
 
   beforeEach(() => {
@@ -47,6 +50,7 @@ describe('getInputs', () => {
         "baseBranch": "",
         "commitMessageTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "distributionsBaseUrl": "",
+        "ignoreFailureAfterUpdate": true,
         "labels": [],
         "mergeMethod": undefined,
         "paths": [],

@@ -63,6 +63,7 @@ export class GitHubOps {
     branchName: string,
     distTypes: Set<string>,
     targetRelease: Release,
+    buildBrokenAfterBump: boolean,
     sourceVersion?: string
   ): Promise<PullRequestData> {
     const targetBranch =
@@ -92,6 +93,15 @@ export class GitHubOps {
         targetRelease,
         sourceVersion
       ));
+    }
+
+    if (buildBrokenAfterBump) {
+      body = `${body}
+      
+> [!CAUTION]
+> The Gradle bump has broken the build.
+> Remember to run \`./gradlew wrapper\` once the breaking changes are addressed
+`;
     }
 
     const pullRequest = await this.api.createPullRequest({
