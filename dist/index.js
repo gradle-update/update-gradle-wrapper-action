@@ -727,7 +727,7 @@ class GitHubOps {
             return;
         });
     }
-    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
+    createPullRequest(branchName, distTypes, targetRelease, buildBrokenAfterBump, sourceVersion) {
         return __awaiter(this, void 0, void 0, function* () {
             const targetBranch = this.inputs.targetBranch !== ''
                 ? this.inputs.targetBranch
@@ -740,6 +740,14 @@ class GitHubOps {
             }
             else {
                 ({ title, body } = (0, messages_1.pullRequestText)(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
+            }
+            if (buildBrokenAfterBump) {
+                body = `${body}
+      
+> [!CAUTION]
+> The Gradle bump has broken the build.
+> Remember to run \`./gradlew wrapper\` once the breaking changes are addressed
+`;
             }
             const pullRequest = yield this.api.createPullRequest({
                 branchName: `refs/heads/${branchName}`,
@@ -951,6 +959,7 @@ class ActionInputs {
             this.commitMessageTemplate =
                 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
         }
+        this.ignoreFailureAfterUpdate = core.getBooleanInput('ignore-failure-after-update', { required: false });
     }
 }
 
@@ -1302,6 +1311,7 @@ class MainAction {
                 yield git.checkoutCreateBranch(branchName, currentCommitSha);
                 core.endGroup();
                 const distTypes = new Set();
+                let buildBrokenAfterBump = false;
                 for (const wrapper of wrapperInfos) {
                     core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
                     core.debug(`Current Wrapper version: ${wrapper.version}`);
@@ -1321,13 +1331,35 @@ class MainAction {
                     core.endGroup();
                     if (modifiedFiles.length) {
                         core.startGroup('Updating Wrapper (2nd update)');
-                        yield updater.update();
+                        try {
+                            yield updater.update();
+                        }
+                        catch (ex) {
+                            if (this.inputs.ignoreFailureAfterUpdate) {
+                                buildBrokenAfterBump = true;
+                                core.warning(ex instanceof Error ? ex : `${ex}`);
+                                core.warning('Ignoring failure after 2nd update');
+                            }
+                            else {
+                                throw ex;
+                            }
+                        }
                         modifiedFiles = yield git.gitDiffNameOnly();
                         core.debug(`Modified files count: ${modifiedFiles.length}`);
                         core.debug(`Modified files list: ${modifiedFiles}`);
                         core.endGroup();
                         core.startGroup('Verifying Wrapper');
-                        yield updater.verify();
+                        try {
+                            yield updater.verify();
+                        }
+                        catch (ex) {
+                            if (this.inputs.ignoreFailureAfterUpdate) {
+                                core.warning(ex instanceof Error ? ex : `${ex}`);
+                            }
+                            else {
+                                throw ex;
+                            }
+                        }
                         core.endGroup();
                         core.startGroup('Committing');
                         const commitMessage = (0, messages_1.replaceVersionPlaceholders)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
@@ -1355,7 +1387,7 @@ class MainAction {
                 core.info('Pushing branch');
                 yield git.push(branchName);
                 core.info('Creating Pull Request');
-                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
+                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, buildBrokenAfterBump, commitDataList.length === 1
                     ? commitDataList[0].sourceVersion
                     : undefined);
                 core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);

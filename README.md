@@ -34,6 +34,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
   - [`pr-title-template`](#pr-title-template)
   - [`pr-message-template`](#pr-message-template)
   - [`commit-message-template`](#commit-message-template)
+  - [`ignore-failure-after-update`](#ignore-failure-after-update)
 - [Examples](#examples)
   - [Scheduling action execution](#scheduling-action-execution)
   - [Targeting a custom branch](#targeting-a-custom-branch)
@@ -151,6 +152,7 @@ This is the list of supported inputs:
 | [`pr-title-template`](#pr-title-template) | The template to use for the title of the pull request created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
 | [`pr-message-template`](#pr-message-template) | The template to use for the description of the pull request created by this action | No | (empty) |
 | [`commit-message-template`](#commit-message-template) | The template to use for the commit message created by this action | No | `Update Gradle Wrapper from %sourceVersion% to %targetVersion%` |
+| [`ignore-failure-after-update`](#ignore-failure-after-update) | Whether to ignore build failures when updating the Gradle Wrapper and still create a Pull Request | No | `true` |
 
 ---
 
