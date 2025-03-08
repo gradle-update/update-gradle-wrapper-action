@@ -30,6 +30,7 @@ export interface Inputs {
   prTitleTemplate: string;
   prMessageTemplate: string;
   commitMessageTemplate: string;
+  ignoreFailureAfterUpdate: boolean;
 }
 
 export function getInputs(): Inputs {
@@ -54,6 +55,7 @@ class ActionInputs implements Inputs {
   prTitleTemplate: string;
   prMessageTemplate: string;
   commitMessageTemplate: string;
+  ignoreFailureAfterUpdate: boolean;
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -143,5 +145,10 @@ class ActionInputs implements Inputs {
       this.commitMessageTemplate =
         'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
     }
+
+    this.ignoreFailureAfterUpdate = core.getBooleanInput(
+      'ignore-failure-after-update',
+      {required: false}
+    );
   }
 }
