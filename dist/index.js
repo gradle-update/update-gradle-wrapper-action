@@ -1351,17 +1351,7 @@ class MainAction {
                         core.debug(`Modified files list: ${modifiedFiles}`);
                         core.endGroup();
                         core.startGroup('Verifying Wrapper');
-                        try {
-                            yield updater.verify();
-                        }
-                        catch (ex) {
-                            if (this.inputs.ignoreUpdateFailure) {
-                                core.warning(ex instanceof Error ? ex : `${ex}`);
-                            }
-                            else {
-                                throw ex;
-                            }
-                        }
+                        yield updater.verify();
                         core.endGroup();
                         core.startGroup('Committing');
                         const commitMessage = (0, messages_1.replaceVersionPlaceholders)(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
