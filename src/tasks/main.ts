@@ -168,15 +168,7 @@ export class MainAction {
           core.endGroup();
 
           core.startGroup('Verifying Wrapper');
-          try {
-            await updater.verify();
-          } catch (ex) {
-            if (this.inputs.ignoreUpdateFailure) {
-              core.warning(ex instanceof Error ? ex : `${ex}`);
-            } else {
-              throw ex;
-            }
-          }
+          await updater.verify();
           core.endGroup();
 
           core.startGroup('Committing');
