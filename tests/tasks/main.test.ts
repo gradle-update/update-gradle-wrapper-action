@@ -49,7 +49,7 @@ const defaultMockInputs: Inputs = {
   prMessageTemplate: '',
   commitMessageTemplate:
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
-  ignoreFailureAfterUpdate: true
+  ignoreUpdateFailure: true
 };
 
 const defaultMockGitHubApi: IGitHubApi = {

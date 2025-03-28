@@ -79,7 +79,7 @@ inputs:
       used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
-  ignore-failure-after-update:
+  ignore-update-failure:
     description: |
       Whether to ignore build failures when updating the Gradle Wrapper and still create a Pull Request.
     required: false

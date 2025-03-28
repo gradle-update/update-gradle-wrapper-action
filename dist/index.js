@@ -959,7 +959,9 @@ class ActionInputs {
             this.commitMessageTemplate =
                 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
         }
-        this.ignoreFailureAfterUpdate = core.getBooleanInput('ignore-failure-after-update', { required: false });
+        this.ignoreUpdateFailure = core.getBooleanInput('ignore-update-failure', {
+            required: false
+        });
     }
 }
 
@@ -1335,7 +1337,7 @@ class MainAction {
                             yield updater.update();
                         }
                         catch (ex) {
-                            if (this.inputs.ignoreFailureAfterUpdate) {
+                            if (this.inputs.ignoreUpdateFailure) {
                                 buildBrokenAfterBump = true;
                                 core.warning(ex instanceof Error ? ex : `${ex}`);
                                 core.warning('Ignoring failure after 2nd update');
@@ -1353,7 +1355,7 @@ class MainAction {
                             yield updater.verify();
                         }
                         catch (ex) {
-                            if (this.inputs.ignoreFailureAfterUpdate) {
+                            if (this.inputs.ignoreUpdateFailure) {
                                 core.warning(ex instanceof Error ? ex : `${ex}`);
                             }
                             else {

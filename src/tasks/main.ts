@@ -154,7 +154,7 @@ export class MainAction {
           try {
             await updater.update();
           } catch (ex) {
-            if (this.inputs.ignoreFailureAfterUpdate) {
+            if (this.inputs.ignoreUpdateFailure) {
               buildBrokenAfterBump = true;
               core.warning(ex instanceof Error ? ex : `${ex}`);
               core.warning('Ignoring failure after 2nd update');
@@ -171,7 +171,7 @@ export class MainAction {
           try {
             await updater.verify();
           } catch (ex) {
-            if (this.inputs.ignoreFailureAfterUpdate) {
+            if (this.inputs.ignoreUpdateFailure) {
               core.warning(ex instanceof Error ? ex : `${ex}`);
             } else {
               throw ex;
