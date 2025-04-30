@@ -36,7 +36,8 @@ const defaultMockInputs: Inputs = {
     'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
   prMessageTemplate: '',
   commitMessageTemplate:
-    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+    'Update Gradle Wrapper from %sourceVersion% to %targetVersion%',
+  ignoreUpdateFailure: true
 };
 
 const defaultMockGitHubApi: IGitHubApi = {
@@ -115,6 +116,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -137,6 +139,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -158,6 +161,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -176,6 +180,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -216,6 +221,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -256,6 +262,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -299,6 +306,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -342,6 +350,7 @@ describe('createPullRequest', () => {
         branchName,
         distributionTypes,
         targetRelease,
+        false,
         sourceVersion
       );
 
@@ -389,6 +398,7 @@ describe('createPullRequest', () => {
           branchName,
           distributionTypes,
           targetRelease,
+          false,
           sourceVersion
         )
       ).rejects.toThrow('fetch repo error');
@@ -406,6 +416,7 @@ describe('createPullRequest', () => {
           branchName,
           distributionTypes,
           targetRelease,
+          false,
           sourceVersion
         )
       ).rejects.toThrow('create pull request error');
