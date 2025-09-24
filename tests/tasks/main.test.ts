@@ -148,7 +148,7 @@ describe('run', () => {
 
     expect(git.checkout).toHaveBeenCalledWith('master');
     expect(git.checkoutCreateBranch).toHaveBeenCalledWith(
-      'gradlew-update-1.0.1',
+      'gradlew-update/gradle-1.0.1',
       'abc123'
     );
 
@@ -160,10 +160,10 @@ describe('run', () => {
       'Update Gradle Wrapper from 1.0.0 to 1.0.1'
     );
 
-    expect(git.push).toHaveBeenCalledWith('gradlew-update-1.0.1');
+    expect(git.push).toHaveBeenCalledWith('gradlew-update/gradle-1.0.1');
 
     expect(mockGitHubOps.createPullRequest).toHaveBeenCalledWith(
-      'gradlew-update-1.0.1',
+      'gradlew-update/gradle-1.0.1',
       new Set(['bin']),
       expect.objectContaining({
         version: '1.0.1'
