@@ -3,6 +3,8 @@ name: Usage Count
 on:
   workflow_dispatch
 
+permissions: {}
+
 jobs:
   usage-count:
     runs-on: ubuntu-latest
