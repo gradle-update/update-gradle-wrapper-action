@@ -1,8 +1,7 @@
 import {fileURLToPath} from 'node:url';
-import {FlatCompat} from '@eslint/eslintrc';
+import github from 'eslint-plugin-github';
 import globals from 'globals';
 import jest from 'eslint-plugin-jest';
-import js from '@eslint/js';
 import path from 'node:path';
 import stylistic from '@stylistic/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
@@ -10,17 +9,12 @@ import typescriptEslint from '@typescript-eslint/eslint-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all
-});
 
 export default [
   {
     ignores: ['**/dist/', '**/lib/', '**/node_modules/', 'jest.config.js']
   },
-  ...compat.extends('plugin:github/recommended'),
+  github.getFlatConfigs().recommended,
   {
     plugins: {
       jest,
