@@ -109,7 +109,10 @@ export class MainAction {
       core.debug(`Head for branch ${baseBranch} is at ${currentCommitSha}`);
 
       core.startGroup('Creating branch');
-      const branchName = `gradlew-update-${targetRelease.version}`;
+      const branchName =
+        this.inputs.baseBranch !== ''
+          ? `gradlew-update/${this.inputs.baseBranch}/gradle-${targetRelease.version}`
+          : `gradlew-update/gradle-${targetRelease.version}`;
       await git.checkoutCreateBranch(branchName, currentCommitSha);
       core.endGroup();
 

@@ -63,6 +63,14 @@ const defaultMockGitHubApi: IGitHubApi = {
   enableAutoMerge: jest.fn()
 };
 
+const testCases = [
+  {baseBranch: '', expectedPrBranch: 'gradlew-update/gradle-1.0.1'},
+  {
+    baseBranch: 'support/1.x',
+    expectedPrBranch: 'gradlew-update/support/1.x/gradle-1.0.1'
+  }
+];
+
 beforeEach(() => {
   mockInputs = Object.create(defaultMockInputs);
   mockGitHubApi = Object.create(defaultMockGitHubApi);
@@ -83,97 +91,108 @@ beforeEach(() => {
 });
 
 describe('run', () => {
-  it('creates a Pull Request to update wrapper files', async () => {
-    jest.spyOn(store, 'setMainActionExecuted').mockImplementation();
+  testCases.forEach(({baseBranch, expectedPrBranch}) => {
+    it(`creates a Pull Request to update wrapper files with base branch '${baseBranch}'`, async () => {
+      mockInputs.baseBranch = baseBranch;
 
-    jest.spyOn(gitAuth, 'setup').mockImplementation();
+      jest.spyOn(store, 'setMainActionExecuted').mockImplementation();
 
-    mockReleases.fetchReleaseInformation = jest.fn().mockReturnValue({
-      version: '1.0.1',
-      allChecksum: 'dist-all-checksum-value',
-      binChecksum: 'dist-bin-checksum-value',
-      wrapperChecksum: 'wrapper-jar-checksum-value'
-    } as Release);
+      jest.spyOn(gitAuth, 'setup').mockImplementation();
 
-    mockGitHubOps.findMatchingRef = jest.fn().mockReturnValue(undefined);
+      mockReleases.fetchReleaseInformation = jest.fn().mockReturnValue({
+        version: '1.0.1',
+        allChecksum: 'dist-all-checksum-value',
+        binChecksum: 'dist-bin-checksum-value',
+        wrapperChecksum: 'wrapper-jar-checksum-value'
+      } as Release);
 
-    jest
-      .spyOn(wrapperFind, 'findWrapperPropertiesFiles')
-      .mockResolvedValue(['/path/to/gradle/wrapper/gradle-wrapper.properties']);
+      mockGitHubOps.findMatchingRef = jest.fn().mockReturnValue(undefined);
 
-    jest.spyOn(wrapper, 'createWrapperInfo').mockReturnValue({
-      version: '1.0.0',
-      path: '/path/to/gradle/wrapper/gradle-wrapper.properties',
-      distType: 'bin',
-      basePath: '/path/to/gradle'
-    } as wrapper.IWrapperInfo);
+      jest
+        .spyOn(wrapperFind, 'findWrapperPropertiesFiles')
+        .mockResolvedValue([
+          '/path/to/gradle/wrapper/gradle-wrapper.properties'
+        ]);
 
-    jest.spyOn(git, 'config').mockImplementation();
+      jest.spyOn(wrapper, 'createWrapperInfo').mockReturnValue({
+        version: '1.0.0',
+        path: '/path/to/gradle/wrapper/gradle-wrapper.properties',
+        distType: 'bin',
+        basePath: '/path/to/gradle'
+      } as wrapper.IWrapperInfo);
 
-    mockGitHubApi.repoDefaultBranch = jest.fn().mockReturnValue('master');
+      jest.spyOn(git, 'config').mockImplementation();
 
-    jest.spyOn(git, 'fetch').mockImplementation();
-    jest.spyOn(git, 'checkout').mockResolvedValue(0);
-    jest.spyOn(git, 'parseHead').mockResolvedValue('abc123');
-    jest.spyOn(git, 'checkoutCreateBranch').mockImplementation();
+      mockGitHubApi.repoDefaultBranch = jest.fn().mockReturnValue('master');
 
-    jest.spyOn(wrapperUpdater, 'createWrapperUpdater').mockReturnValue({
-      update: jest.fn().mockImplementation(),
-      verify: jest.fn().mockImplementation()
-    } as wrapperUpdater.IWrapperUpdater);
+      jest.spyOn(git, 'fetch').mockImplementation();
+      jest.spyOn(git, 'checkout').mockResolvedValue(0);
+      jest.spyOn(git, 'parseHead').mockResolvedValue('abc123');
+      jest.spyOn(git, 'checkoutCreateBranch').mockImplementation();
 
-    jest
-      .spyOn(git, 'gitDiffNameOnly')
-      .mockResolvedValue([
-        '/path/to/gradle/wrapper/gradle-wrapper.properties',
-        '/path/to/gradle/wrapper/gradle-wrapper.jar'
-      ]);
+      jest.spyOn(wrapperUpdater, 'createWrapperUpdater').mockReturnValue({
+        update: jest.fn().mockImplementation(),
+        verify: jest.fn().mockImplementation()
+      } as wrapperUpdater.IWrapperUpdater);
 
-    jest.spyOn(commit, 'commit').mockImplementation();
+      jest
+        .spyOn(git, 'gitDiffNameOnly')
+        .mockResolvedValue([
+          '/path/to/gradle/wrapper/gradle-wrapper.properties',
+          '/path/to/gradle/wrapper/gradle-wrapper.jar'
+        ]);
 
-    jest.spyOn(git, 'push').mockImplementation();
+      jest.spyOn(commit, 'commit').mockImplementation();
 
-    mockGitHubOps.createPullRequest = jest.fn().mockReturnValue({
-      url: 'https://github.com/owner/repo/pulls/42',
-      number: 42
-    } as store.PullRequestData);
+      jest.spyOn(git, 'push').mockImplementation();
 
-    jest.spyOn(store, 'setPullRequestData').mockImplementation();
+      mockGitHubOps.createPullRequest = jest.fn().mockReturnValue({
+        url: 'https://github.com/owner/repo/pulls/42',
+        number: 42
+      } as store.PullRequestData);
 
-    await mainAction.run();
+      jest.spyOn(store, 'setPullRequestData').mockImplementation();
 
-    expect(store.setMainActionExecuted).toHaveBeenCalled();
+      await mainAction.run();
 
-    expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
+      expect(store.setMainActionExecuted).toHaveBeenCalled();
 
-    expect(git.checkout).toHaveBeenCalledWith('master');
-    expect(git.checkoutCreateBranch).toHaveBeenCalledWith(
-      'gradlew-update-1.0.1',
-      'abc123'
-    );
+      if (baseBranch === '') {
+        expect(mockGitHubApi.repoDefaultBranch).toHaveBeenCalled();
 
-    expect(commit.commit).toHaveBeenCalledWith(
-      [
-        '/path/to/gradle/wrapper/gradle-wrapper.properties',
-        '/path/to/gradle/wrapper/gradle-wrapper.jar'
-      ],
-      'Update Gradle Wrapper from 1.0.0 to 1.0.1'
-    );
+        expect(git.checkout).toHaveBeenCalledWith('master');
+      } else {
+        expect(git.checkout).toHaveBeenCalledWith(baseBranch);
+      }
 
-    expect(git.push).toHaveBeenCalledWith('gradlew-update-1.0.1');
+      expect(git.checkoutCreateBranch).toHaveBeenCalledWith(
+        expectedPrBranch,
+        'abc123'
+      );
 
-    expect(mockGitHubOps.createPullRequest).toHaveBeenCalledWith(
-      'gradlew-update-1.0.1',
-      new Set(['bin']),
-      expect.objectContaining({
-        version: '1.0.1'
-      }),
-      '1.0.0'
-    );
+      expect(commit.commit).toHaveBeenCalledWith(
+        [
+          '/path/to/gradle/wrapper/gradle-wrapper.properties',
+          '/path/to/gradle/wrapper/gradle-wrapper.jar'
+        ],
+        'Update Gradle Wrapper from 1.0.0 to 1.0.1'
+      );
 
-    expect(store.setPullRequestData).toHaveBeenCalledWith({
-      url: 'https://github.com/owner/repo/pulls/42',
-      number: 42
+      expect(git.push).toHaveBeenCalledWith(expectedPrBranch);
+
+      expect(mockGitHubOps.createPullRequest).toHaveBeenCalledWith(
+        expectedPrBranch,
+        new Set(['bin']),
+        expect.objectContaining({
+          version: '1.0.1'
+        }),
+        '1.0.0'
+      );
+
+      expect(store.setPullRequestData).toHaveBeenCalledWith({
+        url: 'https://github.com/owner/repo/pulls/42',
+        number: 42
+      });
     });
   });
 });

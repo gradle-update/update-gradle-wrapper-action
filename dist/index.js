@@ -1298,7 +1298,9 @@ class MainAction {
                 const currentCommitSha = yield git.parseHead();
                 core.debug(`Head for branch ${baseBranch} is at ${currentCommitSha}`);
                 core.startGroup('Creating branch');
-                const branchName = `gradlew-update-${targetRelease.version}`;
+                const branchName = this.inputs.baseBranch !== ''
+                    ? `gradlew-update/${this.inputs.baseBranch}/gradle-${targetRelease.version}`
+                    : `gradlew-update/gradle-${targetRelease.version}`;
                 yield git.checkoutCreateBranch(branchName, currentCommitSha);
                 core.endGroup();
                 const distTypes = new Set();
