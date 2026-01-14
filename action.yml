@@ -79,6 +79,10 @@ inputs:
       used to replace the source version placeholder.
     required: false
     default: 'Update Gradle Wrapper from %sourceVersion% to %targetVersion%'
+  additional-arguments:
+    description: 'Additional command-line arguments to pass to the Gradle Wrapper command (space-separated).'
+    required: false
+    default: ''
 
 runs:
   using: 'node20'

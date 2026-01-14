@@ -132,7 +132,8 @@ export class MainAction {
           wrapper,
           targetRelease,
           this.inputs.setDistributionChecksum,
-          this.inputs.distributionsBaseUrl
+          this.inputs.distributionsBaseUrl,
+          this.inputs.additionalArguments
         );
 
         core.startGroup('Updating Wrapper');

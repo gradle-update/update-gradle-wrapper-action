@@ -30,6 +30,7 @@ export interface Inputs {
   prTitleTemplate: string;
   prMessageTemplate: string;
   commitMessageTemplate: string;
+  additionalArguments: string[];
 }
 
 export function getInputs(): Inputs {
@@ -54,6 +55,7 @@ class ActionInputs implements Inputs {
   prTitleTemplate: string;
   prMessageTemplate: string;
   commitMessageTemplate: string;
+  additionalArguments: string[];
 
   constructor() {
     this.repoToken = core.getInput('repo-token', {required: false});
@@ -143,5 +145,11 @@ class ActionInputs implements Inputs {
       this.commitMessageTemplate =
         'Update Gradle Wrapper from %sourceVersion% to %targetVersion%';
     }
+
+    this.additionalArguments = core
+      .getInput('additional-arguments', {required: false})
+      .split(/\s+/)
+      .map(arg => arg.trim())
+      .filter(arg => arg.length);
   }
 }

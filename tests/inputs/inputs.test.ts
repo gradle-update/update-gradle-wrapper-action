@@ -44,6 +44,7 @@ describe('getInputs', () => {
 
     expect(getInputs()).toMatchInlineSnapshot(`
       ActionInputs {
+        "additionalArguments": [],
         "baseBranch": "",
         "commitMessageTemplate": "Update Gradle Wrapper from %sourceVersion% to %targetVersion%",
         "distributionsBaseUrl": "",
@@ -289,6 +290,30 @@ describe('getInputs', () => {
       expect(getInputs().prMessageTemplate).toStrictEqual(
         'Updated by gradle-wrapper-action'
       );
+    });
+  });
+
+  describe('additional-arguments', () => {
+    it('accepts space-separated values', () => {
+      const tests: [string, string[]][] = [
+        ['', []],
+        ['--no-daemon', ['--no-daemon']],
+        ['--no-daemon --parallel', ['--no-daemon', '--parallel']],
+        ['--max-workers=4 --parallel', ['--max-workers=4', '--parallel']],
+        ['  --flag1   --flag2  ', ['--flag1', '--flag2']],
+        ['--no-daemon\t--parallel', ['--no-daemon', '--parallel']],
+        ['   ', []],
+        ['--option1 --option2=value --flag3', ['--option1', '--option2=value', '--flag3']]
+      ];
+
+      for (const [value, expected] of tests) {
+        ymlInputs = {
+          'repo-token': 's3cr3t',
+          'additional-arguments': value
+        };
+
+        expect(getInputs().additionalArguments).toStrictEqual(expected);
+      }
     });
   });
 });
