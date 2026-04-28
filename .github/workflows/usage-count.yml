@@ -9,7 +9,7 @@ jobs:
   usage-count:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         id: api-search
         with:
           debug: true
