@@ -12,26 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as glob from '@actions/glob';
-import * as path from 'path';
+import {jest} from '@jest/globals';
 
-import {findWrapperPropertiesFiles} from '../../src/wrapper/find';
+import * as path from 'path';
+import {fileURLToPath} from 'url';
+
+import {coreMock} from '../mocks/core';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+
+jest.unstable_mockModule('@actions/glob', () => ({
+  create: jest.fn()
+}));
+
+const glob = await import('@actions/glob');
+const {findWrapperPropertiesFiles} = await import('../../src/wrapper/find');
 
 describe('findWrapperPropertiesFiles', () => {
   it('filters paths based on include and ignore lists', async () => {
-    const pathPrefix = path.dirname(__filename);
+    const pathPrefix = path.dirname(fileURLToPath(import.meta.url));
 
-    jest.spyOn(glob, 'create').mockResolvedValue({
+    jest.mocked(glob.create).mockResolvedValue({
       getSearchPaths: jest.fn(),
       glob: jest
-        .fn()
-        .mockReturnValue([
+        .fn<() => Promise<string[]>>()
+        .mockResolvedValue([
           `${pathPrefix}/path_a/gradle/wrapper/gradle-wrapper.properties`,
           `${pathPrefix}/path_b/gradle/wrapper/gradle-wrapper.properties`,
           `${pathPrefix}/path_b/subpath_c/gradle/wrapper/gradle-wrapper.properties`
         ]),
       globGenerator: jest.fn()
-    });
+    } as unknown as Awaited<ReturnType<typeof glob.create>>);
 
     const tests: {
       pathsInclude: string[];

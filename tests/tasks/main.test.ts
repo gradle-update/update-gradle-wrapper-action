@@ -12,19 +12,65 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as commit from '../../src/git/git-commit';
-import * as git from '../../src/git/git-cmds';
-import * as gitAuth from '../../src/git/git-auth';
-import * as store from '../../src/store';
-import * as wrapper from '../../src/wrapperInfo';
-import * as wrapperFind from '../../src/wrapper/find';
-import * as wrapperUpdater from '../../src/wrapperUpdater';
+import {jest} from '@jest/globals';
 
-import {GitHubOps} from '../../src/github/gh-ops';
-import {IGitHubApi} from '../../src/github/gh-api';
-import {Inputs} from '../../src/inputs/';
-import {MainAction} from '../../src/tasks/main';
-import {Release, Releases} from '../../src/releases';
+import {coreMock} from '../mocks/core';
+import {storeMock} from '../mocks/store';
+
+import type {IGitHubApi} from '../../src/github/gh-api';
+import type {GitHubOps} from '../../src/github/gh-ops';
+import type {Inputs} from '../../src/inputs';
+import type {Release, Releases} from '../../src/releases';
+import type {MainAction} from '../../src/tasks/main';
+import type {IWrapperInfo} from '../../src/wrapperInfo';
+import type {IWrapperUpdater} from '../../src/wrapperUpdater';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+
+jest.unstable_mockModule('../../src/git/git-commit', () => ({
+  commit: jest.fn()
+}));
+
+jest.unstable_mockModule('../../src/git/git-cmds', () => ({
+  config: jest.fn(),
+  unsetConfig: jest.fn(),
+  fetch: jest.fn(),
+  checkout: jest.fn(),
+  checkoutCreateBranch: jest.fn(),
+  add: jest.fn(),
+  commit: jest.fn(),
+  push: jest.fn(),
+  parseHead: jest.fn(),
+  gitDiffNameOnly: jest.fn()
+}));
+
+jest.unstable_mockModule('../../src/git/git-auth', () => ({
+  setup: jest.fn(),
+  cleanup: jest.fn()
+}));
+
+jest.unstable_mockModule('../../src/store', storeMock);
+
+jest.unstable_mockModule('../../src/wrapperInfo', () => ({
+  createWrapperInfo: jest.fn()
+}));
+
+jest.unstable_mockModule('../../src/wrapper/find', () => ({
+  findWrapperPropertiesFiles: jest.fn()
+}));
+
+jest.unstable_mockModule('../../src/wrapperUpdater', () => ({
+  createWrapperUpdater: jest.fn()
+}));
+
+const commit = await import('../../src/git/git-commit');
+const git = await import('../../src/git/git-cmds');
+const store = await import('../../src/store');
+const wrapper = await import('../../src/wrapperInfo');
+const wrapperFind = await import('../../src/wrapper/find');
+const wrapperUpdater = await import('../../src/wrapperUpdater');
+
+const {MainAction} = await import('../../src/tasks/main');
 
 let mainAction: MainAction;
 let mockInputs: Inputs;
@@ -84,61 +130,55 @@ beforeEach(() => {
 
 describe('run', () => {
   it('creates a Pull Request to update wrapper files', async () => {
-    jest.spyOn(store, 'setMainActionExecuted').mockImplementation();
+    mockReleases.fetchReleaseInformation = jest
+      .fn<() => Promise<Release>>()
+      .mockResolvedValue({
+        version: '1.0.1',
+        allChecksum: 'dist-all-checksum-value',
+        binChecksum: 'dist-bin-checksum-value',
+        wrapperChecksum: 'wrapper-jar-checksum-value'
+      });
 
-    jest.spyOn(gitAuth, 'setup').mockImplementation();
-
-    mockReleases.fetchReleaseInformation = jest.fn().mockReturnValue({
-      version: '1.0.1',
-      allChecksum: 'dist-all-checksum-value',
-      binChecksum: 'dist-bin-checksum-value',
-      wrapperChecksum: 'wrapper-jar-checksum-value'
-    } as Release);
-
-    mockGitHubOps.findMatchingRef = jest.fn().mockReturnValue(undefined);
+    mockGitHubOps.findMatchingRef = jest
+      .fn<() => Promise<undefined>>()
+      .mockResolvedValue(undefined);
 
     jest
-      .spyOn(wrapperFind, 'findWrapperPropertiesFiles')
+      .mocked(wrapperFind.findWrapperPropertiesFiles)
       .mockResolvedValue(['/path/to/gradle/wrapper/gradle-wrapper.properties']);
 
-    jest.spyOn(wrapper, 'createWrapperInfo').mockReturnValue({
+    jest.mocked(wrapper.createWrapperInfo).mockReturnValue({
       version: '1.0.0',
       path: '/path/to/gradle/wrapper/gradle-wrapper.properties',
       distType: 'bin',
       basePath: '/path/to/gradle'
-    } as wrapper.IWrapperInfo);
+    } as IWrapperInfo);
 
-    jest.spyOn(git, 'config').mockImplementation();
+    mockGitHubApi.repoDefaultBranch = jest
+      .fn<() => Promise<string>>()
+      .mockResolvedValue('master');
 
-    mockGitHubApi.repoDefaultBranch = jest.fn().mockReturnValue('master');
+    jest.mocked(git.checkout).mockResolvedValue(0);
+    jest.mocked(git.parseHead).mockResolvedValue('abc123');
 
-    jest.spyOn(git, 'fetch').mockImplementation();
-    jest.spyOn(git, 'checkout').mockResolvedValue(0);
-    jest.spyOn(git, 'parseHead').mockResolvedValue('abc123');
-    jest.spyOn(git, 'checkoutCreateBranch').mockImplementation();
-
-    jest.spyOn(wrapperUpdater, 'createWrapperUpdater').mockReturnValue({
-      update: jest.fn().mockImplementation(),
-      verify: jest.fn().mockImplementation()
-    } as wrapperUpdater.IWrapperUpdater);
+    jest.mocked(wrapperUpdater.createWrapperUpdater).mockReturnValue({
+      update: jest.fn(),
+      verify: jest.fn()
+    } as unknown as IWrapperUpdater);
 
     jest
-      .spyOn(git, 'gitDiffNameOnly')
+      .mocked(git.gitDiffNameOnly)
       .mockResolvedValue([
         '/path/to/gradle/wrapper/gradle-wrapper.properties',
         '/path/to/gradle/wrapper/gradle-wrapper.jar'
       ]);
 
-    jest.spyOn(commit, 'commit').mockImplementation();
-
-    jest.spyOn(git, 'push').mockImplementation();
-
-    mockGitHubOps.createPullRequest = jest.fn().mockReturnValue({
-      url: 'https://github.com/owner/repo/pulls/42',
-      number: 42
-    } as store.PullRequestData);
-
-    jest.spyOn(store, 'setPullRequestData').mockImplementation();
+    mockGitHubOps.createPullRequest = jest
+      .fn<() => Promise<{url: string; number: number}>>()
+      .mockResolvedValue({
+        url: 'https://github.com/owner/repo/pulls/42',
+        number: 42
+      });
 
     await mainAction.run();
 

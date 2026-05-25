@@ -12,12 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as github from '@actions/github';
-import * as core from '@actions/core';
-import * as store from '../../src/store';
+import {jest} from '@jest/globals';
 
-import {GitHubApi} from '../../src/github/gh-api';
 import {RequestError} from '@octokit/request-error';
+
+import {coreMock} from '../mocks/core';
+import {githubMock} from '../mocks/github';
+import {storeMock} from '../mocks/store';
+
+import type {GitHubApi} from '../../src/github/gh-api';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+jest.unstable_mockModule('@actions/github', githubMock);
+jest.unstable_mockModule('../../src/store', storeMock);
+
+const github = await import('@actions/github');
+const core = await import('@actions/core');
+const store = await import('../../src/store');
+const {GitHubApi} = await import('../../src/github/gh-api');
 
 let api: GitHubApi;
 let mockOctokit: any;
@@ -42,16 +54,9 @@ beforeEach(() => {
     graphql: jest.fn()
   };
 
-  jest.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit);
+  jest.mocked(github.getOctokit).mockReturnValue(mockOctokit);
 
   api = new GitHubApi('s3cr3t');
-
-  jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
-    return {
-      owner: 'owner-name',
-      repo: 'repo-name'
-    };
-  });
 });
 
 describe('repoDefaultBranch', () => {
@@ -136,10 +141,6 @@ describe('createPullRequest', () => {
 });
 
 describe('addReviewers', () => {
-  beforeEach(() => {
-    jest.spyOn(store, 'setErroredReviewers');
-  });
-
   it('does nothing when `reviewers` is empty', async () => {
     await api.addReviewers(1, []);
 
@@ -295,10 +296,6 @@ describe('addReviewer', () => {
 });
 
 describe('addTeamReviewers', () => {
-  beforeEach(() => {
-    jest.spyOn(store, 'setErroredTeamReviewers');
-  });
-
   it('does nothing when `teams` is empty', async () => {
     await api.addTeamReviewers(1, []);
 
@@ -679,11 +676,9 @@ describe('enableAutoMerge', () => {
   });
 
   it('logs error for invalid merge method', async () => {
-    const coreSpy = jest.spyOn(core, 'error');
-
     await api.enableAutoMerge(42, 'INVALID');
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(core.error).toHaveBeenCalledWith(
       expect.stringContaining('merge-method must be one of the following')
     );
   });
