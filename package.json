@@ -30,7 +30,8 @@
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
     "@actions/glob": "^0.7.0",
-    "@actions/http-client": "^4.0.1"
+    "@actions/http-client": "^4.0.1",
+    "minimatch": "^10.2.5"
   },
   "devDependencies": {
     "@jest/globals": "^30.4.1",
