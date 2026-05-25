@@ -12,6 +12,7 @@ module.exports = {
     '^.+\\.ts$': [
       'ts-jest',
       {
+        isolatedModules: true,
         tsconfig: {module: 'commonjs', moduleResolution: 'node'}
       }
     ]

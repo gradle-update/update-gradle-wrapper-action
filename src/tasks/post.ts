@@ -17,7 +17,7 @@ import * as core from '@actions/core';
 import * as gitAuth from '../git/git-auth.js';
 import * as store from '../store/index.js';
 
-import {IGitHubApi} from '../github/gh-api.js';
+import type {IGitHubApi} from '../github/gh-api.js';
 
 export class PostAction {
   private githubApi: IGitHubApi;

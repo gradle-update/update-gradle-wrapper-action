@@ -15,7 +15,7 @@
 import * as core from '@actions/core';
 
 import {HttpClient} from '@actions/http-client';
-import {TypedResponse} from '@actions/http-client/lib/interfaces.js';
+import type {TypedResponse} from '@actions/http-client/lib/interfaces.js';
 
 export interface Release {
   version: string;

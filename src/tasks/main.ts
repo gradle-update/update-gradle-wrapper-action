@@ -23,10 +23,10 @@ import {replaceVersionPlaceholders} from '../messages.js';
 import {createWrapperInfo} from '../wrapperInfo.js';
 import {createWrapperUpdater} from '../wrapperUpdater.js';
 import {findWrapperPropertiesFiles} from '../wrapper/find.js';
-import {GitHubOps} from '../github/gh-ops.js';
-import {IGitHubApi} from '../github/gh-api.js';
-import {Inputs} from '../inputs/index.js';
-import {Releases} from '../releases.js';
+import type {GitHubOps} from '../github/gh-ops.js';
+import type {IGitHubApi} from '../github/gh-api.js';
+import type {Inputs} from '../inputs/index.js';
+import type {Releases} from '../releases.js';
 
 export class MainAction {
   private inputs: Inputs;
