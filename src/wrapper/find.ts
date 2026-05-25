@@ -14,9 +14,7 @@
 
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
-
-import {MatchKind} from '@actions/glob/lib/internal-match-kind.js';
-import {Pattern} from '@actions/glob/lib/internal-pattern.js';
+import {minimatch} from 'minimatch';
 
 export async function findWrapperPropertiesFiles(
   pathsInclude: string[],
@@ -38,24 +36,9 @@ export async function findWrapperPropertiesFiles(
   }
 
   if (pathsInclude.length) {
-    const toInclude: string[] = [];
-
-    for (const wrapperPath of propertiesFiles) {
-      let shouldInclude = false;
-
-      for (const searchPath of pathsInclude) {
-        const pattern = new Pattern(searchPath);
-        const match = pattern.match(wrapperPath);
-
-        shouldInclude ||= match === MatchKind.All;
-      }
-
-      if (shouldInclude) {
-        toInclude.push(wrapperPath);
-      }
-    }
-
-    propertiesFiles = toInclude;
+    propertiesFiles = propertiesFiles.filter(wrapperPath =>
+      pathsInclude.some(pattern => minimatch(wrapperPath, pattern))
+    );
   }
 
   core.debug(
@@ -67,24 +50,10 @@ export async function findWrapperPropertiesFiles(
   );
 
   if (pathsIgnore.length) {
-    const toExclude: string[] = [];
-
-    for (const wrapperPath of propertiesFiles) {
-      let shouldExclude = false;
-
-      for (const searchPath of pathsIgnore) {
-        const pattern = new Pattern(searchPath);
-        const match = pattern.match(wrapperPath);
-
-        shouldExclude ||= match === MatchKind.All;
-      }
-
-      if (shouldExclude) {
-        toExclude.push(wrapperPath);
-      }
-    }
-
-    propertiesFiles = propertiesFiles.filter(f => !toExclude.includes(f));
+    propertiesFiles = propertiesFiles.filter(
+      wrapperPath =>
+        !pathsIgnore.some(pattern => minimatch(wrapperPath, pattern))
+    );
   }
 
   core.debug(
