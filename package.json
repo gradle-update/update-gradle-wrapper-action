@@ -4,6 +4,9 @@
   "private": true,
   "description": "Update Gradle Wrapper in your project",
   "main": "lib/index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "clean": "rm -rf lib/ dist/",
     "format": "prettier --write '{src,tests}/**/*.ts'",
