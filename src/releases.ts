@@ -41,11 +41,7 @@ interface ReleaseData {
 }
 
 export class Releases {
-  private client: HttpClient;
-
-  constructor() {
-    this.client = new HttpClient('Update Gradle Wrapper Action');
-  }
+  private client = new HttpClient('Update Gradle Wrapper Action');
 
   async fetchReleaseInformation(releaseChannel: string) {
     const requestUrl =

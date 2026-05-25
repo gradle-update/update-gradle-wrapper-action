@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Release} from '../src/releases';
+import type {Release} from '../src/releases';
 import {replaceVersionPlaceholders, pullRequestText} from '../src/messages';
 
 describe('replaceVersionPlaceholders', () => {

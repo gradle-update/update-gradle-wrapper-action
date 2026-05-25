@@ -9,6 +9,9 @@
     "types": ["node"],
     "strict": true,
     "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "removeComments": true
   },

@@ -29,22 +29,12 @@ import type {Inputs} from '../inputs/index.js';
 import type {Releases} from '../releases.js';
 
 export class MainAction {
-  private inputs: Inputs;
-  private githubApi: IGitHubApi;
-  private githubOps: GitHubOps;
-  private releases: Releases;
-
   constructor(
-    inputs: Inputs,
-    githubApi: IGitHubApi,
-    githubOps: GitHubOps,
-    releases: Releases
-  ) {
-    this.inputs = inputs;
-    this.githubApi = githubApi;
-    this.githubOps = githubOps;
-    this.releases = releases;
-  }
+    private inputs: Inputs,
+    private githubApi: IGitHubApi,
+    private githubOps: GitHubOps,
+    private releases: Releases
+  ) {}
 
   async run() {
     try {
@@ -189,9 +179,10 @@ export class MainAction {
         return;
       }
 
-      const changedFilesCount = commitDataList
-        .map(cd => cd.files.length)
-        .reduce((acc, item) => acc + item);
+      const changedFilesCount = commitDataList.reduce(
+        (acc, cd) => acc + cd.files.length,
+        0
+      );
       core.debug(
         `Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`
       );
@@ -200,13 +191,15 @@ export class MainAction {
       await git.push(branchName);
 
       core.info('Creating Pull Request');
+      const singleSourceVersion =
+        commitDataList.length === 1
+          ? commitDataList[0]?.sourceVersion
+          : undefined;
       const pullRequestData = await this.githubOps.createPullRequest(
         branchName,
         distTypes,
         targetRelease,
-        commitDataList.length === 1
-          ? commitDataList[0].sourceVersion
-          : undefined
+        singleSourceVersion
       );
 
       core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
@@ -215,7 +208,9 @@ export class MainAction {
     } catch (error) {
       // setFailed is fatal (terminates action), core.error
       // creates a failure annotation instead
-      core.setFailed(`❌ ${error instanceof Error && error.message}`);
+      core.setFailed(
+        `❌ ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

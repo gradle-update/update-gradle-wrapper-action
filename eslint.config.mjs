@@ -4,13 +4,12 @@ import globals from 'globals';
 import jest from 'eslint-plugin-jest';
 import path from 'node:path';
 import stylistic from '@stylistic/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import tseslint from 'typescript-eslint';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default [
+export default tseslint.config(
   {
     ignores: [
       '**/dist/',
@@ -24,7 +23,7 @@ export default [
   {
     plugins: {
       jest,
-      '@typescript-eslint': typescriptEslint,
+      '@typescript-eslint': tseslint.plugin,
       '@stylistic': stylistic
     },
 
@@ -34,12 +33,15 @@ export default [
         ...globals.jest,
         ...jest.environments.globals.globals
       },
-      parser: tsParser,
-      ecmaVersion: 9,
+      parser: tseslint.parser,
+      ecmaVersion: 2024,
       sourceType: 'module',
 
       parserOptions: {
-        project: ['tsconfig.eslint.json'],
+        projectService: {
+          defaultProject: 'tsconfig.eslint.json',
+          allowDefaultProject: ['eslint.config.mjs']
+        },
         tsconfigRootDir: __dirname
       }
     },
@@ -62,7 +64,7 @@ export default [
       'import/no-unresolved': [
         'error',
         {
-          ignore: ['@octokit', '@typescript-eslint']
+          ignore: ['@octokit', '@typescript-eslint', '^typescript-eslint$']
         }
       ],
 
@@ -108,4 +110,4 @@ export default [
       '@typescript-eslint/unbound-method': 'off'
     }
   }
-];
+);
