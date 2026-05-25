@@ -92104,7 +92104,11 @@ async function cleanup() {
     await unsetConfig(extraheaderAuthConfigKey());
 }
 function extraheaderAuthConfigKey() {
-    const serverUrl = new URL(process.env['GITHUB_SERVER_URL'] || 'https://github.com');
+    const rawServerUrl = process.env['GITHUB_SERVER_URL'] || 'https://github.com';
+    if (!URL.canParse(rawServerUrl)) {
+        throw new Error(`Invalid GITHUB_SERVER_URL: ${rawServerUrl}`);
+    }
+    const serverUrl = new URL(rawServerUrl);
     core.debug(`server=${serverUrl} origin=${serverUrl.origin}`);
     return `http.${serverUrl.origin}/.extraheader`;
 }
@@ -92146,14 +92150,18 @@ class WrapperInfo {
         const distributionUrl = props
             .trim()
             .split('\n')
-            .filter(line => line.startsWith('distributionUrl='))[0];
+            .find(line => line.startsWith('distributionUrl='));
         core.debug(`distributionUrl: ${distributionUrl}`);
-        const parsed = /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(distributionUrl);
-        if (parsed) {
-            const [, version, distType] = parsed;
+        const parsed = distributionUrl !== undefined
+            ? /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(distributionUrl)
+            : null;
+        const version = parsed?.[1];
+        const distType = parsed?.[2];
+        if (version !== undefined && distType !== undefined) {
             core.debug(`  version: ${version}`);
             core.debug(`  distribution: ${distType}`);
-            [this.version, this.distType] = [version, distType];
+            this.version = version;
+            this.distType = distType;
             return;
         }
         throw new Error('Unable to parse properties file');
@@ -92387,21 +92395,20 @@ class MainAction {
                 core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
                 return;
             }
-            const changedFilesCount = commitDataList
-                .map(cd => cd.files.length)
-                .reduce((acc, item) => acc + item);
+            const changedFilesCount = commitDataList.reduce((acc, cd) => acc + cd.files.length, 0);
             core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
             core.info('Pushing branch');
             await push(branchName);
             core.info('Creating Pull Request');
-            const pullRequestData = await this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
-                ? commitDataList[0].sourceVersion
-                : undefined);
+            const singleSourceVersion = commitDataList.length === 1
+                ? commitDataList[0]?.sourceVersion
+                : undefined;
+            const pullRequestData = await this.githubOps.createPullRequest(branchName, distTypes, targetRelease, singleSourceVersion);
             core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
             setPullRequestData(pullRequestData);
         }
         catch (error) {
-            core.setFailed(`❌ ${error instanceof Error && error.message}`);
+            core.setFailed(`❌ ${error instanceof Error ? error.message : String(error)}`);
         }
     }
     async switchBranch(branchName) {
@@ -93268,10 +93275,7 @@ const lib_lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLow
 
 
 class Releases {
-    client;
-    constructor() {
-        this.client = new HttpClient('Update Gradle Wrapper Action');
-    }
+    client = new HttpClient('Update Gradle Wrapper Action');
     async fetchReleaseInformation(releaseChannel) {
         const requestUrl = releaseChannel === 'release-candidate'
             ? 'https://services.gradle.org/versions/release-candidate'

@@ -37,10 +37,13 @@ export async function cleanup() {
 }
 
 function extraheaderAuthConfigKey() {
-  const serverUrl = new URL(
-    process.env['GITHUB_SERVER_URL'] || 'https://github.com'
-  );
+  const rawServerUrl = process.env['GITHUB_SERVER_URL'] || 'https://github.com';
 
+  if (!URL.canParse(rawServerUrl)) {
+    throw new Error(`Invalid GITHUB_SERVER_URL: ${rawServerUrl}`);
+  }
+
+  const serverUrl = new URL(rawServerUrl);
   core.debug(`server=${serverUrl} origin=${serverUrl.origin}`);
 
   return `http.${serverUrl.origin}/.extraheader`;

@@ -68,20 +68,26 @@ class WrapperInfo implements IWrapperInfo {
     const distributionUrl = props
       .trim()
       .split('\n')
-      .filter(line => line.startsWith('distributionUrl='))[0];
+      .find(line => line.startsWith('distributionUrl='));
 
     core.debug(`distributionUrl: ${distributionUrl}`);
 
-    const parsed = /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(
-      distributionUrl
-    );
+    const parsed =
+      distributionUrl !== undefined
+        ? /^distributionUrl=.*\/gradle-(.+)-([^.-]+)\.zip$/.exec(
+            distributionUrl
+          )
+        : null;
 
-    if (parsed) {
-      const [, version, distType] = parsed;
+    const version = parsed?.[1];
+    const distType = parsed?.[2];
+
+    if (version !== undefined && distType !== undefined) {
       core.debug(`  version: ${version}`);
       core.debug(`  distribution: ${distType}`);
 
-      [this.version, this.distType] = [version, distType];
+      this.version = version;
+      this.distType = distType;
       return;
     }
 
