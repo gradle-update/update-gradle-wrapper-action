@@ -1,18 +1,16 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": ["ES2022"],
+    "target": "es2024",
+    "lib": ["ES2024"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
+    "types": ["node"],
     "strict": true,
-    "noImplicitAny": true,
     "noImplicitReturns": true,
-    "esModuleInterop": true,
     "isolatedModules": true,
-    "removeComments": true,
-    "diagnostics": true
+    "removeComments": true
   },
   "exclude": [
     "node_modules",

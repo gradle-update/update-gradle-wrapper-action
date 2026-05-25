@@ -86139,6 +86139,21 @@ function getInputs() {
 }
 const acceptedReleaseChannels = ['stable', 'release-candidate'];
 class ActionInputs {
+    repoToken;
+    reviewers;
+    teamReviewers;
+    labels;
+    baseBranch;
+    targetBranch;
+    setDistributionChecksum;
+    distributionsBaseUrl;
+    paths;
+    pathsIgnore;
+    releaseChannel;
+    mergeMethod;
+    prTitleTemplate;
+    prMessageTemplate;
+    commitMessageTemplate;
     constructor() {
         this.repoToken = core.getInput('repo-token', { required: false });
         if (this.repoToken === '') {
@@ -90528,253 +90543,224 @@ function getOctokit(token, options, ...additionalPlugins) {
 }
 //# sourceMappingURL=github.js.map
 ;// CONCATENATED MODULE: ./lib/github/gh-api.js
-var gh_api_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
 
 class GitHubApi {
+    octokit;
     constructor(repoToken) {
         this.octokit = getOctokit(repoToken);
     }
-    repoDefaultBranch() {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            const { data: repo } = yield this.octokit.rest.repos.get({
-                owner: github_context.repo.owner,
-                repo: github_context.repo.repo
-            });
-            return repo.default_branch;
+    async repoDefaultBranch() {
+        const { data: repo } = await this.octokit.rest.repos.get({
+            owner: github_context.repo.owner,
+            repo: github_context.repo.repo
         });
+        return repo.default_branch;
     }
-    createPullRequest(_a) {
-        return gh_api_awaiter(this, arguments, void 0, function* ({ branchName, target, title, body }) {
-            const { data: pullRequest } = yield this.octokit.rest.pulls.create({
+    async createPullRequest({ branchName, target, title, body }) {
+        const { data: pullRequest } = await this.octokit.rest.pulls.create({
+            owner: github_context.repo.owner,
+            repo: github_context.repo.repo,
+            head: branchName,
+            base: target,
+            title,
+            body
+        });
+        return pullRequest;
+    }
+    async addReviewers(pullRequestNumber, reviewers) {
+        if (!reviewers.length) {
+            core.info('No reviewers to add');
+            return;
+        }
+        core.info(`Requesting review from users: ${reviewers.join(',')}`);
+        const erroredReviewers = [];
+        for (const reviewer of reviewers) {
+            const success = await this.addReviewer(pullRequestNumber, reviewer);
+            if (!success) {
+                erroredReviewers.push(reviewer);
+            }
+        }
+        if (erroredReviewers.length) {
+            core.warning(`Unable to set all the PR reviewers, check the following ` +
+                `usernames are correct: ${erroredReviewers.join(', ')}`);
+            setErroredReviewers(erroredReviewers);
+        }
+    }
+    async addReviewer(pullRequestNumber, reviewer) {
+        try {
+            const result = await this.octokit.rest.pulls.requestReviewers({
                 owner: github_context.repo.owner,
                 repo: github_context.repo.repo,
-                head: branchName,
-                base: target,
-                title,
+                pull_number: pullRequestNumber,
+                reviewers: [reviewer]
+            });
+            if (!result.data.requested_reviewers) {
+                core.warning(`requested_reviewers is empty`);
+                return false;
+            }
+            const requested_reviewers = result.data.requested_reviewers.map(user => user?.login);
+            if (!requested_reviewers.includes(reviewer)) {
+                core.warning(`Unable to set PR reviewer ${reviewer}`);
+                return false;
+            }
+        }
+        catch (error) {
+            core.warning(`Unable to set PR reviewer ${reviewer}`);
+            if (error instanceof Error) {
+                core.warning(`error: ${error.message}`);
+            }
+            return false;
+        }
+        return true;
+    }
+    async addTeamReviewers(pullRequestNumber, teams) {
+        if (!teams.length) {
+            core.info('No team reviewers to add');
+            return;
+        }
+        core.info(`Requesting review from teams: ${teams.join(',')}`);
+        const erroredTeamReviewers = [];
+        for (const team of teams) {
+            const success = await this.addTeamReviewer(pullRequestNumber, team);
+            if (!success) {
+                erroredTeamReviewers.push(team);
+            }
+        }
+        if (erroredTeamReviewers.length) {
+            core.warning(`Unable to set all the PR team reviewers, check the following ` +
+                `team names are correct: ${erroredTeamReviewers.join(', ')}`);
+            setErroredTeamReviewers(erroredTeamReviewers);
+        }
+    }
+    async addTeamReviewer(pullRequestNumber, team) {
+        try {
+            const result = await this.octokit.rest.pulls.requestReviewers({
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                pull_number: pullRequestNumber,
+                team_reviewers: [team]
+            });
+            if (!result.data.requested_teams) {
+                core.warning(`requested_teams is empty`);
+                return false;
+            }
+            const requested_teams = result.data.requested_teams.map(t => t.slug);
+            if (!requested_teams.includes(team)) {
+                core.warning(`Unable to set PR team reviewer ${team}`);
+                return false;
+            }
+        }
+        catch (error) {
+            core.warning(`Unable to set PR team reviewer ${team}`);
+            if (error instanceof Error) {
+                core.warning(`Got error: ${error.message}`);
+            }
+            return false;
+        }
+        return true;
+    }
+    async addLabels(pullRequestNumber, labels) {
+        if (!labels.length) {
+            core.info('No labels to add');
+            return;
+        }
+        core.info(`Adding labels: ${labels.join(',')}`);
+        try {
+            await this.octokit.rest.issues.addLabels({
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                issue_number: pullRequestNumber,
+                labels
+            });
+        }
+        catch (error) {
+            core.warning(`Unable to add all labels to PR`);
+            if (error instanceof Error) {
+                core.warning(`error: ${error.message}`);
+            }
+        }
+    }
+    async createLabelIfMissing(labelName) {
+        try {
+            const label = await this.octokit.rest.issues.getLabel({
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                name: labelName
+            });
+            core.debug(`Label ${labelName} already exists with id: ${label.data.id}`);
+            return true;
+        }
+        catch (error) {
+            if (error instanceof RequestError) {
+                if (error.status === 404) {
+                    core.debug('Label not found');
+                    return await this.createLabel(labelName);
+                }
+            }
+            return false;
+        }
+    }
+    async createLabel(labelName) {
+        try {
+            const label = await this.octokit.rest.issues.createLabel({
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                name: labelName,
+                color: '02303A',
+                description: 'Pull requests that update Gradle wrapper'
+            });
+            core.debug(`Created label ${labelName} with id: ${label.data.id}`);
+            return true;
+        }
+        catch (error) {
+            core.warning(`Unable to create label "${labelName}"`);
+            if (error instanceof Error) {
+                core.warning(`error: ${error.message}`);
+            }
+            return false;
+        }
+    }
+    async createComment(pullRequestNumber, body) {
+        try {
+            const result = await this.octokit.rest.issues.createComment({
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                issue_number: pullRequestNumber,
                 body
             });
-            return pullRequest;
-        });
-    }
-    addReviewers(pullRequestNumber, reviewers) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            if (!reviewers.length) {
-                core.info('No reviewers to add');
-                return;
-            }
-            core.info(`Requesting review from users: ${reviewers.join(',')}`);
-            const erroredReviewers = [];
-            for (const reviewer of reviewers) {
-                const success = yield this.addReviewer(pullRequestNumber, reviewer);
-                if (!success) {
-                    erroredReviewers.push(reviewer);
-                }
-            }
-            if (erroredReviewers.length) {
-                core.warning(`Unable to set all the PR reviewers, check the following ` +
-                    `usernames are correct: ${erroredReviewers.join(', ')}`);
-                setErroredReviewers(erroredReviewers);
-            }
-        });
-    }
-    addReviewer(pullRequestNumber, reviewer) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield this.octokit.rest.pulls.requestReviewers({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    pull_number: pullRequestNumber,
-                    reviewers: [reviewer]
-                });
-                if (!result.data.requested_reviewers) {
-                    core.warning(`requested_reviewers is empty`);
-                    return false;
-                }
-                const requested_reviewers = result.data.requested_reviewers.map(user => user === null || user === void 0 ? void 0 : user.login);
-                if (!requested_reviewers.includes(reviewer)) {
-                    core.warning(`Unable to set PR reviewer ${reviewer}`);
-                    return false;
-                }
-            }
-            catch (error) {
-                core.warning(`Unable to set PR reviewer ${reviewer}`);
-                if (error instanceof Error) {
-                    core.warning(`error: ${error.message}`);
-                }
-                return false;
-            }
+            core.debug(`Created comment for PR ${pullRequestNumber} with id: ${result.data.id}`);
             return true;
-        });
+        }
+        catch (error) {
+            core.warning(`Unable to create comment for PR ${pullRequestNumber}`);
+            if (error instanceof Error) {
+                core.warning(`error: ${error.message}`);
+            }
+            return false;
+        }
     }
-    addTeamReviewers(pullRequestNumber, teams) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            if (!teams.length) {
-                core.info('No team reviewers to add');
-                return;
+    async enableAutoMerge(pullRequestNumber, mergeMethod) {
+        try {
+            if (!['MERGE', 'REBASE', 'SQUASH'].includes(mergeMethod.toUpperCase())) {
+                core.error(`merge-method must be one of the following (or not defined): 'MERGE', 'REBASE', or 'SQUASH'.`);
             }
-            core.info(`Requesting review from teams: ${teams.join(',')}`);
-            const erroredTeamReviewers = [];
-            for (const team of teams) {
-                const success = yield this.addTeamReviewer(pullRequestNumber, team);
-                if (!success) {
-                    erroredTeamReviewers.push(team);
-                }
-            }
-            if (erroredTeamReviewers.length) {
-                core.warning(`Unable to set all the PR team reviewers, check the following ` +
-                    `team names are correct: ${erroredTeamReviewers.join(', ')}`);
-                setErroredTeamReviewers(erroredTeamReviewers);
-            }
-        });
-    }
-    addTeamReviewer(pullRequestNumber, team) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield this.octokit.rest.pulls.requestReviewers({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    pull_number: pullRequestNumber,
-                    team_reviewers: [team]
-                });
-                if (!result.data.requested_teams) {
-                    core.warning(`requested_teams is empty`);
-                    return false;
-                }
-                const requested_teams = result.data.requested_teams.map(t => t.slug);
-                if (!requested_teams.includes(team)) {
-                    core.warning(`Unable to set PR team reviewer ${team}`);
-                    return false;
-                }
-            }
-            catch (error) {
-                core.warning(`Unable to set PR team reviewer ${team}`);
-                if (error instanceof Error) {
-                    core.warning(`Got error: ${error.message}`);
-                }
-                return false;
-            }
-            return true;
-        });
-    }
-    addLabels(pullRequestNumber, labels) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            if (!labels.length) {
-                core.info('No labels to add');
-                return;
-            }
-            core.info(`Adding labels: ${labels.join(',')}`);
-            try {
-                yield this.octokit.rest.issues.addLabels({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    issue_number: pullRequestNumber,
-                    labels
-                });
-            }
-            catch (error) {
-                core.warning(`Unable to add all labels to PR`);
-                if (error instanceof Error) {
-                    core.warning(`error: ${error.message}`);
-                }
-            }
-        });
-    }
-    createLabelIfMissing(labelName) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                const label = yield this.octokit.rest.issues.getLabel({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    name: labelName
-                });
-                core.debug(`Label ${labelName} already exists with id: ${label.data.id}`);
-                return true;
-            }
-            catch (error) {
-                if (error instanceof RequestError) {
-                    if (error.status === 404) {
-                        core.debug('Label not found');
-                        return yield this.createLabel(labelName);
-                    }
-                }
-                return false;
-            }
-        });
-    }
-    createLabel(labelName) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                const label = yield this.octokit.rest.issues.createLabel({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    name: labelName,
-                    color: '02303A',
-                    description: 'Pull requests that update Gradle wrapper'
-                });
-                core.debug(`Created label ${labelName} with id: ${label.data.id}`);
-                return true;
-            }
-            catch (error) {
-                core.warning(`Unable to create label "${labelName}"`);
-                if (error instanceof Error) {
-                    core.warning(`error: ${error.message}`);
-                }
-                return false;
-            }
-        });
-    }
-    createComment(pullRequestNumber, body) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                const result = yield this.octokit.rest.issues.createComment({
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    issue_number: pullRequestNumber,
-                    body
-                });
-                core.debug(`Created comment for PR ${pullRequestNumber} with id: ${result.data.id}`);
-                return true;
-            }
-            catch (error) {
-                core.warning(`Unable to create comment for PR ${pullRequestNumber}`);
-                if (error instanceof Error) {
-                    core.warning(`error: ${error.message}`);
-                }
-                return false;
-            }
-        });
-    }
-    enableAutoMerge(pullRequestNumber, mergeMethod) {
-        return gh_api_awaiter(this, void 0, void 0, function* () {
-            try {
-                if (!['MERGE', 'REBASE', 'SQUASH'].includes(mergeMethod.toUpperCase())) {
-                    core.error(`merge-method must be one of the following (or not defined): 'MERGE', 'REBASE', or 'SQUASH'.`);
-                }
-                core.info(`Enabling Auto-Merge on ${github_context.repo.owner}/${github_context.repo.repo} PR# ${pullRequestNumber}`);
-                const { repository: { pullRequest: { id: prId } } } = yield this.octokit.graphql(`query GetPullRequestId($owner: String!, $repo: String!, $pullRequestNumber: Int!) {
+            core.info(`Enabling Auto-Merge on ${github_context.repo.owner}/${github_context.repo.repo} PR# ${pullRequestNumber}`);
+            const { repository: { pullRequest: { id: prId } } } = await this.octokit.graphql(`query GetPullRequestId($owner: String!, $repo: String!, $pullRequestNumber: Int!) {
                 repository(owner: $owner, name: $repo) {
                   pullRequest(number: $pullRequestNumber) {
                     id
                   }
                 }
               }`, {
-                    owner: github_context.repo.owner,
-                    repo: github_context.repo.repo,
-                    pullRequestNumber
-                });
-                core.debug(`${github_context.repo.owner}/${github_context.repo.repo} PR# ${pullRequestNumber} -> PR ID: ${prId}`);
-                const enablePullRequestAutoMergeResult = yield this.octokit.graphql(`mutation ($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+                owner: github_context.repo.owner,
+                repo: github_context.repo.repo,
+                pullRequestNumber
+            });
+            core.debug(`${github_context.repo.owner}/${github_context.repo.repo} PR# ${pullRequestNumber} -> PR ID: ${prId}`);
+            const enablePullRequestAutoMergeResult = await this.octokit.graphql(`mutation ($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
                   enablePullRequestAutoMerge(
                     input: {
                       pullRequestId: $pullRequestId,
@@ -90791,19 +90777,18 @@ class GitHubApi {
                     }
                   }
                 }`, {
-                    pullRequestId: prId,
-                    mergeMethod: mergeMethod.toUpperCase()
-                });
-                core.debug(`enablePullRequestAutoMerge on PR ID: ${prId}:`);
-                core.debug(JSON.stringify(enablePullRequestAutoMergeResult, null, 2));
+                pullRequestId: prId,
+                mergeMethod: mergeMethod.toUpperCase()
+            });
+            core.debug(`enablePullRequestAutoMerge on PR ID: ${prId}:`);
+            core.debug(JSON.stringify(enablePullRequestAutoMergeResult, null, 2));
+        }
+        catch (error) {
+            core.warning(`Unable to enable automerge [${mergeMethod}] for PR ${pullRequestNumber}`);
+            if (error instanceof Error) {
+                core.warning(`error: ${error.message}`);
             }
-            catch (error) {
-                core.warning(`Unable to enable automerge [${mergeMethod}] for PR ${pullRequestNumber}`);
-                if (error instanceof Error) {
-                    core.warning(`error: ${error.message}`);
-                }
-            }
-        });
+        }
     }
 }
 
@@ -90814,7 +90799,7 @@ const SOURCE_VERSION_PLACEHOLDER = '%sourceVersion%';
 function replaceVersionPlaceholders(template, sourceVersion, targetVersion) {
     return template
         .replace(TARGET_VERSION_PLACEHOLDER, targetVersion)
-        .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion !== null && sourceVersion !== void 0 ? sourceVersion : 'undefined');
+        .replace(SOURCE_VERSION_PLACEHOLDER, sourceVersion ?? 'undefined');
 }
 function pullRequestText(prTitleTemplate, distTypes, targetRelease, sourceVersion) {
     const targetVersion = targetRelease.version;
@@ -90848,80 +90833,70 @@ If something doesn't look right with this PR please file an issue [here](${ISSUE
 }
 
 ;// CONCATENATED MODULE: ./lib/github/gh-ops.js
-var gh_ops_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
 
 const DEFAULT_LABEL = 'gradle-wrapper';
 class GitHubOps {
+    inputs;
+    api;
+    octokit;
     constructor(inputs, api) {
         this.inputs = inputs;
-        this.api = api !== null && api !== void 0 ? api : new GitHubApi(inputs.repoToken);
+        this.api = api ?? new GitHubApi(inputs.repoToken);
         this.octokit = getOctokit(inputs.repoToken);
     }
-    findMatchingRef(targetVersion) {
-        return gh_ops_awaiter(this, void 0, void 0, function* () {
-            const refName = `heads/gradlew-update-${targetVersion}`;
-            const { data: refs } = yield this.octokit.rest.git.listMatchingRefs({
-                owner: github_context.repo.owner,
-                repo: github_context.repo.repo,
-                ref: refName
-            });
-            if (refs.length) {
-                const matchingRefs = refs.filter(ref => ref.ref === `refs/${refName}`);
-                if (matchingRefs.length === 1) {
-                    return matchingRefs[0];
-                }
-            }
-            return;
+    async findMatchingRef(targetVersion) {
+        const refName = `heads/gradlew-update-${targetVersion}`;
+        const { data: refs } = await this.octokit.rest.git.listMatchingRefs({
+            owner: github_context.repo.owner,
+            repo: github_context.repo.repo,
+            ref: refName
         });
+        if (refs.length) {
+            const matchingRefs = refs.filter(ref => ref.ref === `refs/${refName}`);
+            if (matchingRefs.length === 1) {
+                return matchingRefs[0];
+            }
+        }
+        return;
     }
-    createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
-        return gh_ops_awaiter(this, void 0, void 0, function* () {
-            const targetBranch = this.inputs.targetBranch !== ''
-                ? this.inputs.targetBranch
-                : yield this.api.repoDefaultBranch();
-            core.debug(`Target branch: ${targetBranch}`);
-            let title, body;
-            if (this.inputs.prMessageTemplate) {
-                title = replaceVersionPlaceholders(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
-                body = replaceVersionPlaceholders(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
-            }
-            else {
-                ({ title, body } = pullRequestText(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
-            }
-            const pullRequest = yield this.api.createPullRequest({
-                branchName: `refs/heads/${branchName}`,
-                target: targetBranch,
-                title,
-                body
-            });
-            core.debug(`PullRequest number: ${pullRequest.number}`);
-            core.debug(`PullRequest changed files: ${pullRequest.changed_files}`);
-            yield this.api.createLabelIfMissing(DEFAULT_LABEL);
-            yield this.api.addLabels(pullRequest.number, [
-                DEFAULT_LABEL,
-                ...this.inputs.labels
-            ]);
-            yield this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
-            yield this.api.addTeamReviewers(pullRequest.number, this.inputs.teamReviewers);
-            if (this.inputs.mergeMethod !== undefined) {
-                yield this.api.enableAutoMerge(pullRequest.number, this.inputs.mergeMethod);
-            }
-            return {
-                url: pullRequest.html_url,
-                number: pullRequest.number
-            };
+    async createPullRequest(branchName, distTypes, targetRelease, sourceVersion) {
+        const targetBranch = this.inputs.targetBranch !== ''
+            ? this.inputs.targetBranch
+            : await this.api.repoDefaultBranch();
+        core.debug(`Target branch: ${targetBranch}`);
+        let title, body;
+        if (this.inputs.prMessageTemplate) {
+            title = replaceVersionPlaceholders(this.inputs.prTitleTemplate, sourceVersion, targetRelease.version);
+            body = replaceVersionPlaceholders(this.inputs.prMessageTemplate, sourceVersion, targetRelease.version);
+        }
+        else {
+            ({ title, body } = pullRequestText(this.inputs.prTitleTemplate, distTypes, targetRelease, sourceVersion));
+        }
+        const pullRequest = await this.api.createPullRequest({
+            branchName: `refs/heads/${branchName}`,
+            target: targetBranch,
+            title,
+            body
         });
+        core.debug(`PullRequest number: ${pullRequest.number}`);
+        core.debug(`PullRequest changed files: ${pullRequest.changed_files}`);
+        await this.api.createLabelIfMissing(DEFAULT_LABEL);
+        await this.api.addLabels(pullRequest.number, [
+            DEFAULT_LABEL,
+            ...this.inputs.labels
+        ]);
+        await this.api.addReviewers(pullRequest.number, this.inputs.reviewers);
+        await this.api.addTeamReviewers(pullRequest.number, this.inputs.teamReviewers);
+        if (this.inputs.mergeMethod !== undefined) {
+            await this.api.enableAutoMerge(pullRequest.number, this.inputs.mergeMethod);
+        }
+        return {
+            url: pullRequest.html_url,
+            number: pullRequest.number
+        };
     }
 }
 
@@ -92058,128 +92033,75 @@ function getExecOutput(commandLine, args, options) {
 }
 //# sourceMappingURL=exec.js.map
 ;// CONCATENATED MODULE: ./lib/cmd.js
-var cmd_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
-function execWithOutput(commandLine, args, cwd) {
-    return cmd_awaiter(this, void 0, void 0, function* () {
-        const opts = {
-            ignoreReturnCode: true,
-            cwd: cwd || process.cwd()
-        };
-        core.debug(`cmd opts: ${JSON.stringify(opts, null, 2)}`);
-        const { exitCode, stdout = '', stderr = '' } = yield getExecOutput(commandLine, args, opts);
-        return { exitCode, stdout: stdout.trim(), stderr: stderr.trim() };
-    });
+async function execWithOutput(commandLine, args, cwd) {
+    const opts = {
+        ignoreReturnCode: true,
+        cwd: cwd || process.cwd()
+    };
+    core.debug(`cmd opts: ${JSON.stringify(opts, null, 2)}`);
+    const { exitCode, stdout = '', stderr = '' } = await getExecOutput(commandLine, args, opts);
+    return { exitCode, stdout: stdout.trim(), stderr: stderr.trim() };
 }
 
 ;// CONCATENATED MODULE: ./lib/git/git-cmds.js
-var git_cmds_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
-function gitDiffNameOnly() {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        const { stdout } = yield execWithOutput('git', ['diff', '--name-only']);
-        const files = stdout.split('\n').filter(f => f.length);
-        core.debug(`Git diff files: ${files}`);
-        return files;
-    });
+async function gitDiffNameOnly() {
+    const { stdout } = await execWithOutput('git', ['diff', '--name-only']);
+    const files = stdout.split('\n').filter(f => f.length);
+    core.debug(`Git diff files: ${files}`);
+    return files;
 }
-function parseHead() {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        const { stdout: currentCommitSha } = yield execWithOutput('git', [
-            'rev-parse',
-            'HEAD'
-        ]);
-        return currentCommitSha;
-    });
+async function parseHead() {
+    const { stdout: currentCommitSha } = await execWithOutput('git', [
+        'rev-parse',
+        'HEAD'
+    ]);
+    return currentCommitSha;
 }
-function fetch() {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['fetch', '--depth=1']);
-    });
+async function fetch() {
+    await execWithOutput('git', ['fetch', '--depth=1']);
 }
-function checkout(branchName) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        const exec = yield execWithOutput('git', ['checkout', branchName]);
-        return exec.exitCode;
-    });
+async function checkout(branchName) {
+    const exec = await execWithOutput('git', ['checkout', branchName]);
+    return exec.exitCode;
 }
-function checkoutCreateBranch(branchName, startPoint) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
-    });
+async function checkoutCreateBranch(branchName, startPoint) {
+    await execWithOutput('git', ['checkout', '-b', branchName, startPoint]);
 }
-function add(paths) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['add', ...paths]);
-    });
+async function add(paths) {
+    await execWithOutput('git', ['add', ...paths]);
 }
-function commit(message) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['commit', '-m', message, '--signoff']);
-    });
+async function commit(message) {
+    await execWithOutput('git', ['commit', '-m', message, '--signoff']);
 }
-function config(key, value) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['config', '--local', key, value]);
-    });
+async function config(key, value) {
+    await execWithOutput('git', ['config', '--local', key, value]);
 }
-function unsetConfig(key) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', ['config', '--local', '--unset-all', key]);
-    });
+async function unsetConfig(key) {
+    await execWithOutput('git', ['config', '--local', '--unset-all', key]);
 }
-function push(branchName) {
-    return git_cmds_awaiter(this, void 0, void 0, function* () {
-        yield execWithOutput('git', [
-            'push',
-            '--force-with-lease',
-            'origin',
-            `HEAD:refs/heads/${branchName}`
-        ]);
-    });
+async function push(branchName) {
+    await execWithOutput('git', [
+        'push',
+        '--force-with-lease',
+        'origin',
+        `HEAD:refs/heads/${branchName}`
+    ]);
 }
 
 ;// CONCATENATED MODULE: ./lib/git/git-auth.js
-var git_auth_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
-function setup(inputs) {
-    return git_auth_awaiter(this, void 0, void 0, function* () {
-        const credentials = Buffer.from(`x-access-token:${inputs.repoToken}`, 'utf8').toString('base64');
-        core.setSecret(credentials);
-        yield config(extraheaderAuthConfigKey(), `Authorization: basic ${credentials}`);
-    });
+async function setup(inputs) {
+    const credentials = Buffer.from(`x-access-token:${inputs.repoToken}`, 'utf8').toString('base64');
+    core.setSecret(credentials);
+    await config(extraheaderAuthConfigKey(), `Authorization: basic ${credentials}`);
 }
-function cleanup() {
-    return git_auth_awaiter(this, void 0, void 0, function* () {
-        yield unsetConfig(extraheaderAuthConfigKey());
-    });
+async function cleanup() {
+    await unsetConfig(extraheaderAuthConfigKey());
 }
 function extraheaderAuthConfigKey() {
     const serverUrl = new URL(process.env['GITHUB_SERVER_URL'] || 'https://github.com');
@@ -92188,21 +92110,10 @@ function extraheaderAuthConfigKey() {
 }
 
 ;// CONCATENATED MODULE: ./lib/git/git-commit.js
-var git_commit_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
-function git_commit_commit(files, commitMessage) {
-    return git_commit_awaiter(this, void 0, void 0, function* () {
-        yield add(files);
-        yield commit(commitMessage);
-    });
+async function git_commit_commit(files, commitMessage) {
+    await add(files);
+    await commit(commitMessage);
 }
 
 ;// CONCATENATED MODULE: ./lib/wrapperInfo.js
@@ -92213,6 +92124,11 @@ function createWrapperInfo(path) {
     return new WrapperInfo(path);
 }
 class WrapperInfo {
+    version;
+    path;
+    distType;
+    basePath;
+    withVerificationMetadataFile;
     constructor(path) {
         if (!(0,external_path_.isAbsolute)(path)) {
             throw new Error(`${path} is not an absolute path`);
@@ -92245,83 +92161,70 @@ class WrapperInfo {
 }
 
 ;// CONCATENATED MODULE: ./lib/wrapperUpdater.js
-var wrapperUpdater_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 function createWrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
     return new WrapperUpdater(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl);
 }
 class WrapperUpdater {
+    targetRelease;
+    wrapper;
+    setDistributionChecksum;
+    distributionsBaseUrl;
     constructor(wrapper, targetRelease, setDistributionChecksum, distributionsBaseUrl) {
         this.wrapper = wrapper;
         this.targetRelease = targetRelease;
         this.setDistributionChecksum = setDistributionChecksum;
         this.distributionsBaseUrl = distributionsBaseUrl;
     }
-    update() {
-        return wrapperUpdater_awaiter(this, void 0, void 0, function* () {
-            let args = [
-                'wrapper',
-                '--gradle-version',
-                this.targetRelease.version,
-                '--distribution-type',
-                this.wrapper.distType
-            ];
-            if (this.distributionsBaseUrl) {
-                const url = `${this.distributionsBaseUrl}/gradle-${this.targetRelease.version}-${this.wrapper.distType}.zip`;
-                args = ['wrapper', '--gradle-distribution-url', url];
-            }
-            if (this.setDistributionChecksum) {
-                const sha256sum = this.wrapper.distType === 'bin'
-                    ? this.targetRelease.binChecksum
-                    : this.targetRelease.allChecksum;
-                args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
-            }
-            if (this.wrapper.withVerificationMetadataFile) {
-                args = args.concat(['--write-verification-metadata', 'sha256']);
-            }
-            const { exitCode, stderr } = yield execWithOutput('./gradlew', args, this.wrapper.basePath);
-            if (exitCode !== 0) {
-                throw new Error(stderr);
-            }
-        });
+    async update() {
+        let args = [
+            'wrapper',
+            '--gradle-version',
+            this.targetRelease.version,
+            '--distribution-type',
+            this.wrapper.distType
+        ];
+        if (this.distributionsBaseUrl) {
+            const url = `${this.distributionsBaseUrl}/gradle-${this.targetRelease.version}-${this.wrapper.distType}.zip`;
+            args = ['wrapper', '--gradle-distribution-url', url];
+        }
+        if (this.setDistributionChecksum) {
+            const sha256sum = this.wrapper.distType === 'bin'
+                ? this.targetRelease.binChecksum
+                : this.targetRelease.allChecksum;
+            args = args.concat(['--gradle-distribution-sha256-sum', sha256sum]);
+        }
+        if (this.wrapper.withVerificationMetadataFile) {
+            args = args.concat(['--write-verification-metadata', 'sha256']);
+        }
+        const { exitCode, stderr } = await execWithOutput('./gradlew', args, this.wrapper.basePath);
+        if (exitCode !== 0) {
+            throw new Error(stderr);
+        }
     }
-    verify() {
-        return wrapperUpdater_awaiter(this, void 0, void 0, function* () {
-            yield this.verifySha();
-            yield this.verifyRun();
-        });
+    async verify() {
+        await this.verifySha();
+        await this.verifyRun();
     }
-    verifySha() {
-        return wrapperUpdater_awaiter(this, void 0, void 0, function* () {
-            const jarFilePath = this.wrapper.path.replace('gradle-wrapper.properties', 'gradle-wrapper.jar');
-            core.debug(`Verifying SHA-256 for: ${jarFilePath}`);
-            const { stdout } = yield execWithOutput('sha256sum', [jarFilePath]);
-            const [sum] = stdout.split(' ');
-            core.debug(`SHA-256: ${sum}`);
-            if (sum !== this.targetRelease.wrapperChecksum) {
-                throw new Error('SHA-256 Wrapper jar mismatch');
-            }
-        });
+    async verifySha() {
+        const jarFilePath = this.wrapper.path.replace('gradle-wrapper.properties', 'gradle-wrapper.jar');
+        core.debug(`Verifying SHA-256 for: ${jarFilePath}`);
+        const { stdout } = await execWithOutput('sha256sum', [jarFilePath]);
+        const [sum] = stdout.split(' ');
+        core.debug(`SHA-256: ${sum}`);
+        if (sum !== this.targetRelease.wrapperChecksum) {
+            throw new Error('SHA-256 Wrapper jar mismatch');
+        }
     }
-    verifyRun() {
-        return wrapperUpdater_awaiter(this, void 0, void 0, function* () {
-            const { exitCode, stderr } = yield execWithOutput('./gradlew', ['--help'], this.wrapper.basePath);
-            if (exitCode !== 0 && stderr.length) {
-                const mismatch = stderr
-                    .split('\n')
-                    .filter(line => line.match(/checksum:/));
-                throw new Error(`Gradle binary verification error 🚨\n\n${mismatch.join('\n')}`);
-            }
-        });
+    async verifyRun() {
+        const { exitCode, stderr } = await execWithOutput('./gradlew', ['--help'], this.wrapper.basePath);
+        if (exitCode !== 0 && stderr.length) {
+            const mismatch = stderr
+                .split('\n')
+                .filter(line => line.match(/checksum:/));
+            throw new Error(`Gradle binary verification error 🚨\n\n${mismatch.join('\n')}`);
+        }
     }
 }
 
@@ -92332,73 +92235,53 @@ var internal_match_kind = __nccwpck_require__(2644);
 // EXTERNAL MODULE: ./node_modules/@actions/glob/lib/internal-pattern.js
 var internal_pattern = __nccwpck_require__(5370);
 ;// CONCATENATED MODULE: ./lib/wrapper/find.js
-var find_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
 
-function findWrapperPropertiesFiles(pathsInclude, pathsIgnore) {
-    return find_awaiter(this, void 0, void 0, function* () {
-        const globber = yield glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
-        let propertiesFiles = yield globber.glob();
-        core.debug(`wrapper.properties found: ${JSON.stringify(propertiesFiles, null, 2)}`);
-        if (!propertiesFiles.length) {
-            return propertiesFiles;
-        }
-        if (pathsInclude.length) {
-            const toInclude = [];
-            for (const wrapperPath of propertiesFiles) {
-                let shouldInclude = false;
-                for (const searchPath of pathsInclude) {
-                    const pattern = new internal_pattern.Pattern(searchPath);
-                    const match = pattern.match(wrapperPath);
-                    shouldInclude || (shouldInclude = match === internal_match_kind.MatchKind.All);
-                }
-                if (shouldInclude) {
-                    toInclude.push(wrapperPath);
-                }
-            }
-            propertiesFiles = toInclude;
-        }
-        core.debug(`wrapper.properties after pathsInclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
-        if (pathsIgnore.length) {
-            const toExclude = [];
-            for (const wrapperPath of propertiesFiles) {
-                let shouldExclude = false;
-                for (const searchPath of pathsIgnore) {
-                    const pattern = new internal_pattern.Pattern(searchPath);
-                    const match = pattern.match(wrapperPath);
-                    shouldExclude || (shouldExclude = match === internal_match_kind.MatchKind.All);
-                }
-                if (shouldExclude) {
-                    toExclude.push(wrapperPath);
-                }
-            }
-            propertiesFiles = propertiesFiles.filter(f => !toExclude.includes(f));
-        }
-        core.debug(`wrapper.properties after pathsExclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
+async function findWrapperPropertiesFiles(pathsInclude, pathsIgnore) {
+    const globber = await glob.create('**/gradle/wrapper/gradle-wrapper.properties', { followSymbolicLinks: false });
+    let propertiesFiles = await globber.glob();
+    core.debug(`wrapper.properties found: ${JSON.stringify(propertiesFiles, null, 2)}`);
+    if (!propertiesFiles.length) {
         return propertiesFiles;
-    });
+    }
+    if (pathsInclude.length) {
+        const toInclude = [];
+        for (const wrapperPath of propertiesFiles) {
+            let shouldInclude = false;
+            for (const searchPath of pathsInclude) {
+                const pattern = new internal_pattern.Pattern(searchPath);
+                const match = pattern.match(wrapperPath);
+                shouldInclude ||= match === internal_match_kind.MatchKind.All;
+            }
+            if (shouldInclude) {
+                toInclude.push(wrapperPath);
+            }
+        }
+        propertiesFiles = toInclude;
+    }
+    core.debug(`wrapper.properties after pathsInclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
+    if (pathsIgnore.length) {
+        const toExclude = [];
+        for (const wrapperPath of propertiesFiles) {
+            let shouldExclude = false;
+            for (const searchPath of pathsIgnore) {
+                const pattern = new internal_pattern.Pattern(searchPath);
+                const match = pattern.match(wrapperPath);
+                shouldExclude ||= match === internal_match_kind.MatchKind.All;
+            }
+            if (shouldExclude) {
+                toExclude.push(wrapperPath);
+            }
+        }
+        propertiesFiles = propertiesFiles.filter(f => !toExclude.includes(f));
+    }
+    core.debug(`wrapper.properties after pathsExclude: ${JSON.stringify(propertiesFiles, null, 2)}`);
+    return propertiesFiles;
 }
 
 ;// CONCATENATED MODULE: ./lib/tasks/main.js
-var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
@@ -92409,176 +92292,166 @@ var main_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 
 
 class MainAction {
+    inputs;
+    githubApi;
+    githubOps;
+    releases;
     constructor(inputs, githubApi, githubOps, releases) {
         this.inputs = inputs;
         this.githubApi = githubApi;
         this.githubOps = githubOps;
         this.releases = releases;
     }
-    run() {
-        return main_awaiter(this, void 0, void 0, function* () {
-            try {
-                setMainActionExecuted();
-                core.debug(JSON.stringify(process.env, null, 2));
-                yield setup(this.inputs);
-                const releaseChannel = this.inputs.releaseChannel;
-                const targetRelease = yield this.releases.fetchReleaseInformation(releaseChannel);
-                core.info(`Latest release: ${targetRelease.version} (channel ${releaseChannel})`);
-                const ref = yield this.githubOps.findMatchingRef(targetRelease.version);
-                if (ref) {
-                    core.info('Found an existing ref, stopping here.');
-                    core.debug(`Ref url: ${ref.url}`);
-                    core.debug(`Ref sha: ${ref.object.sha}`);
-                    core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
-                    return;
+    async run() {
+        try {
+            setMainActionExecuted();
+            core.debug(JSON.stringify(process.env, null, 2));
+            await setup(this.inputs);
+            const releaseChannel = this.inputs.releaseChannel;
+            const targetRelease = await this.releases.fetchReleaseInformation(releaseChannel);
+            core.info(`Latest release: ${targetRelease.version} (channel ${releaseChannel})`);
+            const ref = await this.githubOps.findMatchingRef(targetRelease.version);
+            if (ref) {
+                core.info('Found an existing ref, stopping here.');
+                core.debug(`Ref url: ${ref.url}`);
+                core.debug(`Ref sha: ${ref.object.sha}`);
+                core.warning(`A pull request already exists that updates Gradle Wrapper to ${targetRelease.version}.`);
+                return;
+            }
+            const wrappers = await findWrapperPropertiesFiles(this.inputs.paths, this.inputs.pathsIgnore);
+            core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
+            if (!wrappers.length) {
+                core.warning('Unable to find Gradle Wrapper files in this project.');
+                return;
+            }
+            core.debug(`Wrappers count: ${wrappers.length}`);
+            const wrapperInfos = wrappers.map(path => createWrapperInfo(path));
+            const commitDataList = [];
+            await config('user.name', 'gradle-update-robot');
+            await config('user.email', 'gradle-update-robot@regolo.cc');
+            const baseBranch = this.inputs.baseBranch !== ''
+                ? this.inputs.baseBranch
+                : await this.githubApi.repoDefaultBranch();
+            core.debug(`Base branch: ${baseBranch}`);
+            await this.switchBranch(baseBranch);
+            const currentCommitSha = await parseHead();
+            core.debug(`Head for branch ${baseBranch} is at ${currentCommitSha}`);
+            core.startGroup('Creating branch');
+            const branchName = `gradlew-update-${targetRelease.version}`;
+            await checkoutCreateBranch(branchName, currentCommitSha);
+            core.endGroup();
+            const distTypes = new Set();
+            for (const wrapper of wrapperInfos) {
+                core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
+                core.debug(`Current Wrapper version: ${wrapper.version}`);
+                if (wrapper.version === targetRelease.version) {
+                    core.info(`Wrapper is already up-to-date`);
+                    continue;
                 }
-                const wrappers = yield findWrapperPropertiesFiles(this.inputs.paths, this.inputs.pathsIgnore);
-                core.debug(`Wrappers: ${JSON.stringify(wrappers, null, 2)}`);
-                if (!wrappers.length) {
-                    core.warning('Unable to find Gradle Wrapper files in this project.');
-                    return;
-                }
-                core.debug(`Wrappers count: ${wrappers.length}`);
-                const wrapperInfos = wrappers.map(path => createWrapperInfo(path));
-                const commitDataList = [];
-                yield config('user.name', 'gradle-update-robot');
-                yield config('user.email', 'gradle-update-robot@regolo.cc');
-                const baseBranch = this.inputs.baseBranch !== ''
-                    ? this.inputs.baseBranch
-                    : yield this.githubApi.repoDefaultBranch();
-                core.debug(`Base branch: ${baseBranch}`);
-                yield this.switchBranch(baseBranch);
-                const currentCommitSha = yield parseHead();
-                core.debug(`Head for branch ${baseBranch} is at ${currentCommitSha}`);
-                core.startGroup('Creating branch');
-                const branchName = `gradlew-update-${targetRelease.version}`;
-                yield checkoutCreateBranch(branchName, currentCommitSha);
+                distTypes.add(wrapper.distType);
+                const updater = createWrapperUpdater(wrapper, targetRelease, this.inputs.setDistributionChecksum, this.inputs.distributionsBaseUrl);
+                core.startGroup('Updating Wrapper');
+                await updater.update();
                 core.endGroup();
-                const distTypes = new Set();
-                for (const wrapper of wrapperInfos) {
-                    core.startGroup(`Working with Wrapper at: ${wrapper.path}`);
-                    core.debug(`Current Wrapper version: ${wrapper.version}`);
-                    if (wrapper.version === targetRelease.version) {
-                        core.info(`Wrapper is already up-to-date`);
-                        continue;
-                    }
-                    distTypes.add(wrapper.distType);
-                    const updater = createWrapperUpdater(wrapper, targetRelease, this.inputs.setDistributionChecksum, this.inputs.distributionsBaseUrl);
-                    core.startGroup('Updating Wrapper');
-                    yield updater.update();
-                    core.endGroup();
-                    core.startGroup('Checking whether any file has been updated');
-                    let modifiedFiles = yield gitDiffNameOnly();
+                core.startGroup('Checking whether any file has been updated');
+                let modifiedFiles = await gitDiffNameOnly();
+                core.debug(`Modified files count: ${modifiedFiles.length}`);
+                core.debug(`Modified files list: ${modifiedFiles}`);
+                core.endGroup();
+                if (modifiedFiles.length) {
+                    core.startGroup('Updating Wrapper (2nd update)');
+                    await updater.update();
+                    modifiedFiles = await gitDiffNameOnly();
                     core.debug(`Modified files count: ${modifiedFiles.length}`);
                     core.debug(`Modified files list: ${modifiedFiles}`);
                     core.endGroup();
-                    if (modifiedFiles.length) {
-                        core.startGroup('Updating Wrapper (2nd update)');
-                        yield updater.update();
-                        modifiedFiles = yield gitDiffNameOnly();
-                        core.debug(`Modified files count: ${modifiedFiles.length}`);
-                        core.debug(`Modified files list: ${modifiedFiles}`);
-                        core.endGroup();
-                        core.startGroup('Verifying Wrapper');
-                        yield updater.verify();
-                        core.endGroup();
-                        core.startGroup('Committing');
-                        const commitMessage = replaceVersionPlaceholders(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
-                        yield git_commit_commit(modifiedFiles, commitMessage);
-                        core.endGroup();
-                        commitDataList.push({
-                            files: modifiedFiles,
-                            targetVersion: targetRelease.version,
-                            sourceVersion: wrapper.version
-                        });
-                    }
-                    else {
-                        core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
-                    }
+                    core.startGroup('Verifying Wrapper');
+                    await updater.verify();
                     core.endGroup();
+                    core.startGroup('Committing');
+                    const commitMessage = replaceVersionPlaceholders(this.inputs.commitMessageTemplate, wrapper.version, targetRelease.version);
+                    await git_commit_commit(modifiedFiles, commitMessage);
+                    core.endGroup();
+                    commitDataList.push({
+                        files: modifiedFiles,
+                        targetVersion: targetRelease.version,
+                        sourceVersion: wrapper.version
+                    });
                 }
-                if (!commitDataList.length) {
-                    core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
-                    return;
+                else {
+                    core.info(`Nothing to update for Wrapper at ${wrapper.path}`);
                 }
-                const changedFilesCount = commitDataList
-                    .map(cd => cd.files.length)
-                    .reduce((acc, item) => acc + item);
-                core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
-                core.info('Pushing branch');
-                yield push(branchName);
-                core.info('Creating Pull Request');
-                const pullRequestData = yield this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
-                    ? commitDataList[0].sourceVersion
-                    : undefined);
-                core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
-                setPullRequestData(pullRequestData);
+                core.endGroup();
             }
-            catch (error) {
-                core.setFailed(`❌ ${error instanceof Error && error.message}`);
+            if (!commitDataList.length) {
+                core.warning(`✅ Gradle Wrapper is already up-to-date (version ${targetRelease.version})! 👍`);
+                return;
             }
-        });
+            const changedFilesCount = commitDataList
+                .map(cd => cd.files.length)
+                .reduce((acc, item) => acc + item);
+            core.debug(`Have added ${commitDataList.length} commits for a total of ${changedFilesCount} files`);
+            core.info('Pushing branch');
+            await push(branchName);
+            core.info('Creating Pull Request');
+            const pullRequestData = await this.githubOps.createPullRequest(branchName, distTypes, targetRelease, commitDataList.length === 1
+                ? commitDataList[0].sourceVersion
+                : undefined);
+            core.info(`✅ Created a Pull Request at ${pullRequestData.url} ✨`);
+            setPullRequestData(pullRequestData);
+        }
+        catch (error) {
+            core.setFailed(`❌ ${error instanceof Error && error.message}`);
+        }
     }
-    switchBranch(branchName) {
-        return main_awaiter(this, void 0, void 0, function* () {
-            yield fetch();
-            const exitCode = yield checkout(branchName);
-            if (exitCode !== 0) {
-                throw new Error(`Invalid base branch ${branchName}`);
-            }
-        });
+    async switchBranch(branchName) {
+        await fetch();
+        const exitCode = await checkout(branchName);
+        if (exitCode !== 0) {
+            throw new Error(`Invalid base branch ${branchName}`);
+        }
     }
 }
 
 ;// CONCATENATED MODULE: ./lib/tasks/post.js
-var post_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
 class PostAction {
+    githubApi;
+    pullRequestData;
     constructor(githubApi, pullRequestData) {
         this.githubApi = githubApi;
         this.pullRequestData = pullRequestData;
     }
-    run() {
-        return post_awaiter(this, void 0, void 0, function* () {
-            try {
-                yield cleanup();
-                yield this.reportErroredReviewers();
+    async run() {
+        try {
+            await cleanup();
+            await this.reportErroredReviewers();
+        }
+        catch (error) {
+            core.debug('Post action task failed');
+            if (error instanceof Error) {
+                core.debug(`error: ${error.message}`);
             }
-            catch (error) {
-                core.debug('Post action task failed');
-                if (error instanceof Error) {
-                    core.debug(`error: ${error.message}`);
-                }
-            }
-        });
+        }
     }
-    reportErroredReviewers() {
-        return post_awaiter(this, void 0, void 0, function* () {
-            let usernames = '';
-            const reviewers = getErroredReviewers();
-            if (reviewers) {
-                for (const reviewer of reviewers) {
-                    usernames += `- @${reviewer}\n`;
-                }
+    async reportErroredReviewers() {
+        let usernames = '';
+        const reviewers = getErroredReviewers();
+        if (reviewers) {
+            for (const reviewer of reviewers) {
+                usernames += `- @${reviewer}\n`;
             }
-            const teams = getErroredTeamReviewers();
-            if (teams) {
-                for (const team of teams) {
-                    usernames += `- @${team}\n`;
-                }
+        }
+        const teams = getErroredTeamReviewers();
+        if (teams) {
+            for (const team of teams) {
+                usernames += `- @${team}\n`;
             }
-            if (usernames.length) {
-                const body = `Unable to set all the PR reviewers, check the following usernames are correct:
+        }
+        if (usernames.length) {
+            const body = `Unable to set all the PR reviewers, check the following usernames are correct:
 
 ${usernames}
 
@@ -92588,9 +92461,8 @@ and [\`team-reviewers\`](https://github.com/gradle-update/update-gradle-wrapper-
 ---
 
 🤖 This is an automatic comment by the Update Gradle Wrapper action.`;
-                yield this.githubApi.createComment(this.pullRequestData.number, body);
-            }
-        });
+            await this.githubApi.createComment(this.pullRequestData.number, body);
+        }
     }
 }
 
@@ -93393,66 +93265,52 @@ class HttpClient {
 const lib_lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
 //# sourceMappingURL=index.js.map
 ;// CONCATENATED MODULE: ./lib/releases.js
-var releases_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 class Releases {
+    client;
     constructor() {
         this.client = new HttpClient('Update Gradle Wrapper Action');
     }
-    fetchReleaseInformation(releaseChannel) {
-        return releases_awaiter(this, void 0, void 0, function* () {
-            const requestUrl = releaseChannel === 'release-candidate'
-                ? 'https://services.gradle.org/versions/release-candidate'
-                : 'https://services.gradle.org/versions/current';
-            const response = yield this.client.getJson(requestUrl);
-            core.debug(`statusCode: ${response.statusCode}`);
-            return yield this.mapResponse(response);
-        });
+    async fetchReleaseInformation(releaseChannel) {
+        const requestUrl = releaseChannel === 'release-candidate'
+            ? 'https://services.gradle.org/versions/release-candidate'
+            : 'https://services.gradle.org/versions/current';
+        const response = await this.client.getJson(requestUrl);
+        core.debug(`statusCode: ${response.statusCode}`);
+        return await this.mapResponse(response);
     }
-    mapResponse(response) {
-        return releases_awaiter(this, void 0, void 0, function* () {
-            const data = response.result;
-            if (data) {
-                core.debug(`current?: ${data.current}`);
-                const version = data.version;
-                core.debug(`version ${version}`);
-                core.debug(`checksumUrl: ${data.checksumUrl}`);
-                const distBinChecksum = yield this.fetch(data.checksumUrl);
-                core.debug(`distBinChecksum ${distBinChecksum}`);
-                const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
-                core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
-                const distAllChecksum = yield this.fetch(distAllChecksumUrl);
-                core.debug(`computed distAllChecksum ${distAllChecksum}`);
-                core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
-                const wrapperChecksum = yield this.fetch(data.wrapperChecksumUrl);
-                core.debug(`wrapperChecksum ${wrapperChecksum}`);
-                return {
-                    version,
-                    allChecksum: distAllChecksum,
-                    binChecksum: distBinChecksum,
-                    wrapperChecksum
-                };
-            }
-            throw new Error('Unable to fetch release data');
-        });
+    async mapResponse(response) {
+        const data = response.result;
+        if (data) {
+            core.debug(`current?: ${data.current}`);
+            const version = data.version;
+            core.debug(`version ${version}`);
+            core.debug(`checksumUrl: ${data.checksumUrl}`);
+            const distBinChecksum = await this.fetch(data.checksumUrl);
+            core.debug(`distBinChecksum ${distBinChecksum}`);
+            const distAllChecksumUrl = data.checksumUrl.replace('-bin.zip', '-all.zip');
+            core.debug(`computed distAllChecksumUrl: ${distAllChecksumUrl}`);
+            const distAllChecksum = await this.fetch(distAllChecksumUrl);
+            core.debug(`computed distAllChecksum ${distAllChecksum}`);
+            core.debug(`wrapperChecksumUrl: ${data.wrapperChecksumUrl}`);
+            const wrapperChecksum = await this.fetch(data.wrapperChecksumUrl);
+            core.debug(`wrapperChecksum ${wrapperChecksum}`);
+            return {
+                version,
+                allChecksum: distAllChecksum,
+                binChecksum: distBinChecksum,
+                wrapperChecksum
+            };
+        }
+        throw new Error('Unable to fetch release data');
     }
-    fetch(url) {
-        return releases_awaiter(this, void 0, void 0, function* () {
-            const response = yield this.client.get(url);
-            core.debug(`statusCode: ${response.message.statusCode}`);
-            const body = yield response.readBody();
-            core.debug(`body: ${body}`);
-            return body;
-        });
+    async fetch(url) {
+        const response = await this.client.get(url);
+        core.debug(`statusCode: ${response.message.statusCode}`);
+        const body = await response.readBody();
+        core.debug(`body: ${body}`);
+        return body;
     }
 }
 
