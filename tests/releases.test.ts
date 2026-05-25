@@ -12,9 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import nock from 'nock';
+import {jest} from '@jest/globals';
 
-import {Releases} from '../src/releases';
+import nock from 'nock';
+import * as path from 'path';
+import {fileURLToPath} from 'url';
+
+import {coreMock} from './mocks/core';
+
+import type {Releases} from '../src/releases';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+
+const {Releases} = await import('../src/releases');
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let releases: Releases;
 

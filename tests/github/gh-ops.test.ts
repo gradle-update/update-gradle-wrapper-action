@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as github from '@actions/github';
+import {jest} from '@jest/globals';
 
-import {GitHubOps} from '../../src/github/gh-ops';
-import {IGitHubApi} from '../../src/github/gh-api';
-import {Inputs} from '../../src/inputs/';
-import {Release} from '../../src/releases';
+import {coreMock} from '../mocks/core';
+import {githubMock} from '../mocks/github';
+
+import type {Inputs} from '../../src/inputs';
+import type {IGitHubApi} from '../../src/github/gh-api';
+import type {Release} from '../../src/releases';
+import type {GitHubOps} from '../../src/github/gh-ops';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+jest.unstable_mockModule('@actions/github', githubMock);
+
+const github = await import('@actions/github');
+const {GitHubOps} = await import('../../src/github/gh-ops');
 
 const defaultMockInputs: Inputs = {
   repoToken: 's3cr3t',
@@ -68,16 +77,9 @@ beforeEach(() => {
     }
   };
 
-  jest.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit);
+  jest.mocked(github.getOctokit).mockReturnValue(mockOctokit);
 
   githubOps = new GitHubOps(mockInputs, mockGitHubApi);
-
-  jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
-    return {
-      owner: 'owner-name',
-      repo: 'repo-name'
-    };
-  });
 });
 
 describe('createPullRequest', () => {

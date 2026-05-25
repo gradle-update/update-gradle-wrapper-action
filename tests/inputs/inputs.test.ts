@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as core from '@actions/core';
+import {jest} from '@jest/globals';
 
-import {getInputs} from '../../src/inputs';
+import {coreMock} from '../mocks/core';
 
-jest.mock('@actions/core');
+jest.unstable_mockModule('@actions/core', coreMock);
+
+const core = await import('@actions/core');
+const {getInputs} = await import('../../src/inputs');
 
 describe('getInputs', () => {
   let ymlInputs = {} as {[key: string]: string};
 
   beforeAll(() => {
-    jest.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    jest.mocked(core.getInput).mockImplementation((name: string) => {
       return ymlInputs[name] || '';
     });
   });

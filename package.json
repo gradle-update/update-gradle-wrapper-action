@@ -16,7 +16,7 @@
     "lint-check": "eslint .",
     "build": "tsc",
     "pack": "ncc build",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "all": "npm ls && npm run clean && npm run format && npm run lint && npm run build && npm run test && npm run pack"
   },
   "author": "Cristian Greco",

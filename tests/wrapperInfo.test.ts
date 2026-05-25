@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {jest} from '@jest/globals';
+
 import * as path from 'path';
 
-import {createWrapperInfo} from '../src/wrapperInfo';
+import {coreMock} from './mocks/core';
+
+jest.unstable_mockModule('@actions/core', coreMock);
+
+const {createWrapperInfo} = await import('../src/wrapperInfo');
 
 test('parses a valid properties file', () => {
   const propsPath = path.resolve('tests/data/gradle-wrapper.properties');
