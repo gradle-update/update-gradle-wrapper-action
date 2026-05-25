@@ -20,6 +20,7 @@ import {coreMock} from './mocks/core';
 
 jest.unstable_mockModule('@actions/core', coreMock);
 
+const core = await import('@actions/core');
 const {createWrapperInfo} = await import('../src/wrapperInfo');
 
 test('parses a valid properties file', () => {
@@ -38,4 +39,20 @@ test('parses a properties file with release candidate version', () => {
   const wrapperInfo = createWrapperInfo(propsPath);
   expect(wrapperInfo.version).toBe('7.0-rc-1');
   expect(wrapperInfo.distType).toBe('all');
+});
+
+test('props debug log replaces all newlines', () => {
+  const debugMock = core.debug as jest.Mock;
+  debugMock.mockClear();
+
+  const propsPath = path.resolve(
+    'tests/data/gradle-wrapper.multiline.properties'
+  );
+  createWrapperInfo(propsPath);
+
+  const propsCall = debugMock.mock.calls.find(
+    ([msg]) => typeof msg === 'string' && msg.startsWith('  props: ')
+  );
+  expect(propsCall).toBeDefined();
+  expect(propsCall![0]).not.toContain('\n');
 });

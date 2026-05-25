@@ -63,7 +63,7 @@ class WrapperInfo implements IWrapperInfo {
     );
 
     const props = readFileSync(path).toString();
-    core.debug(`  props: ${props.replace('\n', ' ')}`);
+    core.debug(`  props: ${props.replace(/\n/g, ' ')}`);
 
     const distributionUrl = props
       .trim()
