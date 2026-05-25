@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as store from './store';
+import * as store from './store/index.js';
 
-import {getInputs} from './inputs';
-import {GitHubApi} from './github/gh-api';
-import {GitHubOps} from './github/gh-ops';
-import {MainAction} from './tasks/main';
-import {PostAction} from './tasks/post';
-import {Releases} from './releases';
+import {getInputs} from './inputs/index.js';
+import {GitHubApi} from './github/gh-api.js';
+import {GitHubOps} from './github/gh-ops.js';
+import {MainAction} from './tasks/main.js';
+import {PostAction} from './tasks/post.js';
+import {Releases} from './releases.js';
 
 const inputs = getInputs();
 const githubApi = new GitHubApi(inputs.repoToken);

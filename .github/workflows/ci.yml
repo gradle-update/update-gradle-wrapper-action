@@ -20,8 +20,8 @@ jobs:
         with:
           node-version: 24
       - run: |
-          if [ ! -f dist/index.js ] || [ -z "$(ls -A dist/ 2>/dev/null)" ]; then
-            echo "Missing dist files"
+          if [ ! -f dist/index.js ]; then
+            echo "Missing dist file"
             ls -l dist/ || true
             exit 1
           fi

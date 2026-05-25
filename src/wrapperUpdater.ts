@@ -14,9 +14,9 @@
 
 import * as core from '@actions/core';
 
-import * as cmd from './cmd';
-import type {IWrapperInfo} from './wrapperInfo';
-import type {Release} from './releases';
+import * as cmd from './cmd.js';
+import type {IWrapperInfo} from './wrapperInfo.js';
+import type {Release} from './releases.js';
 
 export interface IWrapperUpdater {
   update: () => Promise<void>;

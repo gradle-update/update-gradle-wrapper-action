@@ -14,19 +14,19 @@
 
 import * as core from '@actions/core';
 
-import * as git from '../git/git-cmds';
-import * as gitAuth from '../git/git-auth';
-import * as store from '../store';
+import * as git from '../git/git-cmds.js';
+import * as gitAuth from '../git/git-auth.js';
+import * as store from '../store/index.js';
 
-import {commit} from '../git/git-commit';
-import {replaceVersionPlaceholders} from '../messages';
-import {createWrapperInfo} from '../wrapperInfo';
-import {createWrapperUpdater} from '../wrapperUpdater';
-import {findWrapperPropertiesFiles} from '../wrapper/find';
-import {GitHubOps} from '../github/gh-ops';
-import {IGitHubApi} from '../github/gh-api';
-import {Inputs} from '../inputs';
-import {Releases} from '../releases';
+import {commit} from '../git/git-commit.js';
+import {replaceVersionPlaceholders} from '../messages.js';
+import {createWrapperInfo} from '../wrapperInfo.js';
+import {createWrapperUpdater} from '../wrapperUpdater.js';
+import {findWrapperPropertiesFiles} from '../wrapper/find.js';
+import type {GitHubOps} from '../github/gh-ops.js';
+import type {IGitHubApi} from '../github/gh-api.js';
+import type {Inputs} from '../inputs/index.js';
+import type {Releases} from '../releases.js';
 
 export class MainAction {
   private inputs: Inputs;

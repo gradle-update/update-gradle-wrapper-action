@@ -15,8 +15,8 @@
 import * as core from '@actions/core';
 import * as glob from '@actions/glob';
 
-import {MatchKind} from '@actions/glob/lib/internal-match-kind';
-import {Pattern} from '@actions/glob/lib/internal-pattern';
+import {MatchKind} from '@actions/glob/lib/internal-match-kind.js';
+import {Pattern} from '@actions/glob/lib/internal-pattern.js';
 
 export async function findWrapperPropertiesFiles(
   pathsInclude: string[],

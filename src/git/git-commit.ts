@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as git from './git-cmds';
+import * as git from './git-cmds.js';
 
 export async function commit(files: string[], commitMessage: string) {
   await git.add(files);

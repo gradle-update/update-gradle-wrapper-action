@@ -14,7 +14,7 @@
 
 import * as core from '@actions/core';
 
-import * as cmd from '../cmd';
+import * as cmd from '../cmd.js';
 
 export async function gitDiffNameOnly(): Promise<string[]> {
   const {stdout} = await cmd.execWithOutput('git', ['diff', '--name-only']);

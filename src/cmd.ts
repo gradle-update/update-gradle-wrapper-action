@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as core from '@actions/core';
+import * as exec from '@actions/exec';
 
 export interface CmdExec {
   exitCode: number;
@@ -32,7 +33,6 @@ export async function execWithOutput(
 
   core.debug(`cmd opts: ${JSON.stringify(opts, null, 2)}`);
 
-  const exec = await import('@actions/exec');
   const {
     exitCode,
     stdout = '',

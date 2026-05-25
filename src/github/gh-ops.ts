@@ -14,14 +14,14 @@
 
 import * as core from '@actions/core';
 
-import {components} from '@octokit/openapi-types';
+import type {components} from '@octokit/openapi-types';
 import {context, getOctokit} from '@actions/github';
 
-import {Inputs} from '../inputs';
-import {PullRequestData} from '../store';
-import {replaceVersionPlaceholders, pullRequestText} from '../messages';
-import {Release} from '../releases';
-import {GitHubApi, IGitHubApi} from './gh-api';
+import type {Inputs} from '../inputs/index.js';
+import type {PullRequestData} from '../store/index.js';
+import {replaceVersionPlaceholders, pullRequestText} from '../messages.js';
+import type {Release} from '../releases.js';
+import {GitHubApi, type IGitHubApi} from './gh-api.js';
 
 const DEFAULT_LABEL = 'gradle-wrapper';
 
