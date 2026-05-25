@@ -20,9 +20,9 @@ jobs:
         with:
           node-version: 24
       - run: |
-          if [ ! -f dist/index.js ]; then
-            echo "Missing dist file"
-            ls -l dist/
+          if [ ! -f dist/index.js ] || [ -z "$(ls -A dist/ 2>/dev/null)" ]; then
+            echo "Missing dist files"
+            ls -l dist/ || true
             exit 1
           fi
       - run: npm ci
@@ -32,9 +32,10 @@ jobs:
       - run: npm run test
       - run: npm run pack
       - run: |
-          if [ "$(git diff --name-only | wc -l)" -gt "0" ]; then
-            echo "Detected uncommitted changes to:"
-            git diff
+          if [ -n "$(git status --porcelain dist/)" ]; then
+            echo "Detected uncommitted changes in dist/:"
+            git status --porcelain dist/
+            git diff dist/
             exit 1
           fi
       - uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1

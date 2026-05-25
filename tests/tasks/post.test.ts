@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as gitAuth from '../../src/git/git-auth';
 import * as store from '../../src/store';
 
 import {IGitHubApi} from '../../src/github/gh-api';
@@ -34,6 +35,8 @@ const defaultMockGitHubApi: IGitHubApi = {
 
 beforeEach(() => {
   mockGitHubApi = Object.create(defaultMockGitHubApi);
+
+  jest.spyOn(gitAuth, 'cleanup').mockImplementation();
 
   postAction = new PostAction(mockGitHubApi, {
     url: 'https://github.com/pull/42',
