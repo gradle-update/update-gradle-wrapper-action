@@ -2,9 +2,13 @@ version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
+    cooldown:
+      default-days: 3
     schedule:
-      interval: 'daily'
+      interval: 'weekly'
   - package-ecosystem: 'github-actions'
     directory: '/'
+    cooldown:
+      default-days: 3
     schedule:
-      interval: 'daily'
+      interval: 'weekly'
