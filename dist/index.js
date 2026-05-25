@@ -93955,7 +93955,7 @@ class WrapperInfo {
         this.withVerificationMetadataFile = (0,external_fs_.existsSync)(verificationMetadataFilePath);
         core_debug(`  withVerificationMetadataFile: ${this.withVerificationMetadataFile}`);
         const props = (0,external_fs_.readFileSync)(path).toString();
-        core_debug(`  props: ${props.replace('\n', ' ')}`);
+        core_debug(`  props: ${props.replace(/\n/g, ' ')}`);
         const distributionUrl = props
             .trim()
             .split('\n')
