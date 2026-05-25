@@ -14,7 +14,7 @@
 
 import * as core from '@actions/core';
 
-import * as store from '../store';
+import * as store from '../store/index.js';
 
 import {RequestError} from '@octokit/request-error';
 import {context, getOctokit} from '@actions/github';

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Release} from './releases';
+import {Release} from './releases.js';
 
 const ISSUES_URL =
   'https://github.com/gradle-update/update-gradle-wrapper-action/issues';

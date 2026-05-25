@@ -12,7 +12,13 @@ const __dirname = path.dirname(__filename);
 
 export default [
   {
-    ignores: ['**/dist/', '**/lib/', '**/node_modules/', 'jest.config.js']
+    ignores: [
+      '**/dist/',
+      '**/lib/',
+      '**/node_modules/',
+      'jest.config.cjs',
+      'tests/mocks/**'
+    ]
   },
   github.getFlatConfigs().recommended,
   {
