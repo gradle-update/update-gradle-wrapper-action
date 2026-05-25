@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "module": "commonjs",
+    "module": "node16",
+    "moduleResolution": "node16",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
     "removeComments": true,
     "diagnostics": true
   },
