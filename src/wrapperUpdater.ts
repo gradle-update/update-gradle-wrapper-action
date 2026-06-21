@@ -27,13 +27,15 @@ export function createWrapperUpdater(
   wrapper: IWrapperInfo,
   targetRelease: Release,
   setDistributionChecksum: boolean,
-  distributionsBaseUrl: string
+  distributionsBaseUrl: string,
+  additionalArguments: string[]
 ): IWrapperUpdater {
   return new WrapperUpdater(
     wrapper,
     targetRelease,
     setDistributionChecksum,
-    distributionsBaseUrl
+    distributionsBaseUrl,
+    additionalArguments
   );
 }
 
@@ -42,17 +44,20 @@ class WrapperUpdater implements IWrapperUpdater {
   private wrapper: IWrapperInfo;
   private readonly setDistributionChecksum: boolean;
   private readonly distributionsBaseUrl: string;
+  private readonly additionalArguments: string[];
 
   constructor(
     wrapper: IWrapperInfo,
     targetRelease: Release,
     setDistributionChecksum: boolean,
-    distributionsBaseUrl: string
+    distributionsBaseUrl: string,
+    additionalArguments: string[]
   ) {
     this.wrapper = wrapper;
     this.targetRelease = targetRelease;
     this.setDistributionChecksum = setDistributionChecksum;
     this.distributionsBaseUrl = distributionsBaseUrl;
+    this.additionalArguments = additionalArguments;
   }
 
   async update() {
@@ -83,6 +88,11 @@ class WrapperUpdater implements IWrapperUpdater {
     // Update verification data, if used
     if (this.wrapper.withVerificationMetadataFile) {
       args = args.concat(['--write-verification-metadata', 'sha256']);
+    }
+
+    // Add additional arguments at the end
+    if (this.additionalArguments.length > 0) {
+      args = args.concat(this.additionalArguments);
     }
 
     const {exitCode, stderr} = await cmd.execWithOutput(
