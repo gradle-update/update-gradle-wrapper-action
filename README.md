@@ -61,6 +61,10 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-gradle-wrapper:
     runs-on: ubuntu-latest
@@ -71,6 +75,11 @@ jobs:
       - name: Update Gradle Wrapper
         uses: gradle-update/update-gradle-wrapper-action@v2
 ```
+
+Ensure that you allow GitHub Actions to create and approve pull requests. To do
+this, navigate to "Settings", select "Actions" on the left. Select "General".
+Scroll down to the very end. Find "Allow GitHub Actions to create and approve
+pull requests". Enable it. Click on "Save".
 
 The action will run every day around midnight, check if a new Gradle version is
 available and create a Pull Request to update the Gradle Wrapper script.
