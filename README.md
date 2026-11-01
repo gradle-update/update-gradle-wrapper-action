@@ -8,7 +8,7 @@ your projects up-to-date to the latest release.
 
 Schedule an automatic daily or weekly workflow: as soon
 as a new Gradle release is available, the action will open a PR ready to be
-merged. It's like [Dependabot](https://github.com/dependabot) for Gradle Wrapper. 🤖✨
+merged. It's like [Dependabot](https://github.com/dependabot) _([differences](#differences-between-dependabot-and-this-action))_ for Gradle Wrapper. 🤖✨
 
 ![Pull
 Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9-11ea-8ec7-85c2704270eb.png
@@ -43,6 +43,7 @@ Request](https://user-images.githubusercontent.com/316923/93274006-8922ef80-f7b9
 - [FAQ](#faq)
   - [Running CI workflows in Pull Requests created by the action](#running-ci-workflows-in-pull-requests-created-by-the-action)
   - [Android Studio warning about `distributionSha256Sum`](#android-studio-warning-about-distributionsha256sum)
+  - [Differences between Dependabot and this action](#differences-between-dependabot-and-this-action)
 - [Debugging](#debugging)
 - [License](#license)
 
@@ -633,6 +634,25 @@ with:
   # not recommended
   set-distribution-checksum: false
 ```
+
+### Differences between Dependabot and this action
+
+| Feature | This action | Dependabot |
+|---|---|---|
+| Update Gradle Wrapper files | ✅ | ✅ |
+| Verify Wrapper JAR against Gradle's published SHA-256 | ✅ | Not explicitly |
+| Automatically add `distributionSha256Sum` if missing | ✅ | ❌ |
+| Update to Gradle release candidates | ✅ | ❌ |
+| Update multiple wrappers in a single PR | ✅ | Not typically |
+| Customize PR titles, descriptions, and commits | ✅ | Limited |
+| Update regular Gradle dependencies | ❌ | ✅ |
+
+**References:**
+- [Dependabot Gradle support](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+- [Dependabot Wrapper implementation](https://github.com/dependabot/dependabot-core/blob/85379652e4ef784fdd38bf4598b0b347832f805b/gradle/lib/dependabot/gradle/file_updater/wrapper_updater.rb)
+- [This action's Wrapper implementation](https://github.com/gradle-update/update-gradle-wrapper-action/blob/85bbdb42e8e67cb4a0d1bd9807cac43949039157/src/wrapperUpdater.ts)
+
+**Note:** Reference links above are to the commits on the 'main' branch of each repo as of `2026-11-01@1615UTC`, which is also when the table was created.
 
 ## Debugging
 
